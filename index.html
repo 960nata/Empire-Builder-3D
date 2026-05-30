@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Empire Builder 3D | Web RTS Game (Age of Empires Clone)</title>
+    <meta name="description" content="Experience a fully interactive 3D RTS game directly in your browser. Play Empire Builder 3D: gather wood, gold, stone, and food; construct buildings; train soldiers; and defeat waves of enemy attacks!" />
+    <meta name="keywords" content="RTS, Web Game, 3D Game, Age of Empires, Three.js, WebGL, Real Time Strategy" />
+    <meta name="author" content="Antigravity Team" />
+  </head>
+  <body>
+    <!-- Main Application Wrapper -->
+    <div id="app">
+      <!-- SEO Heading Hierarchy -->
+      <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
+        Empire Builder 3D - Online Web Real-Time Strategy Game
+      </h1>
+
+      <!-- Three.js Canvas Container -->
+      <div id="game-canvas-container"></div>
+      
+      <!-- HTML HUD GUI Overlay -->
+      <div id="hud"></div>
+
+      <!-- MAIN LOBBY OVERLAY -->
+      <div id="lobby-screen" class="lobby-overlay">
+        <div class="lobby-box glassmorphism">
+          <h2 class="lobby-title">EMPIRE BUILDER 3D</h2>
+          <p class="lobby-subtitle">Collaborative Web RTS Engine</p>
+          
+          <div class="setup-grid">
+            <!-- LEFT COLUMN: CIV SELECTION -->
+            <div class="setup-column">
+              <label for="select-civ" class="setup-label">Select Kingdom / Civilization</label>
+              <select id="select-civ" class="lobby-select">
+                <option value="inggris">🏰 Inggris (British) - Archer Range & Wood Speed</option>
+                <option value="prancis">⚔️ Prancis (Franks) - Cavalry HP & Cheap Castles</option>
+                <option value="mongol">🐎 Mongol (Mongols) - Cavalry Speed & Hunting</option>
+                <option value="jepang">⛩️ Jepang (Japanese) - Faster Infantry & Wood dropoffs</option>
+                <option value="tiongkok">🐉 Tiongkok (Chinese) - Start +2 Villagers, Cheap Tech</option>
+                <option value="saracen">🐫 Saracen (Saracens) - Camel attack & Market Trade</option>
+                <option value="spanyol">🇪🇸 Spanyol (Spanish) - Faster Builders & Gunpowder</option>
+                <option value="viking">⛵ Viking (Vikings) - Infantry HP & Cheap Docks</option>
+                <option value="bizantium">🛡️ Bizantium (Byzantines) - Building HP & Cheap Counter-units</option>
+                <option value="persia">🐘 Persia (Persians) - Faster Town Centers & Extra resources</option>
+                <option value="aztec">🐆 Aztec (Aztecs) - Fast Training & Monks carry more</option>
+                <option value="maya">🏹 Maya (Mayans) - Cheaper Archers & Long-lasting resources</option>
+                <option value="hun">⛺ Hun (Huns) - No Houses Needed & Cheap Horse Archers</option>
+                <option value="turki">💣 Turki (Turks) - Gunpowder HP & Free Chemistry</option>
+                <option value="kelt">☘️ Kelt (Celts) - Faster Infantry & Siege Fire Rate</option>
+                <option value="goth">🧟 Goth (Goths) - Very Cheap Infantry & Fast Training</option>
+                <option value="teuton">🛡️ Teuton (Teutons) - High Armor Infantry & Free Farms</option>
+              </select>
+              <div id="civ-details" class="civ-info-box">
+                <!-- Will be dynamically updated -->
+              </div>
+            </div>
+            
+            <!-- RIGHT COLUMN: MAP & SETTINGS -->
+            <div class="setup-column">
+              <label for="select-map" class="setup-label">Battle Location Map</label>
+              <select id="select-map" class="lobby-select">
+                <option value="river">Lembah Sungai (River Valley) - Crossings & Forests</option>
+                <option value="islands">Kepulauan Laut (Islands) - Separated Islands & Shallows</option>
+                <option value="coastal">Garis Pantai (Coastal) - Coastal Sea & Dense Inland Gold</option>
+                <option value="oasis">Gurun Oase (Oasis) - Sand Dunes & Central Lush Pool</option>
+              </select>
+              
+              <label for="select-mode" class="setup-label">Connection Mode</label>
+              <select id="select-mode" class="lobby-select">
+                <option value="single">Single Player vs AI</option>
+                <option value="multi" selected>Multiplayer Room (Simulated Voice & Chat)</option>
+              </select>
+              
+              <label for="select-graphics" class="setup-label">Graphics Quality</label>
+              <select id="select-graphics" class="lobby-select">
+                <option value="high" selected>High Graphics (Dynamic Shadows, Bloom, Fog)</option>
+                <option value="low">Optimized / Low Heat (No Shadows, Flat shading, Lightweight)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- SIMULATED MULTIPLAYER LOBBY PANEL -->
+          <div id="lobby-multiplayer-panel" class="multi-lobby-panel">
+            <h3>Active Lobby: <span class="room-tag">#AsiaPacific_Room4</span></h3>
+            <div class="player-slots-grid">
+              <div class="slot self"><span class="dot blue"></span> <span>You (Player 1)</span> <span class="slot-civ-badge" id="slot-self-civ">Inggris</span> <span class="ready-badge">Ready</span></div>
+              <div class="slot"><span class="dot green"></span> <span>GajahMada_35 (Ally)</span> <span class="slot-civ-badge">Jepang</span> <span id="slot-ally-status" class="ready-badge waiting">Connecting...</span></div>
+              <div class="slot"><span class="dot red"></span> <span>Lord_Kahn_Enemy (Enemy)</span> <span class="slot-civ-badge">Mongol</span> <span class="ready-badge">Ready</span></div>
+              <div class="slot"><span class="dot grey"></span> <span style="color:#aaa;">Nomad_Grey (Neutral)</span> <span class="slot-civ-badge">Bizantium</span> <span class="ready-badge">Ready</span></div>
+            </div>
+            <div class="lobby-chat-container">
+              <div id="lobby-chat-log" class="lobby-chat-log">
+                <div class="msg sys">System: Connected to matchmaking server. Waiting for players...</div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btn-launch" class="hud-btn large-btn launch-btn">LAUNCH REAL-TIME BATTLE</button>
+        </div>
+      </div>
+
+      <!-- MOBILE VIRTUAL CONTROLS OVERLAY (hidden on desktop) -->
+      <div id="mobile-controls-container" class="mobile-only-overlay">
+        <!-- LEFT: JOYSTICK FOR CAMERA PANNING -->
+        <div id="mobile-joystick-base" class="joystick-base">
+          <div id="mobile-joystick-handle" class="joystick-handle"></div>
+        </div>
+        
+        <!-- RIGHT: CAMERA ACTIONS -->
+        <div class="mobile-action-buttons">
+          <button id="mbtn-zoom-in" class="mobile-btn" title="Zoom In">🔍﹢</button>
+          <button id="mbtn-zoom-out" class="mobile-btn" title="Zoom Out">🔍﹣</button>
+          <button id="mbtn-rot-left" class="mobile-btn" title="Rotate Left">🔄↺</button>
+          <button id="mbtn-rot-right" class="mobile-btn" title="Rotate Right">🔄↻</button>
+          <button id="mbtn-select-mode" class="mobile-btn toggle-btn" title="Toggle Multiselect Mode">Box Select: OFF</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
