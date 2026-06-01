@@ -836,7 +836,11 @@ export class Unit {
       const target = this.targetEntity.position;
       const endPos = (this.path && this.path.length > 0) ? this.path[this.path.length - 1] : null;
       if (!endPos || endPos.distanceTo(target) > 2.0) {
-        this.startPathfinding(target.x, target.z);
+        const now = performance.now();
+        if (!this._lastChasingPathfindTime || (now - this._lastChasingPathfindTime > 500)) {
+          this.startPathfinding(target.x, target.z);
+          this._lastChasingPathfindTime = now;
+        }
       }
       
       let dist = this.position.distanceTo(this.targetEntity.position);

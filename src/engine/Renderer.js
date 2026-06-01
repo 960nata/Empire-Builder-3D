@@ -77,6 +77,13 @@ export class Renderer {
     this.container.appendChild(this.webGLRenderer.domElement);
   }
 
+  updateFogForMapSize(mapSize) {
+    if (this.scene && this.scene.fog) {
+      this.scene.fog.near = Math.max(70, mapSize * 0.25);
+      this.scene.fog.far = Math.max(150, mapSize * 0.65);
+    }
+  }
+
   setupLights() {
     // Ambient light: Soft warm fill
     const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.25);

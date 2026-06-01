@@ -131,6 +131,15 @@ export class Terrain {
         col.lerp(cSnow, snowT * 0.95);
       }
 
+      // Fade to black at map edges to make outside dark
+      const maxDistFromCenter = Math.max(Math.abs(x), Math.abs(z));
+      const edgeStart = this.mapSize * 0.45;
+      const edgeEnd = this.mapSize * 0.5;
+      if (maxDistFromCenter > edgeStart) {
+        const edgeFade = 1.0 - Math.min(1.0, (maxDistFromCenter - edgeStart) / (edgeEnd - edgeStart));
+        col.multiplyScalar(edgeFade);
+      }
+
       colors.push(col.r, col.g, col.b);
     }
 
@@ -360,6 +369,16 @@ export class Terrain {
           alpha = mix(alpha, 0.94, smoothstep(0.1, 0.8, depthT)); // deeper water is mostly opaque (94%)
           alpha = mix(alpha, 0.96, foam);                          // foam is fully opaque
           alpha = max(alpha, shoreFoam*0.85);                      // make sure shore foam remains visible
+
+          // Fade water to black at map edges to make outside dark
+          float maxDist = max(abs(vWorldPos.x), abs(vWorldPos.z));
+          float edgeStart = uMapSize * 0.45;
+          float edgeEnd = uMapSize * 0.5;
+          if (maxDist > edgeStart) {
+            float edgeFade = 1.0 - clamp((maxDist - edgeStart) / (edgeEnd - edgeStart), 0.0, 1.0);
+            waterColor *= edgeFade;
+            alpha = mix(1.0, alpha, edgeFade); // Fade to opaque black to blend into void background
+          }
 
           gl_FragColor = vec4(waterColor, clamp(alpha,0.,1.));
         }
@@ -683,34 +702,43 @@ export class Terrain {
 
     const half = this.mapSize / 2;
 
+    // Dynamic resource counting scaling with map size
+    // Forest density factor (0.0004) increases clusters, satisfying user request
+    const treeClustersCount = Math.max(35, Math.round(this.mapSize * this.mapSize * 0.0004));
+    const goldClustersCount = Math.max(15, Math.round(this.mapSize * this.mapSize * 0.0001));
+    const stoneClustersCount = Math.max(15, Math.round(this.mapSize * this.mapSize * 0.0001));
+    const fishCount = Math.max(12, Math.round(this.mapSize * this.mapSize * 0.0001));
+    const sheepCount = Math.max(16, Math.round(this.mapSize * this.mapSize * 0.00013));
+
     // Standard clusters distributed all over the massive terrain for exploration
-    // Wood forests scattered (35 clusters of 10-16 trees) - highly optimized via LOD
-    for (let c = 0; c < 35; c++) {
+    // Wood forests scattered - highly optimized via LOD
+    for (let c = 0; c < treeClustersCount; c++) {
       const rx = (Math.random() - 0.5) * (this.mapSize * 0.85);
       const rz = (Math.random() - 0.5) * (this.mapSize * 0.85);
       // Skip spawning directly at the center river channel if river valley
       if (this.mapType === 'river' && Math.abs(rx) < 22) continue;
-      spawnCluster(rx, rz, 10 + Math.floor(Math.random() * 7), 'wood', 10);
+      // Increased trees per cluster (12-21 trees) for denser forests
+      spawnCluster(rx, rz, 12 + Math.floor(Math.random() * 10), 'wood', 10);
     }
 
-    // Gold mines scattered (15 clusters of 4-6 veins)
-    for (let c = 0; c < 15; c++) {
+    // Gold mines scattered
+    for (let c = 0; c < goldClustersCount; c++) {
       const rx = (Math.random() - 0.5) * (this.mapSize * 0.75);
       const rz = (Math.random() - 0.5) * (this.mapSize * 0.75);
       if (this.mapType === 'river' && Math.abs(rx) < 18) continue;
       spawnCluster(rx, rz, 4 + Math.floor(Math.random() * 3), 'gold', 4);
     }
 
-    // Stone quarries scattered (15 clusters of 3-5 quarries)
-    for (let c = 0; c < 15; c++) {
+    // Stone quarries scattered
+    for (let c = 0; c < stoneClustersCount; c++) {
       const rx = (Math.random() - 0.5) * (this.mapSize * 0.75);
       const rz = (Math.random() - 0.5) * (this.mapSize * 0.75);
       if (this.mapType === 'river' && Math.abs(rx) < 18) continue;
       spawnCluster(rx, rz, 3 + Math.floor(Math.random() * 3), 'stone', 4);
     }
 
-    // Fish spawning (12 fish schools in deep water)
-    for (let f = 0; f < 12; f++) {
+    // Fish spawning
+    for (let f = 0; f < fishCount; f++) {
       for (let attempt = 0; attempt < 100; attempt++) {
         const rx = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));
         const rz = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));
@@ -723,8 +751,8 @@ export class Terrain {
       }
     }
 
-    // Sheep spawning (16 neutral sheep on land)
-    for (let s = 0; s < 16; s++) {
+    // Sheep spawning
+    for (let s = 0; s < sheepCount; s++) {
       for (let attempt = 0; attempt < 100; attempt++) {
         const rx = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));
         const rz = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));

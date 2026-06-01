@@ -330,6 +330,7 @@ export class GameManager {
     const selectPopLimit = document.getElementById('select-pop-limit');
     const selectAIDifficulty = document.getElementById('select-ai-difficulty');
     const selectGameSpeed = document.getElementById('select-game-speed');
+    const selectMapSize = document.getElementById('select-map-size');
 
     this.selectedCiv = selectCiv ? selectCiv.value : 'inggris';
     this.selectedMap = selectMap ? selectMap.value : 'river';
@@ -338,9 +339,10 @@ export class GameManager {
 
     // Advanced configs
     this.startingResourcesOption = selectResources ? selectResources.value : 'standard';
-    this.maxPopulationCap = selectPopLimit ? parseInt(selectPopLimit.value, 10) : 100;
+    this.maxPopulationCap = selectPopLimit ? parseInt(selectPopLimit.value, 10) : 1000;
     this.aiDifficulty = selectAIDifficulty ? selectAIDifficulty.value : 'normal';
     this.gameSpeedMultiplier = selectGameSpeed ? parseFloat(selectGameSpeed.value) : 1.0;
+    const mapSizeVal = selectMapSize ? parseInt(selectMapSize.value, 10) : 500;
 
     // Hide Lobby Overlay
     const lobbyScreen = document.getElementById('lobby-screen');
@@ -412,7 +414,12 @@ export class GameManager {
     // Setup Entities & Terrain
     this.entityManager = new EntityManager(this);
     // Custom map size (large like AoE)
-    this.terrain = new Terrain(this.renderer.scene, this, 350);
+    this.terrain = new Terrain(this.renderer.scene, this, mapSizeVal);
+
+    // Dynamically update fog bounds based on map size
+    if (this.renderer) {
+      this.renderer.updateFogForMapSize(mapSizeVal);
+    }
     
     // Setup Controls Input
     this.input = new Input(this.renderer, this);
@@ -659,7 +666,8 @@ export class GameManager {
 
     let bestNode = startNode;
     let iterations = 0;
-    const maxIterations = 350; // Cap search steps to keep frame rate perfect
+    // Scale search steps to support pathfinding across larger maps while preserving 60fps
+    const maxIterations = Math.max(350, Math.round(this.terrain.mapSize * 1.25));
 
     const isPassable = (x, z) => {
       // Map boundaries check

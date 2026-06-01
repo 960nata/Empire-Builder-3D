@@ -179,14 +179,23 @@
                   <label for="select-pop-limit" class="setup-label">Batas Maksimal Populasi</label>
                   <select id="select-pop-limit" class="lobby-select">
                     <option value="50">Skirmish (50 Unit)</option>
-                    <option value="100" selected>Standar Perang (100 Unit)</option>
+                    <option value="100">Standar Perang (100 Unit)</option>
                     <option value="200">Kolosal (200 Unit)</option>
                     <option value="300">Skala Penuh (300 Unit)</option>
+                    <option value="500">Kolosal Besar (500 Unit)</option>
+                    <option value="1000" selected>Kekaisaran Agung (1000 Unit)</option>
                   </select>
                 </div>
 
                 <!-- COLUMN 2: SPEED, MAP SIZE & DIFFICULTY -->
                 <div class="setup-column">
+                  <label for="select-map-size" class="setup-label">Ukuran Peta (Map Size)</label>
+                  <select id="select-map-size" class="lobby-select">
+                    <option value="350">Standar (350x350)</option>
+                    <option value="500" selected>Besar (500x500)</option>
+                    <option value="700">Raksasa (700x700)</option>
+                  </select>
+
                   <label for="select-ai-difficulty" class="setup-label">Tingkat Kesulitan AI Musuh</label>
                   <select id="select-ai-difficulty" class="lobby-select">
                     <option value="easy">Mudah (AI Pasif, Debuff Kumpul Lambat)</option>
