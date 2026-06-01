@@ -3771,8 +3771,6 @@ export class ModelFactory {
       bodyGroup.add(lArm, rArm);
     }
     
-    bodyGroup.add(sheepGroup);
-
     return group;
   }
 
