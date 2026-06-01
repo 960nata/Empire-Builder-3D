@@ -26,11 +26,35 @@ export class Input {
     // Build placement state
     this.blueprintBuilding = null;
     this.blueprintMesh = null;
+    this.blueprintPreviewMeshes = [];
+    this.wallDragStart = null;
+    
+    // Track if shift is held (for camera rotate via right-click)
+    this.shiftHeld = false;
     
     this.setupListeners();
   }
 
   setupListeners() {
+    // Track shift key for distinguishing right-click rotate vs command
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Shift') this.shiftHeld = true;
+      
+      // F key cycles formation
+      if (e.key === 'f' || e.key === 'F') {
+        // Don't cycle if chat input is focused
+        const chatInput = document.getElementById('chat-input-field');
+        if (chatInput && document.activeElement === chatInput) return;
+        
+        const newFormation = this.gameManager.cycleFormation();
+        this.gameManager.hud.showNotification(`Formation: ${this.gameManager.getFormationName(newFormation)}`);
+        this.gameManager.hud.updateSelectionUI();
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Shift') this.shiftHeld = false;
+    });
+    
     window.addEventListener('mousedown', this.onMouseDown.bind(this));
     window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('mouseup', this.onMouseUp.bind(this));
@@ -108,7 +132,6 @@ export class Input {
     const btnZoomOut = document.getElementById('mbtn-zoom-out');
     const btnRotLeft = document.getElementById('mbtn-rot-left');
     const btnRotRight = document.getElementById('mbtn-rot-right');
-    const btnSelectMode = document.getElementById('mbtn-select-mode');
 
     if (btnZoomIn) {
       btnZoomIn.addEventListener('click', () => {
@@ -136,22 +159,41 @@ export class Input {
     }
     
     this.mobileMultiselect = false;
+    const btnSelectMode = document.getElementById('mbtn-select-mode');
     if (btnSelectMode) {
       btnSelectMode.addEventListener('click', () => {
         this.mobileMultiselect = !this.mobileMultiselect;
-        btnSelectMode.textContent = this.mobileMultiselect ? 'Box Select: ON' : 'Box Select: OFF';
+        btnSelectMode.textContent = this.mobileMultiselect ? '☑ Multi' : '☐ Multi';
         btnSelectMode.classList.toggle('active', this.mobileMultiselect);
       });
     }
 
-    // Touch double-tap triggers command, single-tap triggers select
+    // Mobile formation cycle button
+    const btnFormation = document.getElementById('mbtn-formation');
+    if (btnFormation) {
+      btnFormation.addEventListener('click', () => {
+        const newFormation = this.gameManager.cycleFormation();
+        const name = this.gameManager.getFormationName(newFormation);
+        btnFormation.textContent = name;
+        btnFormation.classList.add('active');
+        setTimeout(() => btnFormation.classList.remove('active'), 300);
+        this.gameManager.hud.showNotification(`Formation: ${name}`);
+        this.gameManager.hud.updateSelectionUI();
+      });
+    }
+
+    // Touch: tap = select, double-tap = command, long-press = context action
     const canvasContainer = document.getElementById('game-canvas-container');
     this.lastTapTime = 0;
     this.tapTimeout = null;
+    this.longPressTimeout = null;
     
     if (canvasContainer) {
       canvasContainer.addEventListener('touchstart', (e) => {
+        // Ignore if tapping on UI elements or using joystick
         if (this.blueprintBuilding || e.target.closest('.joystick-base') || e.target.closest('.mobile-action-buttons')) return;
+        // Ignore two-finger gestures (handled by Renderer)
+        if (e.touches.length > 1) return;
         
         const now = performance.now();
         const delay = now - this.lastTapTime;
@@ -161,9 +203,17 @@ export class Input {
         this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
         this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
         
+        // Long press detection (for context menu / alternate actions)
+        if (this.longPressTimeout) clearTimeout(this.longPressTimeout);
+        this.longPressTimeout = setTimeout(() => {
+          // Long press triggers command (like right-click)
+          this.performRightClickCommand();
+        }, 500);
+        
         if (delay < 320) {
           if (this.tapTimeout) clearTimeout(this.tapTimeout);
-          // Trigger commands (represented by right click action)
+          if (this.longPressTimeout) clearTimeout(this.longPressTimeout);
+          // Double tap = command (right-click equivalent)
           this.performRightClickCommand();
         } else {
           this.tapTimeout = setTimeout(() => {
@@ -175,6 +225,21 @@ export class Input {
           }, 180);
         }
         this.lastTapTime = now;
+      }, { passive: true });
+      
+      // Cancel long press if finger moves
+      canvasContainer.addEventListener('touchmove', () => {
+        if (this.longPressTimeout) {
+          clearTimeout(this.longPressTimeout);
+          this.longPressTimeout = null;
+        }
+      }, { passive: true });
+      
+      canvasContainer.addEventListener('touchend', () => {
+        if (this.longPressTimeout) {
+          clearTimeout(this.longPressTimeout);
+          this.longPressTimeout = null;
+        }
       }, { passive: true });
     }
   }
@@ -210,14 +275,24 @@ export class Input {
 
   onMouseDown(e) {
     // Ignore if clicked on UI
-    if (e.target.closest('#hud') || e.target.closest('.ui-element') || e.button === 2) {
+    if (e.target.closest('#hud') || e.target.closest('.ui-element')) {
       return;
     }
 
-    if (e.button === 0) { // Left click
-      // If we are placing a blueprint building
+    if (e.button === 0 && !e.ctrlKey) { // Left click
       if (this.blueprintBuilding) {
-        this.placeBlueprint();
+        const type = this.blueprintBuilding.type;
+        if (type === 'palisadeWall' || type === 'stoneWall') {
+          const terrainHit = this.raycastToTerrain();
+          if (terrainHit) {
+            const snapX = Math.round(terrainHit.point.x);
+            const snapZ = Math.round(terrainHit.point.z);
+            this.wallDragStart = new THREE.Vector3(snapX, 0, snapZ);
+            this.blueprintPreviewMeshes = [];
+          }
+        } else {
+          this.placeBlueprint();
+        }
         return;
       }
 
@@ -255,24 +330,60 @@ export class Input {
     if (this.blueprintMesh) {
       const terrainHit = this.raycastToTerrain();
       if (terrainHit) {
-        // Snap to grid
         const snapX = Math.round(terrainHit.point.x);
         const snapZ = Math.round(terrainHit.point.z);
-        this.blueprintMesh.position.set(snapX, 0, snapZ);
         
-        // Update color based on check build collision
-        const isValid = this.gameManager.checkBuildPosition(snapX, snapZ, this.blueprintBuilding.type);
-        this.blueprintMesh.children.forEach(child => {
-          if (child.material) {
-            child.material.color.setHex(isValid ? 0x00ff00 : 0xff0000);
-          }
-        });
+        if (this.wallDragStart) {
+          // Hide single blueprint mesh
+          this.blueprintMesh.visible = false;
+          
+          // Clear old line preview meshes
+          this.clearPreviewMeshes();
+          
+          // Get line of cells
+          const cells = this.getLineCells(
+            Math.round(this.wallDragStart.x),
+            Math.round(this.wallDragStart.z),
+            snapX,
+            snapZ
+          );
+          
+          // Spawn preview mesh for each cell along the line
+          const factory = this.gameManager.modelFactory;
+          cells.forEach(cell => {
+            const preview = factory.createBuildingMesh(this.blueprintBuilding.type, 0);
+            preview.position.set(cell.x, 0, cell.z);
+            
+            const isValid = this.gameManager.checkBuildPosition(cell.x, cell.z, this.blueprintBuilding.type);
+            preview.traverse(child => {
+              if (child.isMesh) {
+                child.material = new THREE.MeshBasicMaterial({
+                  color: isValid ? 0x00ff00 : 0xff0000,
+                  transparent: true,
+                  opacity: 0.5
+                });
+              }
+            });
+            this.renderer.scene.add(preview);
+            this.blueprintPreviewMeshes.push(preview);
+          });
+        } else {
+          this.blueprintMesh.visible = true;
+          this.blueprintMesh.position.set(snapX, 0, snapZ);
+          
+          const isValid = this.gameManager.checkBuildPosition(snapX, snapZ, this.blueprintBuilding.type);
+          this.blueprintMesh.children.forEach(child => {
+            if (child.material) {
+              child.material.color.setHex(isValid ? 0x00ff00 : 0xff0000);
+            }
+          });
+        }
       }
     }
   }
 
   onMouseUp(e) {
-    if (e.button === 0 && this.isSelecting) {
+    if (e.button === 0 && !e.ctrlKey && this.isSelecting) {
       this.isSelecting = false;
       this.selectionBoxEl.style.display = 'none';
       
@@ -286,7 +397,40 @@ export class Input {
         // Box selection
         this.performBoxSelection();
       }
-    } else if (e.button === 2) { // Right click command
+    } else if (e.button === 0 && !e.ctrlKey && this.blueprintBuilding && this.wallDragStart) {
+      // Placing drag walls on mouse up!
+      const terrainHit = this.raycastToTerrain();
+      if (terrainHit) {
+        const snapX = Math.round(terrainHit.point.x);
+        const snapZ = Math.round(terrainHit.point.z);
+        
+        const cells = this.getLineCells(
+          Math.round(this.wallDragStart.x),
+          Math.round(this.wallDragStart.z),
+          snapX,
+          snapZ
+        );
+
+        let placedAny = false;
+        cells.forEach(cell => {
+          const cost = this.gameManager.getBuildingCost(this.blueprintBuilding.type);
+          if (this.gameManager.hasResources(0, cost)) {
+            if (this.gameManager.checkBuildPosition(cell.x, cell.z, this.blueprintBuilding.type)) {
+              const placed = this.gameManager.placeBuilding(cell.x, cell.z, this.blueprintBuilding.type);
+              if (placed) placedAny = true;
+            }
+          }
+        });
+
+        if (!placedAny) {
+          this.gameManager.hud.showNotification("Cannot build walls here! Terrain blocked or resources insufficient.");
+        }
+      }
+      this.clearPreviewMeshes();
+      this.cancelBuildPlacement();
+      this.wallDragStart = null;
+    } else if ((e.button === 2 || (e.button === 0 && e.ctrlKey)) && !this.shiftHeld) {
+      // Right click or Ctrl+click = COMMAND ONLY
       this.performRightClickCommand();
     }
   }
@@ -321,7 +465,59 @@ export class Input {
       this.renderer.scene.remove(this.blueprintMesh);
       this.blueprintMesh = null;
     }
+    this.clearPreviewMeshes();
     this.blueprintBuilding = null;
+    this.wallDragStart = null;
+  }
+
+  clearPreviewMeshes() {
+    if (this.blueprintPreviewMeshes) {
+      this.blueprintPreviewMeshes.forEach(mesh => {
+        this.renderer.scene.remove(mesh);
+        mesh.traverse(child => {
+          if (child.isMesh) {
+            child.geometry.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach(m => m.dispose());
+            } else if (child.material) {
+              child.material.dispose();
+            }
+          }
+        });
+      });
+      this.blueprintPreviewMeshes = [];
+    }
+  }
+
+  getLineCells(x1, z1, x2, z2) {
+    const cells = [];
+    const dx = Math.abs(x2 - x1);
+    const dz = Math.abs(z2 - z1);
+    const sx = (x1 < x2) ? 1 : -1;
+    const sz = (z1 < z2) ? 1 : -1;
+    let err = dx - dz;
+
+    let x = x1;
+    let z = z1;
+    
+    const maxSegments = 120;
+    let count = 0;
+
+    while (count < maxSegments) {
+      cells.push({ x, z });
+      if (x === x2 && z === z2) break;
+      const e2 = 2 * err;
+      if (e2 > -dz) {
+        err -= dz;
+        x += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        z += sz;
+      }
+      count++;
+    }
+    return cells;
   }
 
   placeBlueprint() {
@@ -357,15 +553,45 @@ export class Input {
     const intersects = this.raycaster.intersectObjects(clickables, true);
     
     if (intersects.length > 0) {
-      // Find top-level entity associated with hit mesh
-      let hitObj = intersects[0].object;
-      while (hitObj && !hitObj.userData.entity) {
-        hitObj = hitObj.parent;
+      const UNIT_TYPES = ['villager', 'swordsman', 'archer', 'knight', 'priest', 'trader', 'footKnight', 'heavyCavalry', 'horseArcher', 'fishingShip', 'sheep'];
+      
+      let bestEntity = null;
+      let playerUnitFound = false;
+      let anyUnitFound = false;
+
+      // Scan all intersections along the ray
+      for (let i = 0; i < intersects.length; i++) {
+        let hitObj = intersects[i].object;
+        while (hitObj && !hitObj.userData.entity) {
+          hitObj = hitObj.parent;
+        }
+        
+        if (hitObj && hitObj.userData.entity) {
+          const entity = hitObj.userData.entity;
+          const isUnit = UNIT_TYPES.includes(entity.type);
+          
+          if (isUnit) {
+            if (entity.playerId === 0) {
+              // Priority 1: Player unit
+              bestEntity = entity;
+              playerUnitFound = true;
+              break; // Stop immediately, this is the best selection
+            } else if (!playerUnitFound && !anyUnitFound) {
+              // Priority 2: Enemy or Ally unit
+              bestEntity = entity;
+              anyUnitFound = true;
+            }
+          } else {
+            // Priority 3: Static building or resource
+            if (!bestEntity) {
+              bestEntity = entity;
+            }
+          }
+        }
       }
       
-      if (hitObj && hitObj.userData.entity) {
-        const entity = hitObj.userData.entity;
-        this.gameManager.selectEntity(entity);
+      if (bestEntity) {
+        this.gameManager.selectEntity(bestEntity);
         return;
       }
     }
@@ -437,9 +663,12 @@ export class Input {
       
       // Spawn indicator
       let color = 0x00ffcc; // Default command
-      if (targetEntity.type === 'resource') color = 0xffd700; // Gold
+      const isResource = ['wood', 'gold', 'stone', 'food', 'sheep', 'fish'].includes(targetEntity.type);
+      const isBuilding = ['townCenter', 'barracks', 'house', 'temple', 'market', 'dock', 'farm', 'palisadeWall', 'palisadeGate', 'stoneWall', 'stoneGate', 'watchTower'].includes(targetEntity.type);
+
+      if (isResource) color = 0xffd700; // Gold
       else if (targetEntity.playerId === 1) color = 0xff0000; // Enemy attack
-      else if (targetEntity.type === 'building' && targetEntity.playerId === 0 && !targetEntity.isCompleted) color = 0x00ff00; // Repair/Build
+      else if (isBuilding && targetEntity.playerId === 0 && !targetEntity.isCompleted) color = 0x00ff00; // Repair/Build
       
       if (terrainHit) {
         this.spawnClickIndicator(terrainHit.point, color);

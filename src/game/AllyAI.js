@@ -45,11 +45,12 @@ export class AllyAI {
       this.gameManager.upgradePlayerAge(2);
     }
 
-    // 1. Train soldiers
-    this.trainTimer += deltaTime;
-    if (this.trainTimer >= this.trainInterval) {
-      this.trainTimer = 0;
-      this.trainSoldier();
+    // Coordinated AI Economy loop every 3 seconds
+    if (this.economyTimer === undefined) this.economyTimer = 0;
+    this.economyTimer += deltaTime;
+    if (this.economyTimer >= 3.0) {
+      this.economyTimer = 0;
+      this.manageEconomy();
     }
 
     // 2. Periodic chat banter
@@ -60,28 +61,225 @@ export class AllyAI {
     }
   }
 
-  trainSoldier() {
+  manageEconomy() {
     const em = this.gameManager.entityManager;
-    // Check population limits
-    const pop = this.gameManager.players[2].population;
-    const limit = this.gameManager.players[2].populationLimit;
-    
-    if (pop >= limit) {
-      // Spawn a house
-      const h = em.createBuilding('house', 2, this.baseX + (Math.random() - 0.5) * 8, this.baseZ + (Math.random() - 0.5) * 8, true);
-      this.gameManager.gridAddBuilding(h);
-      this.gameManager.players[2].populationLimit += 5;
-      return;
+    const allyState = this.gameManager.players[2];
+    const villagers = em.units.filter(u => u.playerId === 2 && u.type === 'villager' && u.state !== 'DEAD');
+    const villagerCount = villagers.length;
+    const resources = allyState.resources;
+    const pop = allyState.population;
+    const limit = allyState.populationLimit;
+    const maxCap = this.gameManager.maxPopulationCap;
+
+    // A. Rebuild Barracks if destroyed
+    const hasBarracks = em.buildings.some(b => b.playerId === 2 && b.type === 'barracks' && b.hp > 0);
+    if (!hasBarracks && resources.wood >= 120 && resources.stone >= 50) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'barracks');
+        if (spot) {
+          resources.wood -= 120;
+          resources.stone -= 50;
+          const b = em.createBuilding('barracks', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(b);
+          builder.commandBuild(b);
+          this.allyBaseBarracks = b;
+        }
+      }
     }
 
-    const spawnX = this.allyBaseBarracks.position.x;
-    const spawnZ = this.allyBaseBarracks.position.z - 2;
-    const soldier = em.createUnit('swordsman', 2, spawnX, spawnZ);
-    this.gameManager.players[2].population++;
+    // B. Task idle villagers to gather resources based on economy demand
+    villagers.forEach(v => {
+      if (v.state === 'IDLE') {
+        let targetType = 'wood';
+        if (resources.food < 250) targetType = 'food';
+        else if (resources.wood < 200) targetType = 'wood';
+        else if (resources.gold < 150) targetType = 'gold';
+        else if (resources.stone < 100) targetType = 'stone';
+        else {
+          const rand = Math.random();
+          if (rand < 0.35) targetType = 'food';
+          else if (rand < 0.70) targetType = 'wood';
+          else if (rand < 0.90) targetType = 'gold';
+          else targetType = 'stone';
+        }
+
+        let node = this.findNearestResourceNode(v.position, targetType);
+        if (!node) {
+          const types = ['food', 'wood', 'gold', 'stone'];
+          for (const t of types) {
+            if (t === targetType) continue;
+            node = this.findNearestResourceNode(v.position, t);
+            if (node) break;
+          }
+        }
+        if (!node) {
+          node = this.findNearestAnyResourceNode(v.position);
+        }
+        if (node) {
+          v.commandGather(node);
+        }
+      }
+    });
+
+    // Camp Builder (construct specialized dropoff camps near far resources)
+    if (resources.wood >= 150) {
+      const activeHarvesters = villagers.filter(v => v.state === 'HARVESTING' && v.targetEntity);
+      for (const v of activeHarvesters) {
+        const rType = v.targetEntity.type;
+        let campType = null;
+        let resGroup = null;
+        if (rType === 'wood') {
+          campType = 'lumberCamp';
+          resGroup = 'wood';
+        } else if (rType === 'gold' || rType === 'stone') {
+          campType = 'miningCamp';
+          resGroup = rType;
+        } else if (['sheep', 'fish', 'farm', 'food'].includes(rType)) {
+          campType = 'mill';
+          resGroup = 'food';
+        }
+        
+        if (campType) {
+          const nearestDropoff = this.gameManager.findNearestDropoff(v.targetEntity.position, 2, resGroup);
+          const dist = nearestDropoff ? v.targetEntity.position.distanceTo(nearestDropoff.position) : Infinity;
+          
+          if (dist > 16) {
+            const camps = em.buildings.filter(b => b.playerId === 2 && b.type === campType);
+            const hasCampNearby = camps.some(c => c.position.distanceTo(v.targetEntity.position) < 12);
+            
+            if (!hasCampNearby) {
+              const spot = this.findClearBuildSpot(v.targetEntity.position.x, v.targetEntity.position.z, campType);
+              if (spot) {
+                resources.wood -= 100;
+                const camp = em.createBuilding(campType, 2, spot.x, spot.z, false);
+                this.gameManager.gridAddBuilding(camp);
+                v.commandBuild(camp);
+                break; // only place one camp per cycle
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // C. House Builder (construct when population limit is near)
+    if (pop >= limit - 2 && limit < maxCap && resources.wood >= 50) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'house');
+        if (spot) {
+          resources.wood -= 50;
+          const h = em.createBuilding('house', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(h);
+          builder.commandBuild(h);
+          this.gameManager.addPopulationLimit(2, 5);
+        }
+      }
+    }
+
+    // C2. Build Watchtower for Defense
+    const towerCount = em.buildings.filter(b => b.playerId === 2 && b.type === 'watchTower').length;
+    if (towerCount < 3 && allyState.age !== 'dark' && resources.wood >= 150 && resources.stone >= 150) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const rx = this.baseX + (Math.random() - 0.5) * 16;
+        const rz = this.baseZ + (Math.random() - 0.5) * 16;
+        const spot = this.findClearBuildSpot(rx, rz, 'watchTower');
+        if (spot) {
+          resources.wood -= 100;
+          resources.stone -= 125;
+          const wt = em.createBuilding('watchTower', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(wt);
+          builder.commandBuild(wt);
+        }
+      }
+    }
+
+    // D. Train Villagers at Town Center
+    const maxVillagers = 12; // Ally standard
+    if (villagerCount < maxVillagers && this.allyBaseTC && this.allyBaseTC.queue.length === 0) {
+      const cost = this.gameManager.getUnitCost('villager');
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        this.allyBaseTC.queueUnit('villager');
+      }
+    }
+
+    // E. Train Soldiers at Barracks using Ally gathered resources
+    const barracks = em.buildings.find(b => b.playerId === 2 && b.type === 'barracks' && b.isCompleted);
+    if (barracks && barracks.queue.length < 3) {
+      const allyAge = allyState.age;
+      let unitToTrain = 'swordsman';
+      
+      if (allyAge === 'feudal') {
+        unitToTrain = Math.random() < 0.4 ? 'archer' : 'swordsman';
+      } else if (allyAge === 'castle' || allyAge === 'imperial') {
+        const rand = Math.random();
+        if (rand < 0.25) unitToTrain = 'archer';
+        else if (rand < 0.55) unitToTrain = 'knight';
+        else if (rand < 0.75) unitToTrain = 'footKnight';
+        else if (rand < 0.90) unitToTrain = 'horseArcher';
+        else unitToTrain = 'swordsman';
+      }
+      
+      const cost = this.gameManager.getUnitCost(unitToTrain);
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        barracks.queueUnit(unitToTrain);
+      }
+    }
+  }
+
+  findNearestResourceNode(pos, resourceType) {
+    const resources = this.gameManager.entityManager.resources;
+    let closestNode = null;
+    let closestDist = Infinity;
     
-    // Patrol base area by default
-    const offset = (Math.random() - 0.5) * 6;
-    soldier.commandMove(new THREE.Vector3(this.baseX + offset, 0, this.baseZ + offset));
+    resources.forEach(r => {
+      if (r.amount <= 0) return;
+      
+      let type = r.type;
+      if (['sheep', 'fish', 'farm'].includes(type)) type = 'food';
+      
+      if (type !== resourceType) return;
+      
+      const dist = r.position.distanceTo(pos);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestNode = r;
+      }
+    });
+    return closestNode;
+  }
+
+  findNearestAnyResourceNode(pos) {
+    const resources = this.gameManager.entityManager.resources;
+    let closestNode = null;
+    let closestDist = Infinity;
+    
+    resources.forEach(r => {
+      if (r.amount <= 0) return;
+      const dist = r.position.distanceTo(pos);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestNode = r;
+      }
+    });
+    return closestNode;
+  }
+
+  findClearBuildSpot(centerX, centerZ, buildingType) {
+    const radius = 8;
+    for (let attempts = 0; attempts < 30; attempts++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 5 + Math.random() * radius;
+      const x = Math.round(centerX + Math.cos(angle) * dist);
+      const z = Math.round(centerZ + Math.sin(angle) * dist);
+      
+      if (this.gameManager.checkBuildPosition(x, z, buildingType)) {
+        return { x, z };
+      }
+    }
+    return null;
   }
 
   sendBanter() {
@@ -122,7 +320,7 @@ export class AllyAI {
 
   commandAttackEnemy() {
     const em = this.gameManager.entityManager;
-    const allySoldiers = em.units.filter(u => u.playerId === 2 && u.type === 'swordsman');
+    const allySoldiers = em.units.filter(u => u.playerId === 2 && ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher'].includes(u.type));
     
     if (allySoldiers.length === 0) {
       this.gameManager.hud.addChatMessage("GajahMada_35", "Aduh cuy, pasukan gw lagi abis nih. Tunggu gw latih bentar!", 'ally');
@@ -150,7 +348,7 @@ export class AllyAI {
 
   commandDefendPlayer() {
     const em = this.gameManager.entityManager;
-    const allySoldiers = em.units.filter(u => u.playerId === 2 && u.type === 'swordsman');
+    const allySoldiers = em.units.filter(u => u.playerId === 2 && ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher'].includes(u.type));
     
     if (allySoldiers.length === 0) {
       this.gameManager.hud.addChatMessage("GajahMada_35", "Belum ada prajurit ready gan. Wait ya!", 'ally');

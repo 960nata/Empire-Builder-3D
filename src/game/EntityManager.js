@@ -80,6 +80,13 @@ export class EntityManager {
     for (let i = this.buildings.length - 1; i >= 0; i--) {
       this.buildings[i].update(deltaTime);
     }
+
+    // Tick animated resources (fish swimming, etc.)
+    for (let i = this.resources.length - 1; i >= 0; i--) {
+      if (typeof this.resources[i].update === 'function') {
+        this.resources[i].update(deltaTime);
+      }
+    }
   }
 
   updateSpatialGrid() {

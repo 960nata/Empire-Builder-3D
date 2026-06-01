@@ -10,6 +10,11 @@
     <meta name="description" content="Experience a fully interactive 3D RTS game directly in your browser. Play Empire Builder 3D: gather wood, gold, stone, and food; construct buildings; train soldiers; and defeat waves of enemy attacks!" />
     <meta name="keywords" content="RTS, Web Game, 3D Game, Age of Empires, Three.js, WebGL, Real Time Strategy" />
     <meta name="author" content="Antigravity Team" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <!-- Main Application Wrapper -->
@@ -27,74 +32,232 @@
 
       <!-- MAIN LOBBY OVERLAY -->
       <div id="lobby-screen" class="lobby-overlay">
+        <!-- Parallax Background Layers -->
+        <div class="parallax-container" id="lobby-parallax">
+          <div class="parallax-layer layer-bg" id="layer-stars"></div>
+          <div class="parallax-layer layer-castle" id="layer-castle">
+            <!-- Castle Silhouette SVG -->
+            <svg viewBox="0 0 1200 400" preserveAspectRatio="none">
+              <path d="M 0,400 L 0,330 L 30,330 L 30,310 L 60,310 L 60,330 L 90,330 L 90,260 L 110,260 L 110,220 L 140,220 L 140,260 L 160,260 L 160,330 L 220,330 L 220,280 L 250,240 L 280,280 L 280,330 L 350,330 L 350,150 L 370,150 L 370,110 L 400,110 L 400,150 L 420,150 L 420,330 L 480,330 L 480,300 L 510,300 L 510,330 L 580,330 L 580,220 L 600,190 L 620,220 L 620,330 L 690,330 L 690,170 L 710,170 L 710,120 L 740,120 L 740,170 L 765,170 L 765,330 L 850,330 L 850,270 L 880,270 L 880,330 L 950,330 L 950,220 L 980,180 L 1010,220 L 1010,330 L 1200,330 L 1200,400 Z" />
+              <path class="flag" d="M 125,220 L 125,185 L 145,195 Z" />
+              <path class="flag" d="M 385,110 L 385,65 L 410,80 Z" />
+              <path class="flag" d="M 725,120 L 725,75 L 750,90 Z" />
+            </svg>
+          </div>
+          <div class="parallax-layer layer-mist" id="layer-mist"></div>
+          <div class="parallax-layer layer-embers" id="layer-embers"></div>
+        </div>
+
         <div class="lobby-box glassmorphism">
-          <h2 class="lobby-title">EMPIRE BUILDER 3D</h2>
-          <p class="lobby-subtitle">Collaborative Web RTS Engine</p>
-          
-          <div class="setup-grid">
-            <!-- LEFT COLUMN: CIV SELECTION -->
-            <div class="setup-column">
-              <label for="select-civ" class="setup-label">Select Kingdom / Civilization</label>
-              <select id="select-civ" class="lobby-select">
-                <option value="inggris">🏰 Inggris (British) - Archer Range & Wood Speed</option>
-                <option value="prancis">⚔️ Prancis (Franks) - Cavalry HP & Cheap Castles</option>
-                <option value="mongol">🐎 Mongol (Mongols) - Cavalry Speed & Hunting</option>
-                <option value="jepang">⛩️ Jepang (Japanese) - Faster Infantry & Wood dropoffs</option>
-                <option value="tiongkok">🐉 Tiongkok (Chinese) - Start +2 Villagers, Cheap Tech</option>
-                <option value="saracen">🐫 Saracen (Saracens) - Camel attack & Market Trade</option>
-                <option value="spanyol">🇪🇸 Spanyol (Spanish) - Faster Builders & Gunpowder</option>
-                <option value="viking">⛵ Viking (Vikings) - Infantry HP & Cheap Docks</option>
-                <option value="bizantium">🛡️ Bizantium (Byzantines) - Building HP & Cheap Counter-units</option>
-                <option value="persia">🐘 Persia (Persians) - Faster Town Centers & Extra resources</option>
-                <option value="aztec">🐆 Aztec (Aztecs) - Fast Training & Monks carry more</option>
-                <option value="maya">🏹 Maya (Mayans) - Cheaper Archers & Long-lasting resources</option>
-                <option value="hun">⛺ Hun (Huns) - No Houses Needed & Cheap Horse Archers</option>
-                <option value="turki">💣 Turki (Turks) - Gunpowder HP & Free Chemistry</option>
-                <option value="kelt">☘️ Kelt (Celts) - Faster Infantry & Siege Fire Rate</option>
-                <option value="goth">🧟 Goth (Goths) - Very Cheap Infantry & Fast Training</option>
-                <option value="teuton">🛡️ Teuton (Teutons) - High Armor Infantry & Free Farms</option>
-              </select>
-              <div id="civ-details" class="civ-info-box">
-                <!-- Will be dynamically updated -->
-              </div>
-            </div>
-            
-            <!-- RIGHT COLUMN: MAP & SETTINGS -->
-            <div class="setup-column">
-              <label for="select-map" class="setup-label">Battle Location Map</label>
-              <select id="select-map" class="lobby-select">
-                <option value="river">Lembah Sungai (River Valley) - Crossings & Forests</option>
-                <option value="islands">Kepulauan Laut (Islands) - Separated Islands & Shallows</option>
-                <option value="coastal">Garis Pantai (Coastal) - Coastal Sea & Dense Inland Gold</option>
-                <option value="oasis">Gurun Oase (Oasis) - Sand Dunes & Central Lush Pool</option>
-              </select>
-              
-              <label for="select-mode" class="setup-label">Connection Mode</label>
-              <select id="select-mode" class="lobby-select">
-                <option value="single">Single Player vs AI</option>
-                <option value="multi" selected>Multiplayer Room (Simulated Voice & Chat)</option>
-              </select>
-              
-              <label for="select-graphics" class="setup-label">Graphics Quality</label>
-              <select id="select-graphics" class="lobby-select">
-                <option value="high" selected>High Graphics (Dynamic Shadows, Bloom, Fog)</option>
-                <option value="low">Optimized / Low Heat (No Shadows, Flat shading, Lightweight)</option>
-              </select>
-            </div>
+          <div class="lobby-header">
+            <h2 class="lobby-title">EMPIRE BUILDER 3D</h2>
+            <p class="lobby-subtitle">Medieval Web Real-Time Strategy Engine</p>
           </div>
 
-          <!-- SIMULATED MULTIPLAYER LOBBY PANEL -->
-          <div id="lobby-multiplayer-panel" class="multi-lobby-panel">
-            <h3>Active Lobby: <span class="room-tag">#AsiaPacific_Room4</span></h3>
-            <div class="player-slots-grid">
-              <div class="slot self"><span class="dot blue"></span> <span>You (Player 1)</span> <span class="slot-civ-badge" id="slot-self-civ">Inggris</span> <span class="ready-badge">Ready</span></div>
-              <div class="slot"><span class="dot green"></span> <span>GajahMada_35 (Ally)</span> <span class="slot-civ-badge">Jepang</span> <span id="slot-ally-status" class="ready-badge waiting">Connecting...</span></div>
-              <div class="slot"><span class="dot red"></span> <span>Lord_Kahn_Enemy (Enemy)</span> <span class="slot-civ-badge">Mongol</span> <span class="ready-badge">Ready</span></div>
-              <div class="slot"><span class="dot grey"></span> <span style="color:#aaa;">Nomad_Grey (Neutral)</span> <span class="slot-civ-badge">Bizantium</span> <span class="ready-badge">Ready</span></div>
+          <!-- LOBBY TABS NAVIGATION -->
+          <div class="lobby-tabs">
+            <button class="tab-btn active" id="btn-tab-setup" data-tab="tab-setup">
+              <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Setup Pertempuran
+            </button>
+            <button class="tab-btn" id="btn-tab-settings" data-tab="tab-settings">
+              <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Aturan Lanjutan
+            </button>
+            <button class="tab-btn" id="btn-tab-encyclopedia" data-tab="tab-encyclopedia">
+              <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Ensiklopedia Faksi
+            </button>
+            <button class="tab-btn" id="btn-tab-academy" data-tab="tab-academy">
+              <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Akademi Militer
+            </button>
+          </div>
+
+          <div class="tab-content-container">
+            <!-- TAB 1: LOBBY SETUP -->
+            <div id="tab-setup" class="tab-content active">
+              <div class="setup-grid">
+                <!-- COLUMN 1: CIV SELECTION -->
+                <div class="setup-column">
+                  <label for="select-civ" class="setup-label">Pilih Peradaban / Kingdom</label>
+                  <select id="select-civ" class="lobby-select">
+                    <option value="inggris">🏰 Inggris (British) - Jarak Archer & Tebas Kayu</option>
+                    <option value="prancis">⚔️ Prancis (Franks) - HP Kavaleri & Kastil Murah</option>
+                    <option value="mongol">🐎 Mongol (Mongols) - Speed Kavaleri & Berburu</option>
+                    <option value="jepang">⛩️ Jepang (Japanese) - Kecepatan Infantri & Kayu Efisien</option>
+                    <option value="tiongkok">🐉 Tiongkok (Chinese) - Awal +2 Villagers & Riset Murah</option>
+                    <option value="saracen">🐫 Saracen (Saracens) - Camel Attack & Market Dagang</option>
+                    <option value="spanyol">🇪🇸 Spanyol (Spanish) - Pendirian Cepat & Mesiu</option>
+                    <option value="viking">⛵ Viking (Vikings) - HP Infantri & Pelabuhan Murah</option>
+                    <option value="bizantium">🛡️ Bizantium (Byzantines) - HP Struktur & Kaunter Murah</option>
+                    <option value="persia">🐘 Persia (Persians) - Town Center Cepat & Bonus Starter</option>
+                    <option value="aztec">🐆 Aztec (Aztecs) - Latih Cepat & Villager Angkut Banyak</option>
+                    <option value="maya">🏹 Maya (Mayans) - Archer Murah & Sumber Daya Tahan Lama</option>
+                    <option value="hun">⛺ Hun (Huns) - Tanpa Perlu Rumah & Archer Berkuda Murah</option>
+                    <option value="turki">💣 Turki (Turks) - HP Mesiu & Kimia Gratis</option>
+                    <option value="kelt">☘️ Kelt (Celts) - Gerakan Infantri & Siege Cepat</option>
+                    <option value="goth">🧟 Goth (Goths) - Infantri Murah & Latih Super Instan</option>
+                    <option value="teuton">🛡️ Teuton (Teutons) - Armor Infantri Tebal & Kebun Gratis</option>
+                    <option value="roma">🏛️ Roma (Romans) - HP Watchtower & Armor Infantri</option>
+                  </select>
+                  <div id="civ-details" class="civ-info-box">
+                    <!-- Loaded dynamically -->
+                  </div>
+                </div>
+                
+                <!-- COLUMN 2: MAP & GRAPHICS -->
+                <div class="setup-column">
+                  <label for="select-map" class="setup-label">Lokasi Peta Pertempuran</label>
+                  <select id="select-map" class="lobby-select">
+                    <option value="river">Lembah Sungai (River Valley)</option>
+                    <option value="islands">Kepulauan Laut (Islands)</option>
+                    <option value="coastal">Garis Pantai Pasifik (Coastal Sea)</option>
+                    <option value="oasis">Oase Gurun Pasir (Desert Oasis)</option>
+                  </select>
+                  
+                  <label for="select-mode" class="setup-label">Mode Koneksi Match</label>
+                  <select id="select-mode" class="lobby-select">
+                    <option value="single">Single Player vs AI</option>
+                    <option value="multi" selected>Multiplayer Room (Simulated Match)</option>
+                  </select>
+                  
+                  <label for="select-graphics" class="setup-label">Kualitas Grafis Rendering</label>
+                  <select id="select-graphics" class="lobby-select">
+                    <option value="high" selected>High Detail (Shadows, Fog, Shader)</option>
+                    <option value="low">Optimized (No Shadows, Flat Shading)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- SIMULATED MULTIPLAYER LOBBY PANEL -->
+              <div id="lobby-multiplayer-panel" class="multi-lobby-panel">
+                <h3>Active Room: <span class="room-tag">#AsiaPacific_Room4</span></h3>
+                <div class="player-slots-grid">
+                  <div class="slot self">
+                    <span class="dot blue"></span> 
+                    <span>You (Player 1)</span> 
+                    <span class="slot-civ-badge" id="slot-self-civ">Inggris</span> 
+                    <span class="ready-badge">Ready</span>
+                  </div>
+                  <div class="slot">
+                    <span class="dot green"></span> 
+                    <span>GajahMada_35 (Ally)</span> 
+                    <span class="slot-civ-badge">Jepang</span> 
+                    <span id="slot-ally-status" class="ready-badge waiting">Connecting...</span>
+                  </div>
+                  <div class="slot">
+                    <span class="dot red"></span> 
+                    <span>Lord_Kahn_Enemy (Enemy)</span> 
+                    <span class="slot-civ-badge">Mongol</span> 
+                    <span class="ready-badge">Ready</span>
+                  </div>
+                  <div class="slot">
+                    <span class="dot grey"></span> 
+                    <span style="color:#aaa;">Nomad_Grey (Neutral)</span> 
+                    <span class="slot-civ-badge">Bizantium</span> 
+                    <span class="ready-badge">Ready</span>
+                  </div>
+                </div>
+                <div class="lobby-chat-container">
+                  <div id="lobby-chat-log" class="lobby-chat-log">
+                    <div class="msg sys">System: Terhubung ke Matchmaking Server. Menunggu sekutu...</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="lobby-chat-container">
-              <div id="lobby-chat-log" class="lobby-chat-log">
-                <div class="msg sys">System: Connected to matchmaking server. Waiting for players...</div>
+
+            <!-- TAB 2: ADVANCED SETTINGS -->
+            <div id="tab-settings" class="tab-content">
+              <div class="setup-grid">
+                <!-- COLUMN 1: RESOURCES & POPULATION -->
+                <div class="setup-column">
+                  <label for="select-resources" class="setup-label">Sumber Daya Awal (Starting Resources)</label>
+                  <select id="select-resources" class="lobby-select">
+                    <option value="low">Rendah (200 Wood, 150 Food, 100 Gold)</option>
+                    <option value="standard" selected>Standar (500 Wood, 500 Food, 300 Gold)</option>
+                    <option value="high">Tinggi (1500 Wood, 1500 Food, 1000 Gold)</option>
+                    <option value="deathmatch">Deathmatch (10000 All Resources)</option>
+                  </select>
+
+                  <label for="select-pop-limit" class="setup-label">Batas Maksimal Populasi</label>
+                  <select id="select-pop-limit" class="lobby-select">
+                    <option value="50">Skirmish (50 Unit)</option>
+                    <option value="100" selected>Standar Perang (100 Unit)</option>
+                    <option value="200">Kolosal (200 Unit)</option>
+                    <option value="300">Skala Penuh (300 Unit)</option>
+                  </select>
+                </div>
+
+                <!-- COLUMN 2: SPEED, MAP SIZE & DIFFICULTY -->
+                <div class="setup-column">
+                  <label for="select-ai-difficulty" class="setup-label">Tingkat Kesulitan AI Musuh</label>
+                  <select id="select-ai-difficulty" class="lobby-select">
+                    <option value="easy">Mudah (AI Pasif, Debuff Kumpul Lambat)</option>
+                    <option value="normal" selected>Normal (AI Standar, Taktikal)</option>
+                    <option value="hard">Sukar (AI Agresif, Buff Latih & Serang Cepat)</option>
+                  </select>
+
+                  <label for="select-game-speed" class="setup-label">Kecepatan Jalannya Game (Game Speed)</label>
+                  <select id="select-game-speed" class="lobby-select">
+                    <option value="1.0" selected>Normal (1.0x)</option>
+                    <option value="1.5">Cepat (1.5x)</option>
+                    <option value="2.0">Turbo (2.0x)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="settings-disclaimer">
+                <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .4 2.5 1.5 3.5.7.8 1.3 1.5 1.5 2.5M9 18h6M10 22h4"/></svg> <span style="color: #bbb;">Aturan lanjutan ini akan dikunci ketika pertempuran dimulai dan mempengaruhi taktik bermain.</span>
+              </div>
+            </div>
+
+            <!-- TAB 3: ENCYCLOPEDIA -->
+            <div id="tab-encyclopedia" class="tab-content">
+              <div class="encyclopedia-container">
+                <div class="encyclopedia-info">
+                  <h3 id="encyclopedia-title"><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M22 20v-8H2v8M6 12V4h12v8M10 20v-5a2 2 0 0 1 4 0v5"/></svg> Kekaisaran Inggris (British)</h3>
+                  <p id="encyclopedia-description">Mewakili kekuatan pemanah ulung dari pulau Britania Raya. Memiliki keuntungan jangkauan tembakan terjauh untuk unit busur.</p>
+                  <div class="encyclopedia-stats">
+                    <div class="stat-card">
+                      <span class="stat-icon"><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M6 3c0 0 12 1 12 9s-12 9-12 9M18 12H3M7 8l-4 4 4 4"/></svg></span>
+                      <span class="stat-name">Unit Khas</span>
+                      <span class="stat-value" id="encyclopedia-unit">Longbowman</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-icon"><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M12 22V12M12 12c-2.5 0-4.5-2-4.5-4.5S9.5 3 12 3s4.5 2 4.5 4.5S14.5 12 12 12z"/></svg></span>
+                      <span class="stat-name">Keunggulan Utama</span>
+                      <span class="stat-value" id="encyclopedia-bonus">Tebang Kayu +15%</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-icon"><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                      <span class="stat-name">Fokus Taktik</span>
+                      <span class="stat-value" id="encyclopedia-focus">Bertahan (Defensive)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 4: MILITARY ACADEMY -->
+            <div id="tab-academy" class="tab-content">
+              <div class="academy-layout">
+                <div class="academy-section">
+                  <h4><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><rect x="2" y="6" width="20" height="12" rx="3"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg> Panduan Kontrol & Hotkey</h4>
+                  <table class="academy-table">
+                    <tr><th>Aksi</th><th>Input / Tombol</th></tr>
+                    <tr><td>Memilih Unit</td><td>Klik Kiri Mouse</td></tr>
+                    <tr><td>Perintah (Pindah/Serang/Kumpul)</td><td>Klik Kanan Mouse</td></tr>
+                    <tr><td>Seleksi Banyak Unit</td><td>Klik Kiri + Tarik Kotak (Drag Box)</td></tr>
+                    <tr><td>Menggerakkan Kamera</td><td>Tombol WASD atau Arah Panah</td></tr>
+                    <tr><td>Rotasi Kamera 3D</td><td>Tahan Tombol Shift + Gerakkan Mouse</td></tr>
+                    <tr><td>Zooming Kamera</td><td>Scroll Wheel Mouse</td></tr>
+                  </table>
+                </div>
+                <div class="academy-section">
+                  <h4><svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"><circle cx="12" cy="5" r="3"/><line x1="12" y1="8" x2="12" y2="22"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="12" r="1"/></svg> Mekanika Perikanan & Kebun</h4>
+                  <ul class="academy-list">
+                    <li><strong>Dermaga (Dock):</strong> Harus diletakkan di tepian pantai (perbatasan air & darat). Memproduksi Kapal Pancing (Fishing Ship).</li>
+                    <li><strong>Kapal Pancing:</strong> Hanya bisa bergerak di air untuk mengambil ikan dan mengantarkannya kembali ke Dermaga.</li>
+                    <li><strong>Ladang Kebun (Farm):</strong> Ladang pangan daratan. Setelah habis/kering, klik Villager lalu arahkan ke kebun untuk menanam ulang (reseed).</li>
+                    <li><strong>Peternakan Domba:</strong> Dekati domba liar di map untuk menjinakkannya. Arahkan Villager untuk memotong domba demi makanan berkecepatan tinggi.</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
@@ -116,7 +279,8 @@
           <button id="mbtn-zoom-out" class="mobile-btn" title="Zoom Out">🔍﹣</button>
           <button id="mbtn-rot-left" class="mobile-btn" title="Rotate Left">🔄↺</button>
           <button id="mbtn-rot-right" class="mobile-btn" title="Rotate Right">🔄↻</button>
-          <button id="mbtn-select-mode" class="mobile-btn toggle-btn" title="Toggle Multiselect Mode">Box Select: OFF</button>
+          <button id="mbtn-select-mode" class="mobile-btn toggle-btn" title="Toggle Multiselect Mode">☐ Multi</button>
+          <button id="mbtn-formation" class="mobile-btn toggle-btn" title="Cycle Formation">▣ Box</button>
         </div>
       </div>
     </div>

@@ -2,12 +2,14 @@ export class SoundManager {
   constructor() {
     this.ctx = null;
     this.enabled = true;
+    this.musicInterval = null;
   }
 
   init() {
     if (this.ctx) return;
     try {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.startBackgroundMusic();
     } catch (e) {
       console.warn("Web Audio API not supported in this browser");
     }
@@ -15,7 +17,71 @@ export class SoundManager {
 
   toggleSound() {
     this.enabled = !this.enabled;
+    if (this.enabled) {
+      this.startBackgroundMusic();
+    } else {
+      this.stopBackgroundMusic();
+    }
     return this.enabled;
+  }
+
+  startBackgroundMusic() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    if (this.musicInterval) return; // Already playing
+
+    const playNote = (freq, startTime, duration, volume) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+      
+      gain.gain.setValueAtTime(0.0, startTime);
+      gain.gain.linearRampToValueAtTime(volume, startTime + 0.5); // Slow attack
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration); // Slow decay
+      
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+
+    // Progression of ambient chords (D minor, F major, C major, G major)
+    const progressions = [
+      [146.83, 220.00, 293.66, 349.23], // Dm (D3, A3, D4, F4)
+      [174.61, 261.63, 349.23, 440.00], // F (F3, C4, F4, A4)
+      [130.81, 196.00, 261.63, 329.63], // C (C3, G3, C4, E4)
+      [196.00, 293.66, 392.00, 493.88]  // G (G3, D4, G4, B4)
+    ];
+
+    let chordIndex = 0;
+    
+    const playNextChord = () => {
+      if (!this.enabled) return;
+      const now = this.ctx.currentTime;
+      const chord = progressions[chordIndex];
+      
+      chord.forEach((freq, idx) => {
+        const delay = idx * 0.15; // slightly arpeggiated
+        const volume = idx === 0 ? 0.04 : 0.025; // soft ambient levels
+        playNote(freq, now + delay, 8.0, volume);
+      });
+      
+      chordIndex = (chordIndex + 1) % progressions.length;
+    };
+
+    playNextChord();
+    this.musicInterval = setInterval(playNextChord, 8000);
+  }
+
+  stopBackgroundMusic() {
+    if (this.musicInterval) {
+      clearInterval(this.musicInterval);
+      this.musicInterval = null;
+    }
   }
 
   playClickSound(type) {
@@ -86,6 +152,61 @@ export class SoundManager {
     else if (type === 'hit') {
       // Noise splash for sword attack
       this.playNoiseSlash();
+    }
+    else if (type === 'arrow') {
+      // Bow Twang
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.16);
+
+      // Noise component (whistle / rush of air)
+      const bufferSize = this.ctx.sampleRate * 0.15;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000, now);
+      filter.frequency.exponentialRampToValueAtTime(1800, now + 0.15);
+      filter.Q.setValueAtTime(5, now);
+      
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.06, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.16);
+    }
+    else if (type === 'gallop') {
+      // Woodblock/hoof clop (double knock: ta-top)
+      const playClop = (timeOffset, pitch, vol) => {
+        const oscClop = this.ctx.createOscillator();
+        const gainClop = this.ctx.createGain();
+        oscClop.type = 'triangle';
+        oscClop.frequency.setValueAtTime(pitch, now + timeOffset);
+        oscClop.frequency.exponentialRampToValueAtTime(pitch - 80, now + timeOffset + 0.05);
+        gainClop.gain.setValueAtTime(vol, now + timeOffset);
+        gainClop.gain.exponentialRampToValueAtTime(0.005, now + timeOffset + 0.05);
+        
+        oscClop.connect(gainClop);
+        gainClop.connect(this.ctx.destination);
+        oscClop.start(now + timeOffset);
+        oscClop.stop(now + timeOffset + 0.06);
+      };
+      
+      playClop(0.0, 160, 0.12);
+      playClop(0.06, 130, 0.10);
     }
   }
 
