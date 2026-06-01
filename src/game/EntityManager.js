@@ -60,9 +60,15 @@ export class EntityManager {
 
   getClickableMeshes() {
     const meshes = [];
-    this.units.forEach(u => meshes.push(u.mesh));
-    this.buildings.forEach(b => meshes.push(b.mesh));
-    this.resources.forEach(r => meshes.push(r.mesh));
+    this.units.forEach(u => {
+      if (u.mesh && u.mesh.visible) meshes.push(u.mesh);
+    });
+    this.buildings.forEach(b => {
+      if (b.mesh && b.mesh.visible) meshes.push(b.mesh);
+    });
+    this.resources.forEach(r => {
+      if (r.mesh && r.mesh.visible) meshes.push(r.mesh);
+    });
     return meshes;
   }
 

@@ -196,6 +196,348 @@ export class AllyAI {
       }
     }
 
+    // D2. Build Blacksmith
+    const hasBlacksmith = em.buildings.some(b => b.playerId === 2 && b.type === 'blacksmith' && b.hp > 0);
+    if (!hasBlacksmith && allyState.age !== 'dark' && resources.wood >= 150) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'blacksmith');
+        if (spot) {
+          resources.wood -= 150;
+          const bs = em.createBuilding('blacksmith', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(bs);
+          builder.commandBuild(bs);
+        }
+      }
+    }
+
+    // D2a. Build Stable
+    const hasStable = em.buildings.some(b => b.playerId === 2 && b.type === 'stable' && b.hp > 0);
+    if (!hasStable && allyState.age !== 'dark' && resources.wood >= 175) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'stable');
+        if (spot) {
+          resources.wood -= 175;
+          const b = em.createBuilding('stable', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(b);
+          builder.commandBuild(b);
+        }
+      }
+    }
+
+    // D2b. Build Archery Range
+    const hasArcheryRange = em.buildings.some(b => b.playerId === 2 && b.type === 'archeryRange' && b.hp > 0);
+    if (!hasArcheryRange && allyState.age !== 'dark' && resources.wood >= 175) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'archeryRange');
+        if (spot) {
+          resources.wood -= 175;
+          const b = em.createBuilding('archeryRange', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(b);
+          builder.commandBuild(b);
+        }
+      }
+    }
+
+    // D3. Build University
+    const hasUniversity = em.buildings.some(b => b.playerId === 2 && b.type === 'university' && b.hp > 0);
+    if (!hasUniversity && allyState.age !== 'dark' && resources.wood >= 200 && resources.gold >= 100) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'university');
+        if (spot) {
+          resources.wood -= 200;
+          resources.gold -= 100;
+          const univ = em.createBuilding('university', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(univ);
+          builder.commandBuild(univ);
+        }
+      }
+    }
+
+    // D3a. Build Monastery
+    const hasMonastery = em.buildings.some(b => b.playerId === 2 && b.type === 'monastery' && b.hp > 0);
+    if (!hasMonastery && (allyState.age === 'castle' || allyState.age === 'imperial') && resources.wood >= 175) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'monastery');
+        if (spot) {
+          resources.wood -= 175;
+          const b = em.createBuilding('monastery', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(b);
+          builder.commandBuild(b);
+        }
+      }
+    }
+
+    // D3b. Build Bombard Tower for Defense in Imperial Age
+    const bombardTowerCount = em.buildings.filter(b => b.playerId === 2 && b.type === 'bombardTower').length;
+    if (bombardTowerCount < 2 && allyState.age === 'imperial' && resources.stone >= 250 && resources.gold >= 100) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const rx = this.baseX + (Math.random() - 0.5) * 20;
+        const rz = this.baseZ + (Math.random() - 0.5) * 20;
+        const spot = this.findClearBuildSpot(rx, rz, 'bombardTower');
+        if (spot) {
+          resources.stone -= 250;
+          resources.gold -= 100;
+          const bt = em.createBuilding('bombardTower', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(bt);
+          builder.commandBuild(bt);
+        }
+      }
+    }
+
+    // D4. Build Siege Workshop
+    const hasWorkshop = em.buildings.some(b => b.playerId === 2 && b.type === 'siegeWorkshop' && b.hp > 0);
+    if (!hasWorkshop && allyState.age !== 'dark' && resources.wood >= 200 && resources.gold >= 100) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'siegeWorkshop');
+        if (spot) {
+          resources.wood -= 200;
+          resources.gold -= 100;
+          const ws = em.createBuilding('siegeWorkshop', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(ws);
+          builder.commandBuild(ws);
+        }
+      }
+    }
+
+    // D5. Build Castle
+    const hasCastle = em.buildings.some(b => b.playerId === 2 && b.type === 'castle' && b.hp > 0);
+    if (!hasCastle && (allyState.age === 'castle' || allyState.age === 'imperial') && resources.wood >= 200 && resources.stone >= 650) {
+      const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+      if (builder) {
+        const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'castle');
+        if (spot) {
+          resources.wood -= 200;
+          resources.stone -= 650;
+          const castle = em.createBuilding('castle', 2, spot.x, spot.z, false);
+          this.gameManager.gridAddBuilding(castle);
+          builder.commandBuild(castle);
+        }
+      }
+    }
+
+    // D6. AI Research Upgrades
+    const myBuildings = em.buildings.filter(b => b.playerId === 2 && b.isCompleted);
+    myBuildings.forEach(b => {
+      if (b.queue.length > 0) return; // Busy
+      
+      if (b.type === 'blacksmith') {
+        const attackLvl = allyState.upgrades.attack || 0;
+        const armorLvl = allyState.upgrades.armor || 0;
+        const arrowLvl = allyState.upgrades.arrow || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        if (attackLvl < 3 && attackLvl <= armorLvl && attackLvl <= arrowLvl) {
+          typeToUpgrade = 'attack';
+          currentLvl = attackLvl;
+        } else if (armorLvl < 3 && armorLvl <= arrowLvl) {
+          typeToUpgrade = 'armor';
+          currentLvl = armorLvl;
+        } else if (arrowLvl < 3) {
+          typeToUpgrade = 'arrow';
+          currentLvl = arrowLvl;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'university') {
+        const palisadeLvl = allyState.upgrades.palisadeWallUpgrade || 0;
+        const stoneLvl = allyState.upgrades.stoneWallUpgrade || 0;
+        const towerLvl = allyState.upgrades.watchTowerUpgrade || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        
+        if (towerLvl < 2 && towerLvl <= palisadeLvl) {
+          typeToUpgrade = 'watchTowerUpgrade';
+          currentLvl = towerLvl;
+        } else if (stoneLvl < 2 && stoneLvl <= palisadeLvl) {
+          typeToUpgrade = 'stoneWallUpgrade';
+          currentLvl = stoneLvl;
+        } else if (palisadeLvl < 2) {
+          typeToUpgrade = 'palisadeWallUpgrade';
+          currentLvl = palisadeLvl;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'siegeWorkshop') {
+        const ramLvl = allyState.upgrades.batteringRamUpgrade || 0;
+        const mangonelLvl = allyState.upgrades.mangonelUpgrade || 0;
+        const scorpionLvl = allyState.upgrades.scorpionUpgrade || 0;
+        const cannonLvl = allyState.upgrades.bombardCannonUpgrade || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        
+        if (ramLvl < 2 && ramLvl <= mangonelLvl) {
+          typeToUpgrade = 'batteringRamUpgrade';
+          currentLvl = ramLvl;
+        } else if (mangonelLvl < 2) {
+          typeToUpgrade = 'mangonelUpgrade';
+          currentLvl = mangonelLvl;
+        } else if (scorpionLvl < 1) {
+          typeToUpgrade = 'scorpionUpgrade';
+          currentLvl = scorpionLvl;
+        } else if (cannonLvl < 1 && allyState.age === 'imperial') {
+          typeToUpgrade = 'bombardCannonUpgrade';
+          currentLvl = cannonLvl;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'barracks') {
+        const sUpgrade = allyState.upgrades.swordsmanUpgrade || 0;
+        const spUpgrade = allyState.upgrades.spearmanUpgrade || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        
+        if (sUpgrade < 2 && sUpgrade <= spUpgrade) {
+          typeToUpgrade = 'swordsmanUpgrade';
+          currentLvl = sUpgrade;
+        } else if (spUpgrade < 2) {
+          typeToUpgrade = 'spearmanUpgrade';
+          currentLvl = spUpgrade;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'stable') {
+        const scUpgrade = allyState.upgrades.scoutUpgrade || 0;
+        const kUpgrade = allyState.upgrades.knightUpgrade || 0;
+        const cUpgrade = allyState.upgrades.camelUpgrade || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        
+        if (kUpgrade < 2 && kUpgrade <= scUpgrade && kUpgrade <= cUpgrade) {
+          typeToUpgrade = 'knightUpgrade';
+          currentLvl = kUpgrade;
+        } else if (cUpgrade < 2 && cUpgrade <= scUpgrade) {
+          typeToUpgrade = 'camelUpgrade';
+          currentLvl = cUpgrade;
+        } else if (scUpgrade < 2) {
+          typeToUpgrade = 'scoutUpgrade';
+          currentLvl = scUpgrade;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'archeryRange') {
+        const aUpgrade = allyState.upgrades.archerUpgrade || 0;
+        const skUpgrade = allyState.upgrades.skirmisherUpgrade || 0;
+        const caUpgrade = allyState.upgrades.cavalryArcherUpgrade || 0;
+        
+        let typeToUpgrade = null;
+        let currentLvl = 0;
+        
+        if (aUpgrade < 2 && aUpgrade <= skUpgrade && aUpgrade <= caUpgrade) {
+          typeToUpgrade = 'archerUpgrade';
+          currentLvl = aUpgrade;
+        } else if (skUpgrade < 1 && skUpgrade <= caUpgrade) {
+          typeToUpgrade = 'skirmisherUpgrade';
+          currentLvl = skUpgrade;
+        } else if (caUpgrade < 1) {
+          typeToUpgrade = 'cavalryArcherUpgrade';
+          currentLvl = caUpgrade;
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+      else if (b.type === 'monastery') {
+        const sanctity = allyState.upgrades.sanctity || 0;
+        const fervor = allyState.upgrades.fervor || 0;
+        const blockPrinting = allyState.upgrades.blockPrinting || 0;
+        
+        let typeToUpgrade = null;
+        if (sanctity < 1) {
+          typeToUpgrade = 'sanctity';
+        } else if (fervor < 1) {
+          typeToUpgrade = 'fervor';
+        } else if (blockPrinting < 1) {
+          typeToUpgrade = 'blockPrinting';
+        }
+        
+        if (typeToUpgrade) {
+          const cost = this.gameManager.getUpgradeCost(typeToUpgrade, 0);
+          if (this.gameManager.hasResources(2, cost)) {
+            b.queueUpgrade(typeToUpgrade);
+          }
+        }
+      }
+    });
+
+    // D7. Train Siege Units at Siege Workshop
+    const workshop = em.buildings.find(b => b.playerId === 2 && b.type === 'siegeWorkshop' && b.isCompleted);
+    if (workshop && workshop.queue.length < 2) {
+      let unitToTrain = null;
+      const rand = Math.random();
+      if (allyState.age === 'imperial' && rand < 0.25) {
+        unitToTrain = 'bombardCannon';
+      } else if (rand < 0.5) {
+        unitToTrain = 'mangonel';
+      } else if (rand < 0.75) {
+        unitToTrain = 'scorpion';
+      } else if (rand < 0.9) {
+        unitToTrain = 'batteringRam';
+      } else {
+        unitToTrain = 'siegeTower';
+      }
+      
+      const cost = this.gameManager.getUnitCost(unitToTrain);
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        workshop.queueUnit(unitToTrain);
+      }
+    }
+
+    // D8. Train Trebuchet / Petard at Castle
+    const cstl = em.buildings.find(b => b.playerId === 2 && b.type === 'castle' && b.isCompleted);
+    if (cstl && cstl.queue.length < 2) {
+      const unitToTrain = Math.random() < 0.5 ? 'trebuchet' : 'petard';
+      const cost = this.gameManager.getUnitCost(unitToTrain);
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        cstl.queueUnit(unitToTrain);
+      }
+    }
+
     // D. Train Villagers at Town Center
     const maxVillagers = 12; // Ally standard
     if (villagerCount < maxVillagers && this.allyBaseTC && this.allyBaseTC.queue.length === 0) {
@@ -205,26 +547,72 @@ export class AllyAI {
       }
     }
 
-    // E. Train Soldiers at Barracks using Ally gathered resources
+    // E1. Train Soldiers at Barracks (Infantry)
     const barracks = em.buildings.find(b => b.playerId === 2 && b.type === 'barracks' && b.isCompleted);
-    if (barracks && barracks.queue.length < 3) {
+    if (barracks && barracks.queue.length < 2) {
       const allyAge = allyState.age;
       let unitToTrain = 'swordsman';
-      
-      if (allyAge === 'feudal') {
-        unitToTrain = Math.random() < 0.4 ? 'archer' : 'swordsman';
-      } else if (allyAge === 'castle' || allyAge === 'imperial') {
+      if (allyAge !== 'dark') {
         const rand = Math.random();
-        if (rand < 0.25) unitToTrain = 'archer';
-        else if (rand < 0.55) unitToTrain = 'knight';
-        else if (rand < 0.75) unitToTrain = 'footKnight';
-        else if (rand < 0.90) unitToTrain = 'horseArcher';
-        else unitToTrain = 'swordsman';
+        if (allyAge === 'feudal') {
+          unitToTrain = rand < 0.5 ? 'spearman' : 'swordsman';
+        } else {
+          if (rand < 0.35) unitToTrain = 'spearman';
+          else if (rand < 0.7) unitToTrain = 'swordsman';
+          else unitToTrain = 'footKnight';
+        }
       }
-      
       const cost = this.gameManager.getUnitCost(unitToTrain);
       if (this.gameManager.hasResources(2, cost) && pop < limit) {
         barracks.queueUnit(unitToTrain);
+      }
+    }
+
+    // E2. Train Soldiers at Stable (Cavalry)
+    const stable = em.buildings.find(b => b.playerId === 2 && b.type === 'stable' && b.isCompleted);
+    if (stable && stable.queue.length < 2) {
+      const allyAge = allyState.age;
+      let unitToTrain = 'scoutCavalry';
+      if (allyAge === 'castle' || allyAge === 'imperial') {
+        const rand = Math.random();
+        if (rand < 0.4) unitToTrain = 'knight';
+        else if (rand < 0.7) unitToTrain = 'camelRider';
+        else unitToTrain = 'scoutCavalry';
+      }
+      const cost = this.gameManager.getUnitCost(unitToTrain);
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        stable.queueUnit(unitToTrain);
+      }
+    }
+
+    // E3. Train Soldiers at Archery Range (Archers)
+    const archeryRange = em.buildings.find(b => b.playerId === 2 && b.type === 'archeryRange' && b.isCompleted);
+    if (archeryRange && archeryRange.queue.length < 2) {
+      const allyAge = allyState.age;
+      let unitToTrain = 'archer';
+      if (allyAge === 'castle' || allyAge === 'imperial') {
+        const rand = Math.random();
+        if (rand < 0.4) unitToTrain = 'archer';
+        else if (rand < 0.7) unitToTrain = 'skirmisher';
+        else unitToTrain = 'cavalryArcher';
+      } else if (allyAge === 'feudal') {
+        unitToTrain = Math.random() < 0.5 ? 'archer' : 'skirmisher';
+      }
+      const cost = this.gameManager.getUnitCost(unitToTrain);
+      if (this.gameManager.hasResources(2, cost) && pop < limit) {
+        archeryRange.queueUnit(unitToTrain);
+      }
+    }
+
+    // E4. Train Monks at Monastery
+    const monastery = em.buildings.find(b => b.playerId === 2 && b.type === 'monastery' && b.isCompleted);
+    if (monastery && monastery.queue.length < 1) {
+      const monkCount = em.units.filter(u => u.playerId === 2 && u.type === 'monk' && u.state !== 'DEAD').length;
+      if (monkCount < 2) {
+        const cost = this.gameManager.getUnitCost('monk');
+        if (this.gameManager.hasResources(2, cost) && pop < limit) {
+          monastery.queueUnit('monk');
+        }
       }
     }
   }
@@ -320,7 +708,12 @@ export class AllyAI {
 
   commandAttackEnemy() {
     const em = this.gameManager.entityManager;
-    const allySoldiers = em.units.filter(u => u.playerId === 2 && ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher'].includes(u.type));
+    const militaryTypes = [
+      'swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher',
+      'batteringRam', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower', 'trebuchet', 'petard',
+      'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'monk'
+    ];
+    const allySoldiers = em.units.filter(u => u.playerId === 2 && militaryTypes.includes(u.type));
     
     if (allySoldiers.length === 0) {
       this.gameManager.hud.addChatMessage("GajahMada_35", "Aduh cuy, pasukan gw lagi abis nih. Tunggu gw latih bentar!", 'ally');
@@ -348,7 +741,12 @@ export class AllyAI {
 
   commandDefendPlayer() {
     const em = this.gameManager.entityManager;
-    const allySoldiers = em.units.filter(u => u.playerId === 2 && ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher'].includes(u.type));
+    const militaryTypes = [
+      'swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher',
+      'batteringRam', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower', 'trebuchet', 'petard',
+      'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'monk'
+    ];
+    const allySoldiers = em.units.filter(u => u.playerId === 2 && militaryTypes.includes(u.type));
     
     if (allySoldiers.length === 0) {
       this.gameManager.hud.addChatMessage("GajahMada_35", "Belum ada prajurit ready gan. Wait ya!", 'ally');

@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { CIVILIZATIONS } from './ModelFactory';
 
 export class Building {
-  constructor(gameManager, type, playerId, x, z, startCompleted = false) {
+  constructor(gameManager, type, playerId, x, z, startCompleted = false, rotationY = 0) {
     this.gameManager = gameManager;
+    this.rotationY = rotationY;
     this.type = type; // 'townCenter', 'barracks', 'house', 'temple', 'market'
     this.playerId = playerId; // 0: Player, 1: Enemy, 2: Ally, 3: Neutral
     this.isCompleted = startCompleted;
@@ -84,12 +85,37 @@ export class Building {
       this.hp = startCompleted ? 400 : 40;
       this.maxHp = 400;
       this.gridSize = 3;
+    } else if (this.type === 'university') {
+      this.hp = startCompleted ? 600 : 60;
+      this.maxHp = 600;
+      this.gridSize = 3;
+    } else if (this.type === 'siegeWorkshop') {
+      this.hp = startCompleted ? 600 : 60;
+      this.maxHp = 600;
+      this.gridSize = 3;
     } else if (this.type === 'castle') {
       this.hp = startCompleted ? 3000 : 300;
       this.maxHp = 3000;
       this.gridSize = 4;
       this.garrisonedUnits = [];
       this.maxGarrison = 100;
+    } else if (this.type === 'stable') {
+      this.hp = startCompleted ? 500 : 50;
+      this.maxHp = 500;
+      this.gridSize = 3;
+    } else if (this.type === 'archeryRange') {
+      this.hp = startCompleted ? 500 : 50;
+      this.maxHp = 500;
+      this.gridSize = 3;
+    } else if (this.type === 'monastery') {
+      this.hp = startCompleted ? 400 : 40;
+      this.maxHp = 400;
+      this.gridSize = 3;
+      this.relicsCount = 0;
+    } else if (this.type === 'bombardTower') {
+      this.hp = startCompleted ? 800 : 80;
+      this.maxHp = 800;
+      this.gridSize = 1;
     }
 
     // Apply Civilization building HP modifiers (e.g. Bizantium +25% building HP)
@@ -120,8 +146,20 @@ export class Building {
   initMesh() {
     this.civ = this.gameManager.players[this.playerId].civ || 'inggris';
     this.age = this.gameManager.players[this.playerId].age || 'dark';
-    this.mesh = this.gameManager.modelFactory.createBuildingMesh(this.type, this.playerId, this.civ, this.age);
+    
+    const player = this.gameManager.players[this.playerId];
+    let upgradeLvl = 0;
+    if (this.type === 'palisadeWall' || this.type === 'palisadeGate') {
+      upgradeLvl = player ? (player.upgrades.palisadeWallUpgrade || 0) : 0;
+    } else if (this.type === 'stoneWall' || this.type === 'stoneGate') {
+      upgradeLvl = player ? (player.upgrades.stoneWallUpgrade || 0) : 0;
+    } else if (this.type === 'watchTower') {
+      upgradeLvl = player ? (player.upgrades.watchTowerUpgrade || 0) : 0;
+    }
+
+    this.mesh = this.gameManager.modelFactory.createBuildingMesh(this.type, this.playerId, this.civ, this.age, upgradeLvl);
     this.mesh.position.copy(this.position);
+    this.mesh.rotation.y = this.rotationY || 0;
     this.mesh.userData = { entity: this };
     
     // Save original materials in all cases!
@@ -322,7 +360,9 @@ export class Building {
       const cost = this.gameManager.getUpgradeCost(upgradeType, targetLevel);
       
       this.gameManager.depositResources(this.playerId, 'food', cost.food || 0);
+      this.gameManager.depositResources(this.playerId, 'wood', cost.wood || 0);
       this.gameManager.depositResources(this.playerId, 'gold', cost.gold || 0);
+      this.gameManager.depositResources(this.playerId, 'stone', cost.stone || 0);
     } else {
       const cost = this.gameManager.getUnitCost(item);
       this.gameManager.depositResources(this.playerId, 'food', cost.food || 0);
@@ -351,24 +391,134 @@ export class Building {
     player.upgrades[upgradeType] = (player.upgrades[upgradeType] || 0) + 1;
     const newLevel = player.upgrades[upgradeType];
     
-    // Recalculate stats for all existing units of this player
-    const units = this.gameManager.entityManager.units;
-    units.forEach(u => {
-      if (u.playerId === this.playerId && u.state !== 'DEAD' && typeof u.recalculateStats === 'function') {
-        u.recalculateStats();
-      }
-    });
+    const isUnitUpgrade = [
+      'swordsmanUpgrade', 'archerUpgrade', 'knightUpgrade', 
+      'footKnightUpgrade', 'heavyCavalryUpgrade', 'horseArcherUpgrade',
+      'batteringRamUpgrade', 'mangonelUpgrade', 'scorpionUpgrade', 'bombardCannonUpgrade'
+    ].includes(upgradeType);
+    
+    const isWallOrTowerUpgrade = [
+      'palisadeWallUpgrade', 'stoneWallUpgrade', 'watchTowerUpgrade'
+    ].includes(upgradeType);
+
+    if (isUnitUpgrade) {
+      const units = this.gameManager.entityManager.units;
+      units.forEach(u => {
+        if (u.playerId === this.playerId && u.state !== 'DEAD') {
+          if (typeof u.recalculateStats === 'function') u.recalculateStats();
+          if (typeof u.rebuildMesh === 'function') u.rebuildMesh();
+        }
+      });
+    } else if (isWallOrTowerUpgrade) {
+      const buildings = this.gameManager.entityManager.buildings;
+      buildings.forEach(b => {
+        if (b.playerId === this.playerId && b.isCompleted) {
+          const typeMatch = 
+            (upgradeType === 'palisadeWallUpgrade' && (b.type === 'palisadeWall' || b.type === 'palisadeGate')) ||
+            (upgradeType === 'stoneWallUpgrade' && (b.type === 'stoneWall' || b.type === 'stoneGate')) ||
+            (upgradeType === 'watchTowerUpgrade' && b.type === 'watchTower');
+            
+          if (typeMatch) {
+            const oldMax = b.maxHp;
+            if (b.type === 'palisadeWall') b.maxHp += 150;
+            else if (b.type === 'palisadeGate') b.maxHp += 200;
+            else if (b.type === 'stoneWall') b.maxHp += 500;
+            else if (b.type === 'stoneGate') b.maxHp += 800;
+            else if (b.type === 'watchTower') b.maxHp += 200;
+            
+            b.hp = Math.round(b.hp * (b.maxHp / oldMax));
+            b.rebuildMesh();
+          }
+        }
+      });
+    } else {
+      // Recalculate stats for standard upgrades
+      const units = this.gameManager.entityManager.units;
+      units.forEach(u => {
+        if (u.playerId === this.playerId && u.state !== 'DEAD' && typeof u.recalculateStats === 'function') {
+          u.recalculateStats();
+        }
+      });
+    }
     
     if (this.playerId === 0) {
       let displayName = upgradeType.charAt(0).toUpperCase() + upgradeType.slice(1);
       if (upgradeType === 'attack') displayName = 'Melee Attack';
       if (upgradeType === 'armor') displayName = 'Armor';
       if (upgradeType === 'arrow') displayName = 'Arrow Range & Attack';
+      else if (upgradeType === 'swordsmanUpgrade') displayName = newLevel === 1 ? 'Men-at-Arms' : 'Longswordsman';
+      else if (upgradeType === 'archerUpgrade') displayName = newLevel === 1 ? 'Crossbowman' : 'Arbalest';
+      else if (upgradeType === 'knightUpgrade') displayName = newLevel === 1 ? 'Cavalier' : 'Paladin';
+      else if (upgradeType === 'footKnightUpgrade') displayName = newLevel === 1 ? 'Champion Foot Knight' : 'Elite Foot Knight';
+      else if (upgradeType === 'heavyCavalryUpgrade') displayName = newLevel === 1 ? 'Cataphract' : 'Elite Heavy Cavalry';
+      else if (upgradeType === 'horseArcherUpgrade') displayName = newLevel === 1 ? 'Heavy Cavalry Archer' : 'Elite Horse Archer';
+      else if (upgradeType === 'palisadeWallUpgrade') displayName = newLevel === 1 ? 'Reinforced Palisade' : 'Fortified Palisade';
+      else if (upgradeType === 'stoneWallUpgrade') displayName = newLevel === 1 ? 'Fortified Wall' : 'Bastion Wall';
+      else if (upgradeType === 'watchTowerUpgrade') displayName = newLevel === 1 ? 'Guard Tower' : 'Keep';
+      else if (upgradeType === 'batteringRamUpgrade') displayName = newLevel === 1 ? 'Capped Ram' : 'Siege Ram';
+      else if (upgradeType === 'mangonelUpgrade') displayName = newLevel === 1 ? 'Onager' : 'Siege Onager';
+      else if (upgradeType === 'scorpionUpgrade') displayName = 'Heavy Scorpion';
+      else if (upgradeType === 'bombardCannonUpgrade') displayName = 'Houfnice';
       
-      this.gameManager.hud.showNotification(`${displayName} Upgrade Completed (Level ${newLevel})! ⚔️`);
+      this.gameManager.hud.showNotification(`${displayName} Upgrade Completed! ⚔️`);
       this.gameManager.soundManager.playClickSound('complete');
       this.gameManager.hud.updateSelectionUI();
     }
+  }
+
+  rebuildMesh() {
+    if (this.mesh) {
+      this.gameManager.renderer.scene.remove(this.mesh);
+      this.mesh.traverse(child => {
+        if (child.isMesh) {
+          child.geometry.dispose();
+          if (child.material && typeof child.material.dispose === 'function') {
+            child.material.dispose();
+          }
+        }
+      });
+    }
+    this.initMesh();
+    this.setSelected(this.selected);
+  }
+
+  getDisplayName() {
+    const player = this.gameManager.players[this.playerId];
+    const level = player ? (player.upgrades[this.type + 'Upgrade'] || 0) : 0;
+    
+    if (this.type === 'palisadeWall') {
+      if (level === 1) return 'Reinforced Palisade';
+      if (level >= 2) return 'Fortified Palisade';
+      return 'Palisade Wall';
+    }
+    if (this.type === 'palisadeGate') {
+      if (level === 1) return 'Reinforced Palisade Gate';
+      if (level >= 2) return 'Fortified Palisade Gate';
+      return 'Palisade Gate';
+    }
+    if (this.type === 'stoneWall') {
+      if (level === 1) return 'Fortified Wall';
+      if (level >= 2) return 'Bastion Wall';
+      return 'Stone Wall';
+    }
+    if (this.type === 'stoneGate') {
+      if (level === 1) return 'Fortified Gate';
+      if (level >= 2) return 'Bastion Gate';
+      return 'Stone Gate';
+    }
+    if (this.type === 'watchTower') {
+      if (level === 1) return 'Guard Tower';
+      if (level >= 2) return 'Keep';
+      return 'Watchtower';
+    }
+    if (this.type === 'university') return 'University';
+    if (this.type === 'siegeWorkshop') return 'Siege Workshop';
+    if (this.type === 'stable') return 'Stable';
+    if (this.type === 'archeryRange') return 'Archery Range';
+    if (this.type === 'monastery') return 'Monastery';
+    if (this.type === 'bombardTower') return 'Bombard Tower';
+    
+    return this.type.charAt(0).toUpperCase() + this.type.slice(1);
   }
 
   garrisonUnit(unit) {
@@ -438,7 +588,7 @@ export class Building {
     if (!this.isCompleted) return;
 
     // Defensive attack logic for Town Center, Watchtower, and Castle
-    if (this.type === 'townCenter' || this.type === 'watchTower' || this.type === 'castle') {
+    if (this.type === 'townCenter' || this.type === 'watchTower' || this.type === 'castle' || this.type === 'bombardTower') {
       if (this.attackCooldown === undefined) this.attackCooldown = 0;
       if (this.attackCooldown > 0) {
         this.attackCooldown -= deltaTime;
@@ -450,6 +600,7 @@ export class Building {
         let range = 14;
         if (this.type === 'watchTower') range = 18;
         else if (this.type === 'castle') range = 22;
+        else if (this.type === 'bombardTower') range = 20;
         range += arrowLevel * 2;
         
         let targetUnit = null;
@@ -460,12 +611,7 @@ export class Building {
           const u = units[i];
           if (u.hp <= 0 || u.state === 'DEAD' || u.state === 'GARRISONED') continue;
           
-          let isEnemy = false;
-          if (this.playerId === 0 || this.playerId === 2) {
-            isEnemy = (u.playerId === 1);
-          } else if (this.playerId === 1) {
-            isEnemy = (u.playerId === 0 || u.playerId === 2);
-          }
+          const isEnemy = this.gameManager.isEnemy(this.playerId, u.playerId);
           
           if (isEnemy) {
             const dist = this.position.distanceTo(u.position);
@@ -477,65 +623,80 @@ export class Building {
         }
         
         if (targetUnit) {
-          this.attackCooldown = (this.type === 'castle' ? 1.2 : 1.5);
-          
-          let arrowCount = 1;
-          if (this.type === 'castle') {
-            const garrisonedCount = (this.garrisonedUnits ? this.garrisonedUnits.length : 0);
-            arrowCount = 1 + Math.floor(garrisonedCount / 4);
-            if (arrowCount > 15) arrowCount = 15;
-          }
-          
-          for (let a = 0; a < arrowCount; a++) {
-            let arrowTarget = targetUnit;
-            if (a > 0) {
-              const nearbyEnemies = [];
-              for (let i = 0; i < units.length; i++) {
-                const u = units[i];
-                if (u.hp <= 0 || u.state === 'DEAD' || u.state === 'GARRISONED') continue;
-                let isEnemy = false;
-                if (this.playerId === 0 || this.playerId === 2) {
-                  isEnemy = (u.playerId === 1);
-                } else if (this.playerId === 1) {
-                  isEnemy = (u.playerId === 0 || u.playerId === 2);
-                }
-                if (isEnemy && this.position.distanceTo(u.position) <= range) {
-                  nearbyEnemies.push(u);
-                }
+          if (this.type === 'bombardTower') {
+            this.attackCooldown = 3.0;
+            const fromPos = this.position.clone();
+            fromPos.y += 3.5;
+            this.gameManager.spawnProjectile(fromPos, targetUnit.position, 'cannonball');
+            this.gameManager.soundManager.playClickSound('hit');
+            
+            const damage = 120;
+            targetUnit.takeDamage(damage, this.playerId);
+            this.gameManager.spawnParticles(targetUnit.position, 0xff5500, 8, 0.12);
+            
+            const rangeRadius = 2.0;
+            const targetPos = targetUnit.position;
+            units.forEach(u => {
+              if (u.hp > 0 && this.gameManager.isEnemy(this.playerId, u.playerId) && u.position.distanceTo(targetPos) <= rangeRadius && u !== targetUnit) {
+                u.takeDamage(Math.round(damage * 0.5), this.playerId);
               }
-              if (nearbyEnemies.length > 0) {
-                arrowTarget = nearbyEnemies[Math.floor(Math.random() * nearbyEnemies.length)];
-              }
+            });
+          } else {
+            this.attackCooldown = (this.type === 'castle' ? 1.2 : 1.5);
+            
+            let arrowCount = 1;
+            if (this.type === 'castle') {
+              const garrisonedCount = (this.garrisonedUnits ? this.garrisonedUnits.length : 0);
+              arrowCount = 1 + Math.floor(garrisonedCount / 4);
+              if (arrowCount > 15) arrowCount = 15;
             }
             
-            if (arrowTarget) {
-              const fromPos = this.position.clone();
-              if (this.type === 'watchTower') {
-                fromPos.y += 3.5;
-              } else if (this.type === 'townCenter') {
-                fromPos.y += 2.5;
-              } else if (this.type === 'castle') {
-                fromPos.y += 4.5;
+            for (let a = 0; a < arrowCount; a++) {
+              let arrowTarget = targetUnit;
+              if (a > 0) {
+                const nearbyEnemies = [];
+                for (let i = 0; i < units.length; i++) {
+                  const u = units[i];
+                  if (u.hp <= 0 || u.state === 'DEAD' || u.state === 'GARRISONED') continue;
+                  const isEnemy = this.gameManager.isEnemy(this.playerId, u.playerId);
+                  if (isEnemy && this.position.distanceTo(u.position) <= range) {
+                    nearbyEnemies.push(u);
+                  }
+                }
+                if (nearbyEnemies.length > 0) {
+                  arrowTarget = nearbyEnemies[Math.floor(Math.random() * nearbyEnemies.length)];
+                }
               }
               
-              if (a === 0) {
-                this.gameManager.spawnArrow(fromPos, arrowTarget.position);
-                this.gameManager.soundManager.playClickSound('arrow');
-                const baseDmg = (this.type === 'castle' ? 20 : 10);
-                const damage = baseDmg + arrowLevel * 3;
-                arrowTarget.takeDamage(damage);
-                this.gameManager.spawnParticles(arrowTarget.position, 0xbb1111, 4, 0.08);
-              } else {
-                setTimeout(() => {
-                  if (!this.gameManager.gameActive) return;
-                  if (arrowTarget.hp <= 0 || arrowTarget.state === 'DEAD') return;
+              if (arrowTarget) {
+                const fromPos = this.position.clone();
+                if (this.type === 'watchTower') {
+                  fromPos.y += 3.5;
+                } else if (this.type === 'townCenter') {
+                  fromPos.y += 2.5;
+                } else if (this.type === 'castle') {
+                  fromPos.y += 4.5;
+                }
+                
+                if (a === 0) {
                   this.gameManager.spawnArrow(fromPos, arrowTarget.position);
                   this.gameManager.soundManager.playClickSound('arrow');
                   const baseDmg = (this.type === 'castle' ? 20 : 10);
                   const damage = baseDmg + arrowLevel * 3;
-                  arrowTarget.takeDamage(damage);
+                  arrowTarget.takeDamage(damage, this.playerId);
                   this.gameManager.spawnParticles(arrowTarget.position, 0xbb1111, 4, 0.08);
-                }, a * 120);
+                } else {
+                  setTimeout(() => {
+                    if (!this.gameManager.gameActive) return;
+                    if (arrowTarget.hp <= 0 || arrowTarget.state === 'DEAD') return;
+                    this.gameManager.spawnArrow(fromPos, arrowTarget.position);
+                    this.gameManager.soundManager.playClickSound('arrow');
+                    const baseDmg = (this.type === 'castle' ? 20 : 10);
+                    const damage = baseDmg + arrowLevel * 3;
+                    arrowTarget.takeDamage(damage, this.playerId);
+                    this.gameManager.spawnParticles(arrowTarget.position, 0xbb1111, 4, 0.08);
+                  }, a * 120);
+                }
               }
             }
           }
@@ -599,7 +760,7 @@ export class Building {
     let spawnX = this.position.x;
     let spawnZ = this.position.z + this.gridSize / 2 + 0.8;
     
-    if (unitType === 'fishingShip') {
+    if (['fishingShip', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(unitType)) {
       let foundWater = false;
       const offsets = [
         [0, 2], [2, 0], [0, -2], [-2, 0],
@@ -647,14 +808,28 @@ export class Building {
     }
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, attackerPlayerId = null) {
     if (this.hp <= 0) return;
     this.hp = Math.max(0, this.hp - amount);
     
     // Floating damage numbers
     this.gameManager.hud.showFloatingText(this.position, `-${amount}`, 0xff5500);
     
+    // Attack warning trigger for player
+    if (this.playerId === 0) {
+      const now = performance.now();
+      if (!this.gameManager.lastAttackNotificationTime) this.gameManager.lastAttackNotificationTime = 0;
+      if (now - this.gameManager.lastAttackNotificationTime > 12000) {
+        this.gameManager.lastAttackNotificationTime = now;
+        this.gameManager.hud.showNotification(`⚠️ Kota/Bangunan Anda sedang diserang!`, this.position);
+        this.gameManager.soundManager.playClickSound('select');
+      }
+    }
+    
     if (this.hp <= 0) {
+      if (attackerPlayerId !== null && this.gameManager.players[attackerPlayerId]) {
+        this.gameManager.players[attackerPlayerId].kills = (this.gameManager.players[attackerPlayerId].kills || 0) + 1;
+      }
       this.destroy();
     }
   }

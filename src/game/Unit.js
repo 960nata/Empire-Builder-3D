@@ -35,6 +35,86 @@ export class Unit {
       this.attackPower = 12;
       this.attackCooldown = 0.8;
       this.attackRange = 1.1;
+    } else if (this.type === 'spearman') {
+      this.hp = Math.round(45 * (civModifiers.hpInfantry || 1.0));
+      this.maxHp = this.hp;
+      this.speed = 3.0 * (civModifiers.speedInfantry || 1.0);
+      this.attackPower = 3;
+      this.attackCooldown = 1.0;
+      this.attackRange = 1.0;
+    } else if (this.type === 'skirmisher') {
+      this.hp = Math.round(30 * (civModifiers.hpInfantry || 1.0));
+      this.maxHp = this.hp;
+      this.speed = 3.0 * (civModifiers.speedInfantry || 1.0);
+      this.attackPower = 2;
+      this.attackCooldown = 1.5;
+      this.attackRange = 5.0;
+    } else if (this.type === 'scoutCavalry') {
+      this.hp = Math.round(45 * (civModifiers.hpCavalry || 1.0));
+      this.maxHp = this.hp;
+      this.speed = 4.8 * (civModifiers.speedCavalry || 1.0);
+      this.attackPower = 3;
+      this.attackCooldown = 1.0;
+      this.attackRange = 1.0;
+    } else if (this.type === 'camelRider') {
+      this.hp = Math.round(100 * (civModifiers.hpCavalry || 1.0));
+      this.maxHp = this.hp;
+      this.speed = 4.6 * (civModifiers.speedCavalry || 1.0);
+      this.attackPower = 6;
+      this.attackCooldown = 1.0;
+      this.attackRange = 1.0;
+    } else if (this.type === 'cavalryArcher') {
+      this.hp = Math.round(50 * (civModifiers.hpCavalry || 1.0));
+      this.maxHp = this.hp;
+      this.speed = 4.4 * (civModifiers.speedCavalry || 1.0);
+      this.attackPower = 6;
+      this.attackCooldown = 1.2;
+      this.attackRange = 4.0;
+    } else if (this.type === 'monk') {
+      this.hp = 30;
+      this.maxHp = 30;
+      this.speed = 2.5;
+      this.attackPower = 0;
+      this.attackCooldown = 1.5;
+      this.attackRange = 4.0; // healing / conversion range
+      this.conversionCooldown = 0;
+      this.scanTimer = 0;
+    } else if (this.type === 'transportShip') {
+      this.hp = 150;
+      this.maxHp = 150;
+      this.speed = 3.6;
+      this.attackPower = 0;
+      this.attackCooldown = 1.0;
+      this.attackRange = 0.0;
+      this.garrisonedUnits = [];
+    } else if (this.type === 'galley') {
+      this.hp = 120;
+      this.maxHp = 120;
+      this.speed = 3.2;
+      this.attackPower = 6;
+      this.attackCooldown = 1.5;
+      this.attackRange = 5.0;
+    } else if (this.type === 'fireShip') {
+      this.hp = 100;
+      this.maxHp = 100;
+      this.speed = 3.3;
+      this.attackPower = 2;
+      this.attackCooldown = 0.25;
+      this.attackRange = 2.0;
+    } else if (this.type === 'demolitionShip') {
+      this.hp = 50;
+      this.maxHp = 50;
+      this.speed = 3.8;
+      this.attackPower = 0;
+      this.attackCooldown = 1.0;
+      this.attackRange = 1.0;
+    } else if (this.type === 'cannonGalleon') {
+      this.hp = 120;
+      this.maxHp = 120;
+      this.speed = 2.8;
+      this.attackPower = 35;
+      this.attackCooldown = 2.5;
+      this.attackRange = 10.0;
     } else if (this.type === 'footKnight') {
       this.hp = Math.round(100 * (civModifiers.hpInfantry || 1.0));
       this.maxHp = this.hp;
@@ -107,7 +187,11 @@ export class Unit {
     this.armor = 0;
     
     // Apply Civilization modifiers
-    if (this.type === 'swordsman' || this.type === 'footKnight') {
+    const isInf = ['swordsman', 'footKnight', 'spearman', 'skirmisher'].includes(this.type);
+    const isCav = ['knight', 'heavyCavalry', 'horseArcher', 'scoutCavalry', 'camelRider', 'cavalryArcher'].includes(this.type);
+    const isRanged = ['archer', 'horseArcher', 'skirmisher', 'cavalryArcher'].includes(this.type);
+
+    if (isInf) {
       const hpMult = civModifiers.hpInfantry || 1.0;
       const speedMult = civModifiers.speedInfantry || 1.0;
       const dmgMult = civModifiers.damageInfantry || 1.0;
@@ -116,7 +200,15 @@ export class Unit {
       this.hp = this.maxHp;
       this.speed = this.speed * speedMult;
       this.attackPower = Math.round(this.attackPower * dmgMult);
-    } else if (this.type === 'archer' || this.type === 'horseArcher') {
+    } else if (isCav) {
+      const hpMult = civModifiers.hpCavalry || 1.0;
+      const speedMult = civModifiers.speedCavalry || 1.0;
+      
+      this.maxHp = Math.round(this.maxHp * hpMult);
+      this.hp = this.maxHp;
+      this.speed = this.speed * speedMult;
+    }
+    if (isRanged) {
       const dmgMult = civModifiers.damageInfantry || 1.0;
       this.attackPower = Math.round(this.attackPower * dmgMult);
     }
@@ -199,6 +291,84 @@ export class Unit {
       }
       baseSpeed = 2.8;
       baseRange = 1.1;
+    } else if (this.type === 'spearman') {
+      const level = player.upgrades.spearmanUpgrade || 0;
+      if (level === 0) {
+        baseHp = 45; baseAttack = 3;
+      } else if (level === 1) {
+        baseHp = 55; baseAttack = 4; // Pikeman
+      } else {
+        baseHp = 60; baseAttack = 6; // Halberdier
+      }
+      baseSpeed = 3.0; baseRange = 1.0;
+    } else if (this.type === 'skirmisher') {
+      const level = player.upgrades.skirmisherUpgrade || 0;
+      if (level === 0) {
+        baseHp = 30; baseAttack = 2; baseRange = 5.0; baseArmor = 3; // high base pierce armor
+      } else {
+        baseHp = 35; baseAttack = 3; baseRange = 6.0; baseArmor = 4; // Elite
+      }
+      baseSpeed = 3.0;
+    } else if (this.type === 'scoutCavalry') {
+      const level = player.upgrades.scoutUpgrade || 0;
+      if (level === 0) {
+        baseHp = 45; baseAttack = 3; baseSpeed = 4.8;
+      } else if (level === 1) {
+        baseHp = 60; baseAttack = 7; baseSpeed = 4.8; // Light Cavalry
+      } else {
+        baseHp = 75; baseAttack = 7; baseSpeed = 5.0; // Hussar
+      }
+      baseRange = 1.0;
+    } else if (this.type === 'camelRider') {
+      const level = player.upgrades.camelUpgrade || 0;
+      if (level === 0) {
+        baseHp = 100; baseAttack = 6;
+      } else if (level === 1) {
+        baseHp = 120; baseAttack = 7; // Heavy Camel
+      } else {
+        baseHp = 140; baseAttack = 9; // Imperial Camel
+      }
+      baseSpeed = 4.6; baseRange = 1.0;
+    } else if (this.type === 'cavalryArcher') {
+      const level = player.upgrades.cavalryArcherUpgrade || 0;
+      if (level === 0) {
+        baseHp = 50; baseAttack = 6;
+      } else {
+        baseHp = 60; baseAttack = 7; // Heavy Cavalry Archer
+      }
+      baseSpeed = 4.4; baseRange = 4.0;
+    } else if (this.type === 'monk') {
+      baseHp = 30;
+      if (player.upgrades.sanctity > 0) baseHp += 15;
+      baseSpeed = 2.5;
+      if (player.upgrades.fervor > 0) baseSpeed *= 1.15;
+      baseAttack = 0;
+      baseRange = 4.0;
+      if (player.upgrades.blockPrinting > 0) baseRange += 3.0;
+    } else if (this.type === 'transportShip') {
+      baseHp = 150; baseSpeed = 3.6; baseAttack = 0; baseRange = 0.0;
+    } else if (this.type === 'galley') {
+      const level = player.upgrades.galleyUpgrade || 0;
+      if (level === 0) {
+        baseHp = 120; baseAttack = 6; baseRange = 5.0;
+      } else if (level === 1) {
+        baseHp = 135; baseAttack = 7; baseRange = 6.0; // War Galley
+      } else {
+        baseHp = 165; baseAttack = 8; baseRange = 7.0; // Galleon
+      }
+      baseSpeed = 3.2;
+    } else if (this.type === 'fireShip') {
+      const level = player.upgrades.fireShipUpgrade || 0;
+      if (level === 0) {
+        baseHp = 100; baseAttack = 2;
+      } else {
+        baseHp = 120; baseAttack = 3; // Fast Fire Ship
+      }
+      baseSpeed = 3.3; baseRange = 2.0;
+    } else if (this.type === 'demolitionShip') {
+      baseHp = 50; baseSpeed = 3.8; baseAttack = 0; baseRange = 1.0;
+    } else if (this.type === 'cannonGalleon') {
+      baseHp = 120; baseSpeed = 2.8; baseAttack = 35; baseRange = 10.0;
     } else if (this.type === 'footKnight') {
       if (age === 'dark') {
         baseHp = 100;
@@ -300,27 +470,102 @@ export class Unit {
       baseSpeed = 3.5;
       baseAttack = 0;
       baseRange = 1.0;
-    } else if (this.type === 'sheep') {
-      baseHp = 20;
+    } else if (this.type === 'batteringRam') {
+      const ramLevel = player.upgrades.batteringRamUpgrade || 0;
+      if (ramLevel === 0) {
+        baseHp = 250;
+        baseAttack = 40;
+        this.buildingBonus = 200;
+      } else if (ramLevel === 1) {
+        baseHp = 350;
+        baseAttack = 60;
+        this.buildingBonus = 350;
+      } else {
+        baseHp = 500;
+        baseAttack = 80;
+        this.buildingBonus = 500;
+      }
       baseSpeed = 1.8;
+      baseRange = 1.2;
+      baseArmor = 50;
+    } else if (this.type === 'mangonel') {
+      const mangonelLevel = player.upgrades.mangonelUpgrade || 0;
+      if (mangonelLevel === 0) {
+        baseHp = 100;
+        baseAttack = 25;
+        baseRange = 6.5;
+      } else if (mangonelLevel === 1) {
+        baseHp = 140;
+        baseAttack = 35;
+        baseRange = 7.5;
+      } else {
+        baseHp = 180;
+        baseAttack = 50;
+        baseRange = 8.5;
+      }
+      baseSpeed = 2.0;
+      baseArmor = 10;
+    } else if (this.type === 'scorpion') {
+      const scorpionLevel = player.upgrades.scorpionUpgrade || 0;
+      if (scorpionLevel === 0) {
+        baseHp = 80;
+        baseAttack = 15;
+        baseRange = 7.0;
+      } else {
+        baseHp = 110;
+        baseAttack = 22;
+        baseRange = 8.0;
+      }
+      baseSpeed = 2.2;
+      baseArmor = 5;
+    } else if (this.type === 'bombardCannon') {
+      const canonLevel = player.upgrades.bombardCannonUpgrade || 0;
+      if (canonLevel === 0) {
+        baseHp = 120;
+        baseAttack = 80;
+        baseRange = 10.0;
+      } else {
+        baseHp = 160;
+        baseAttack = 120;
+        baseRange = 12.0;
+      }
+      baseSpeed = 1.9;
+      baseArmor = 8;
+    } else if (this.type === 'siegeTower') {
+      baseHp = 300;
+      baseSpeed = 2.3;
+      baseRange = 0;
       baseAttack = 0;
-      baseRange = 1.0;
+      baseArmor = 30;
+    } else if (this.type === 'trebuchet') {
+      baseHp = 200;
+      baseAttack = 150;
+      baseRange = 15.0;
+      baseSpeed = 1.5;
+      baseArmor = 15;
+    } else if (this.type === 'petard') {
+      baseHp = 60;
+      baseAttack = 100;
+      this.buildingBonus = 1000;
+      baseRange = 1.2;
+      baseSpeed = 3.8;
+      baseArmor = 0;
     }
     
-    if (this.type === 'swordsman' || this.type === 'footKnight') {
+    if (this.type === 'swordsman' || this.type === 'footKnight' || this.type === 'spearman' || this.type === 'skirmisher') {
       const hpMult = civModifiers.hpInfantry || 1.0;
       const speedMult = civModifiers.speedInfantry || 1.0;
       const dmgMult = civModifiers.damageInfantry || 1.0;
       baseHp = Math.round(baseHp * hpMult);
       baseSpeed = baseSpeed * speedMult;
       baseAttack = Math.round(baseAttack * dmgMult);
-    } else if (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'horseArcher') {
+    } else if (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'horseArcher' || this.type === 'scoutCavalry' || this.type === 'camelRider' || this.type === 'cavalryArcher') {
       const hpMult = civModifiers.hpCavalry || 1.0;
       const speedMult = civModifiers.speedCavalry || 1.0;
       baseHp = Math.round(baseHp * hpMult);
       baseSpeed = baseSpeed * speedMult;
     }
-    if (this.type === 'archer' || this.type === 'horseArcher') {
+    if (['archer', 'horseArcher', 'skirmisher', 'cavalryArcher'].includes(this.type)) {
       const dmgMult = civModifiers.damageInfantry || 1.0;
       const rangeBonus = civModifiers.archerRange || 0;
       baseAttack = Math.round(baseAttack * dmgMult);
@@ -329,15 +574,29 @@ export class Unit {
     
     const upgrades = player.upgrades || { attack: 0, armor: 0, arrow: 0 };
     
-    if (['swordsman', 'footKnight', 'knight', 'heavyCavalry'].includes(this.type)) {
+    if (['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'spearman', 'scoutCavalry', 'camelRider'].includes(this.type)) {
       baseAttack += (upgrades.attack || 0) * 2;
     }
-    if (['archer', 'horseArcher'].includes(this.type)) {
+    if (['archer', 'horseArcher', 'skirmisher', 'cavalryArcher', 'galley', 'cannonGalleon'].includes(this.type)) {
       baseAttack += (upgrades.arrow || 0) * 2;
       baseRange += (upgrades.arrow || 0) * 1.0;
     }
-    if (['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher'].includes(this.type)) {
+    if (['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon'].includes(this.type)) {
       baseArmor += (upgrades.armor || 0) * 1;
+    }
+    
+    // Check for nearby Siege Tower armor boost
+    if (['swordsman', 'footKnight', 'archer', 'spearman', 'skirmisher'].includes(this.type)) {
+      const units = this.gameManager.entityManager.units;
+      const hasSiegeTowerNearby = units.some(u => 
+        u.playerId === this.playerId && 
+        u.type === 'siegeTower' && 
+        u.hp > 0 && 
+        u.position.distanceTo(this.position) < 8.0
+      );
+      if (hasSiegeTowerNearby) {
+        baseArmor += 3;
+      }
     }
     
     const hpRatio = (this.hp !== undefined && this.maxHp !== undefined) ? (this.hp / this.maxHp) : 1.0;
@@ -350,8 +609,8 @@ export class Unit {
   }
 
   startPathfinding(targetX, targetZ) {
-    const isWaterUnit = this.type === 'fishingShip';
-    this.path = this.gameManager.findPath(this.position.x, this.position.z, targetX, targetZ, isWaterUnit);
+    const isWaterUnit = ['fishingShip', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(this.type);
+    this.path = this.gameManager.findPath(this.position.x, this.position.z, targetX, targetZ, isWaterUnit, this.playerId);
     this.pathIndex = 0;
     
     if (this.path && this.path.length > 0) {
@@ -364,7 +623,8 @@ export class Unit {
   initMesh() {
     this.age = this.gameManager.players[this.playerId].age || 'dark';
     this.civ = this.gameManager.players[this.playerId].civ || 'inggris';
-    this.mesh = this.gameManager.modelFactory.createUnitMesh(this.type, this.playerId, this.civ, this.age);
+    const upgradeLvl = this.gameManager.players[this.playerId].upgrades[this.type + 'Upgrade'] || 0;
+    this.mesh = this.gameManager.modelFactory.createUnitMesh(this.type, this.playerId, this.civ, this.age, upgradeLvl, this.carryingRelic);
     this.mesh.position.copy(this.position);
     this.mesh.userData = { entity: this };
     
@@ -391,6 +651,16 @@ export class Unit {
   // -------------------------------------------------------------
   // COMMAND ACTIONS
   // -------------------------------------------------------------
+  commandStop() {
+    if (this.state === 'DEAD') return;
+    this.state = 'IDLE';
+    this.targetPosition.copy(this.position);
+    this.targetEntity = null;
+    this.targetAction = null;
+    this.path = [];
+    if (this.velocity) this.velocity.set(0, 0, 0);
+  }
+
   commandMove(targetPos) {
     if (this.state === 'DEAD') return;
     this.state = 'MOVING';
@@ -403,6 +673,20 @@ export class Unit {
 
   commandGather(resourceNode) {
     if (this.state === 'DEAD') return;
+    if ((this.type === 'monk' || this.type === 'priest') && resourceNode.type === 'relic') {
+      if (this.carryingRelic) {
+        if (this.playerId === 0) {
+          this.gameManager.hud.showNotification("Monk is already carrying a relic!");
+        }
+        return;
+      }
+      this.targetEntity = resourceNode;
+      this.targetAction = 'relic';
+      this.state = 'MOVING';
+      this.setTargetNearPosition(resourceNode.position, resourceNode);
+      this.startPathfinding(this.targetPosition.x, this.targetPosition.z);
+      return;
+    }
     this.targetEntity = resourceNode;
     this.targetAction = 'gather';
     this.state = 'MOVING';
@@ -414,6 +698,14 @@ export class Unit {
 
   commandBuild(building) {
     if (this.state === 'DEAD') return;
+    if ((this.type === 'monk' || this.type === 'priest') && this.carryingRelic && building.type === 'monastery' && building.playerId === this.playerId && building.isCompleted) {
+      this.targetEntity = building;
+      this.targetAction = 'depositRelic';
+      this.state = 'MOVING';
+      this.setTargetNearPosition(building.position, building);
+      this.startPathfinding(this.targetPosition.x, this.targetPosition.z);
+      return;
+    }
     this.targetEntity = building;
     this.targetAction = 'build';
     this.state = 'MOVING';
@@ -450,6 +742,23 @@ export class Unit {
 
   commandConvert(enemy) {
     if (this.state === 'DEAD') return;
+    const player = this.gameManager.players[this.playerId];
+    const isMonkOrPriest = ['priest', 'monk'].includes(enemy.type);
+    const isSiegeOrBuilding = ['batteringRam', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower', 'trebuchet'].includes(enemy.type) || enemy.gridSize !== undefined;
+    
+    if (isMonkOrPriest && !(player.upgrades.atonement > 0)) {
+      if (this.playerId === 0) {
+        this.gameManager.hud.showNotification("Butuh teknologi Atonement untuk merekrut Monk musuh!");
+      }
+      return;
+    }
+    if (isSiegeOrBuilding && !(player.upgrades.redemption > 0)) {
+      if (this.playerId === 0) {
+        this.gameManager.hud.showNotification("Butuh teknologi Redemption untuk merekrut mesin perang / bangunan!");
+      }
+      return;
+    }
+    
     this.targetEntity = enemy;
     this.targetAction = 'convert';
     this.state = 'MOVING';
@@ -489,6 +798,16 @@ export class Unit {
     if (this.state === 'DEAD' || this.state === 'GARRISONED') return;
 
     this.animTime += deltaTime;
+
+    // Periodic check to recalculate stats (for Siege Tower armor aura)
+    if (this.playerId === 0 || this.playerId === 2) {
+      if (this._siegeTowerCheckTimer === undefined) this._siegeTowerCheckTimer = 0;
+      this._siegeTowerCheckTimer += deltaTime;
+      if (this._siegeTowerCheckTimer > 1.0) {
+        this._siegeTowerCheckTimer = 0;
+        this.recalculateStats();
+      }
+    }
     
     // Sheep tracking logic for villagers
     if (this.state === 'MOVING' && this.targetAction === 'gather' && this.targetEntity && this.targetEntity.type === 'sheep' && this.targetEntity.hp !== undefined) {
@@ -498,8 +817,8 @@ export class Unit {
       }
     }
     
-    // Priest specific timers
-    if (this.type === 'priest') {
+    // Priest/Monk specific timers
+    if (this.type === 'priest' || this.type === 'monk') {
       if (this.conversionCooldown > 0) {
         this.conversionCooldown -= deltaTime;
       }
@@ -518,7 +837,7 @@ export class Unit {
     }
     
     // Military unit auto-scanning behavior
-    const isMilitary = ['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher'].includes(this.type);
+    const isMilitary = ['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon'].includes(this.type);
     if (isMilitary && this.state === 'IDLE') {
       if (this.militaryScanTimer === undefined) this.militaryScanTimer = 0;
       this.militaryScanTimer += deltaTime;
@@ -534,12 +853,7 @@ export class Unit {
           const u = units[i];
           if (u.hp <= 0 || u.state === 'DEAD') continue;
           
-          let isEnemy = false;
-          if (this.playerId === 0 || this.playerId === 2) {
-            isEnemy = (u.playerId === 1);
-          } else if (this.playerId === 1) {
-            isEnemy = (u.playerId === 0 || u.playerId === 2);
-          }
+          const isEnemy = this.gameManager.isEnemy(this.playerId, u.playerId);
           
           if (isEnemy) {
             const dist = this.position.distanceTo(u.position);
@@ -710,8 +1024,8 @@ export class Unit {
         this.harvestTimer = 0;
         this.swingProgress = 1.0;
         
-        this.targetEntity.hp = Math.min(this.targetEntity.maxHp, this.targetEntity.hp + 8);
-        this.gameManager.hud.showFloatingText(this.targetEntity.position, "+8 HP", 0x2ecc71);
+        this.targetEntity.hp = Math.min(this.targetEntity.maxHp, this.targetEntity.hp + 10);
+        this.gameManager.hud.showFloatingText(this.targetEntity.position, "+10 HP", 0x2ecc71);
         
         if (this.playerId === 0 && Math.random() < 0.25) {
           this.gameManager.soundManager.playClickSound('spawn');
@@ -752,7 +1066,9 @@ export class Unit {
         this.gameManager.soundManager.playClickSound('select');
       }
 
-      if (this.conversionTimer >= 5.5) {
+      const targetConversionTime = (this.targetEntity.type === 'scoutCavalry') ? 10.0 : 5.0;
+
+      if (this.conversionTimer >= targetConversionTime) {
         this.conversionTimer = 0;
         
         // CONVERT SUCCESS!
@@ -783,7 +1099,9 @@ export class Unit {
           this.gameManager.hud.addChatMessage("Sistem", `Unit faksi ${names[oldPlayerId]} dibelotkan oleh faksi ${names[this.playerId]}!`, 'sys');
         }
 
-        this.conversionCooldown = 15.0; // 15 seconds faith recharge
+        const player = this.gameManager.players[this.playerId];
+        const cooldownDuration = (player.upgrades.illumination > 0) ? 7.5 : 15.0;
+        this.conversionCooldown = cooldownDuration;
         this.state = 'IDLE';
         this.targetEntity = null;
       }
@@ -871,20 +1189,106 @@ export class Unit {
       
       this.faceTarget(this.targetEntity.position);
       this.attackTimer += deltaTime;
-      
       if (this.attackTimer >= this.attackCooldown) {
         this.attackTimer = 0;
         this.swingProgress = 1.0;
         
-        // Damage target
-        this.targetEntity.takeDamage(this.attackPower);
+        let damageToApply = this.attackPower;
+        if (this.targetEntity.gridSize !== undefined && this.buildingBonus) {
+          damageToApply += this.buildingBonus;
+        }
         
-        // Audio & visual project triggers
-        if (this.type === 'archer' || this.type === 'horseArcher') {
-          this.gameManager.spawnArrow(this.position, this.targetEntity.position);
+        if (this.type === 'archer' || this.type === 'horseArcher' || this.type === 'cavalryArcher' || this.type === 'galley' || this.type === 'cannonGalleon') {
+          if (this.type === 'cannonGalleon') {
+            this.gameManager.spawnProjectile(this.position, this.targetEntity.position, 'cannonball');
+          } else {
+            this.gameManager.spawnArrow(this.position, this.targetEntity.position);
+          }
+          this.gameManager.soundManager.playClickSound(this.type === 'cannonGalleon' ? 'hit' : 'arrow');
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
+        } else if (this.type === 'fireShip') {
+          this.gameManager.spawnParticles(this.targetEntity.position, 0xff5500, 4, 0.08);
+          if (Math.random() < 0.25) {
+            this.gameManager.soundManager.playClickSound('hit');
+          }
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
+        } else if (this.type === 'demolitionShip') {
+          const dmg = 400;
+          const rangeRadius = 4.0;
+          this.gameManager.spawnParticles(this.position, 0xff5500, 20, 0.25);
+          this.gameManager.soundManager.playClickSound('hit');
+          
+          const buildings = this.gameManager.entityManager.buildings;
+          buildings.forEach(b => {
+            if (b.hp > 0 && b.position.distanceTo(this.position) <= rangeRadius) {
+              b.takeDamage(dmg, this.playerId);
+            }
+          });
+          
+          const units = this.gameManager.entityManager.units;
+          units.forEach(u => {
+            if (u.hp > 0 && u !== this && u.position.distanceTo(this.position) <= rangeRadius) {
+              u.takeDamage(dmg, this.playerId, this);
+            }
+          });
+          
+          this.takeDamage(this.maxHp, this.playerId, this); // Self destruct
+          this.state = 'DEAD';
+          return;
+        } else if (this.type === 'mangonel' || this.type === 'trebuchet') {
+          this.gameManager.spawnProjectile(this.position, this.targetEntity.position, 'boulder');
+          this.gameManager.soundManager.playClickSound('hit');
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
+          
+          // Mangonel/Trebuchet Splash Damage: deal damage to all units in range
+          const rangeRadius = this.type === 'mangonel' ? 2.5 : 3.5;
+          const targetPos = this.targetEntity.position;
+          const units = this.gameManager.entityManager.units;
+          units.forEach(u => {
+            if (u.hp > 0 && this.gameManager.isEnemy(this.playerId, u.playerId) && u.position.distanceTo(targetPos) <= rangeRadius && u !== this.targetEntity) {
+              u.takeDamage(Math.round(damageToApply * 0.6), this.playerId, this);
+            }
+          });
+        } else if (this.type === 'scorpion') {
+          this.gameManager.spawnProjectile(this.position, this.targetEntity.position, 'bolt');
           this.gameManager.soundManager.playClickSound('arrow');
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
+          
+          // Scorpion linear pierce damage
+          const targetPos = this.targetEntity.position;
+          const units = this.gameManager.entityManager.units;
+          units.forEach(u => {
+            if (u.hp > 0 && this.gameManager.isEnemy(this.playerId, u.playerId) && u !== this.targetEntity) {
+              const lineDist = this.distanceToLine(u.position, this.position, targetPos);
+              if (lineDist < 1.0 && u.position.distanceTo(this.position) < this.attackRange) {
+                u.takeDamage(Math.round(damageToApply * 0.5), this.playerId, this);
+              }
+            }
+          });
+        } else if (this.type === 'bombardCannon') {
+          this.gameManager.spawnProjectile(this.position, this.targetEntity.position, 'cannonball');
+          this.gameManager.soundManager.playClickSound('hit');
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
+          
+          // Cannon splash
+          const rangeRadius = 1.5;
+          const targetPos = this.targetEntity.position;
+          const units = this.gameManager.entityManager.units;
+          units.forEach(u => {
+            if (u.hp > 0 && this.gameManager.isEnemy(this.playerId, u.playerId) && u.position.distanceTo(targetPos) <= rangeRadius && u !== this.targetEntity) {
+              u.takeDamage(Math.round(damageToApply * 0.4), this.playerId, this);
+            }
+          });
+        } else if (this.type === 'petard') {
+          this.targetEntity.takeDamage(damageToApply, this.playerId);
+          this.gameManager.spawnParticles(this.position, 0xff5500, 15, 0.2);
+          this.gameManager.soundManager.playClickSound('hit');
+          this.takeDamage(this.maxHp, this.playerId, this); // Self destruct
+          this.state = 'DEAD';
+          return;
         } else {
           this.gameManager.soundManager.playClickSound('hit');
+          this.targetEntity.takeDamage(damageToApply, this.playerId, this);
         }
 
         // Particle splash at target
@@ -1052,7 +1456,7 @@ export class Unit {
     const nextPos = this.position.clone().addScaledVector(moveVec, effectiveSpeed * deltaTime);
     const nextHeight = this.gameManager.terrain.getGroundHeight(nextPos.x, nextPos.z);
     
-    const isWaterUnit = this.type === 'fishingShip';
+    const isWaterUnit = ['fishingShip', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(this.type);
     const isPassable = (height) => isWaterUnit ? (height < -0.5) : (height >= -0.5);
 
     if (isPassable(nextHeight)) {
@@ -1124,8 +1528,36 @@ export class Unit {
       } else if (this.targetAction === 'trade') {
         this.state = 'TRADING_LOAD';
         this.harvestTimer = 0;
+      } else if (this.targetAction === 'relic') {
+        if (this.targetEntity && this.targetEntity.type === 'relic') {
+          this.carryingRelic = true;
+          this.targetEntity.destroy();
+          this.rebuildMesh();
+          this.state = 'IDLE';
+          this.targetEntity = null;
+          this.targetAction = null;
+          if (this.playerId === 0) {
+            this.gameManager.hud.showNotification("Relic picked up! Bring it to a Monastery. 🪙");
+            this.gameManager.soundManager.playClickSound('complete');
+          }
+        }
+        return;
+      } else if (this.targetAction === 'depositRelic') {
+        if (this.targetEntity && this.targetEntity.type === 'monastery' && this.targetEntity.playerId === this.playerId && this.targetEntity.isCompleted) {
+          this.carryingRelic = false;
+          this.targetEntity.relicsCount = (this.targetEntity.relicsCount || 0) + 1;
+          this.rebuildMesh();
+          this.state = 'IDLE';
+          this.targetEntity = null;
+          this.targetAction = null;
+          if (this.playerId === 0) {
+            this.gameManager.hud.showNotification("Relic deposited in Monastery! Gold generation active (+2 Gold/sec). 🪙");
+            this.gameManager.soundManager.playClickSound('complete');
+          }
+        }
+        return;
       } else if (this.targetAction === 'garrison') {
-        if (this.targetEntity && this.targetEntity.type === 'castle' && this.targetEntity.isCompleted) {
+        if (this.targetEntity && (this.targetEntity.type === 'castle' || this.targetEntity.type === 'transportShip') && this.targetEntity.isCompleted) {
           const success = this.targetEntity.garrisonUnit(this);
           if (!success) {
             this.state = 'IDLE';
@@ -1275,16 +1707,50 @@ export class Unit {
     }
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, attackerPlayerId = null, attackerUnit = null) {
     if (this.state === 'DEAD') return;
+
+    // Apply combat counters
+    let finalAmount = amount;
+    if (attackerUnit) {
+      const isCavalry = (type) => ['knight', 'heavyCavalry', 'horseArcher', 'scoutCavalry', 'camelRider', 'cavalryArcher'].includes(type);
+      
+      if (['spearman'].includes(attackerUnit.type) && isCavalry(this.type)) {
+        finalAmount *= 3.5;
+      }
+      else if (['camelRider'].includes(attackerUnit.type) && isCavalry(this.type) && !['camelRider'].includes(this.type)) {
+        finalAmount *= 2.0;
+      }
+      else if (['skirmisher'].includes(attackerUnit.type) && ['archer', 'horseArcher', 'cavalryArcher'].includes(this.type)) {
+        finalAmount *= 3.0;
+      }
+      else if (['scoutCavalry'].includes(attackerUnit.type) && ['priest', 'monk'].includes(this.type)) {
+        finalAmount *= 2.5;
+      }
+    }
+
     const armor = this.armor || 0;
-    const finalDamage = Math.max(1, amount - armor);
+    const finalDamage = Math.max(1, Math.round(finalAmount) - armor);
     this.hp = Math.max(0, this.hp - finalDamage);
     
     // Spawn floating numbers
     this.gameManager.hud.showFloatingText(this.position, `-${finalDamage}`, 0xff0000);
     
+    // Attack warning trigger for player
+    if (this.playerId === 0) {
+      const now = performance.now();
+      if (!this.gameManager.lastAttackNotificationTime) this.gameManager.lastAttackNotificationTime = 0;
+      if (now - this.gameManager.lastAttackNotificationTime > 12000) {
+        this.gameManager.lastAttackNotificationTime = now;
+        this.gameManager.hud.showNotification(`⚠️ Pasukan Anda sedang diserang!`, this.position);
+        this.gameManager.soundManager.playClickSound('select');
+      }
+    }
+    
     if (this.hp <= 0) {
+      if (attackerPlayerId !== null && this.gameManager.players[attackerPlayerId]) {
+        this.gameManager.players[attackerPlayerId].kills = (this.gameManager.players[attackerPlayerId].kills || 0) + 1;
+      }
       this.die();
     }
   }
@@ -1659,5 +2125,192 @@ export class Unit {
         }
       }
     }
+  }
+
+  rebuildMesh() {
+    if (this.mesh) {
+      this.gameManager.renderer.scene.remove(this.mesh);
+      this.mesh.traverse(child => {
+        if (child.isMesh) {
+          child.geometry.dispose();
+          if (child.material && typeof child.material.dispose === 'function') {
+            child.material.dispose();
+          }
+        }
+      });
+    }
+    this.initMesh();
+    this.setSelected(this.selected);
+  }
+
+  getDisplayName() {
+    const player = this.gameManager.players[this.playerId];
+    const level = player ? (player.upgrades[this.type + 'Upgrade'] || 0) : 0;
+    
+    if (this.type === 'swordsman') {
+      if (level === 1) return 'Men-at-Arms';
+      if (level >= 2) return 'Longswordsman';
+      return 'Swordsman';
+    }
+    if (this.type === 'spearman') {
+      if (level === 1) return 'Pikeman';
+      if (level >= 2) return 'Halberdier';
+      return 'Spearman';
+    }
+    if (this.type === 'skirmisher') {
+      if (level >= 1) return 'Elite Skirmisher';
+      return 'Skirmisher';
+    }
+    if (this.type === 'scoutCavalry') {
+      if (level === 1) return 'Light Cavalry';
+      if (level >= 2) return 'Hussar';
+      return 'Scout Cavalry';
+    }
+    if (this.type === 'camelRider') {
+      if (level === 1) return 'Heavy Camel';
+      if (level >= 2) return 'Imperial Camel';
+      return 'Camel Rider';
+    }
+    if (this.type === 'cavalryArcher') {
+      if (level >= 1) return 'Heavy Cavalry Archer';
+      return 'Cavalry Archer';
+    }
+    if (this.type === 'monk') return 'Monk';
+    if (this.type === 'transportShip') return 'Transport Ship';
+    if (this.type === 'galley') {
+      if (level === 1) return 'War Galley';
+      if (level >= 2) return 'Galleon';
+      return 'Galley';
+    }
+    if (this.type === 'fireShip') {
+      if (level >= 1) return 'Fast Fire Ship';
+      return 'Fire Ship';
+    }
+    if (this.type === 'demolitionShip') return 'Demolition Ship';
+    if (this.type === 'cannonGalleon') return 'Cannon Galleon';
+    if (this.type === 'archer') {
+      if (level === 1) return 'Crossbowman';
+      if (level >= 2) return 'Arbalest';
+      return 'Archer';
+    }
+    if (this.type === 'knight') {
+      if (level === 1) return 'Cavalier';
+      if (level >= 2) return 'Paladin';
+      return 'Knight';
+    }
+    if (this.type === 'footKnight') {
+      if (level === 1) return 'Champion Foot Knight';
+      if (level >= 2) return 'Elite Foot Knight';
+      return 'Foot Knight';
+    }
+    if (this.type === 'heavyCavalry') {
+      if (level === 1) return 'Cataphract';
+      if (level >= 2) return 'Elite Heavy Cav';
+      return 'Heavy Cavalry';
+    }
+    if (this.type === 'horseArcher') {
+      if (level === 1) return 'Heavy Cavalry Archer';
+      if (level >= 2) return 'Elite Cavalry Archer';
+      return 'Cavalry Archer';
+    }
+    if (this.type === 'batteringRam') {
+      if (level === 1) return 'Capped Ram';
+      if (level >= 2) return 'Siege Ram';
+      return 'Battering Ram';
+    }
+    if (this.type === 'mangonel') {
+      if (level === 1) return 'Onager';
+      if (level >= 2) return 'Siege Onager';
+      return 'Mangonel';
+    }
+    if (this.type === 'scorpion') {
+      if (level >= 1) return 'Heavy Scorpion';
+      return 'Scorpion';
+    }
+    if (this.type === 'bombardCannon') {
+      if (level >= 1) return 'Houfnice';
+      return 'Bombard Cannon';
+    }
+    if (this.type === 'siegeTower') return 'Siege Tower';
+    if (this.type === 'trebuchet') return 'Trebuchet';
+    if (this.type === 'petard') return 'Petard';
+    
+    return this.type.charAt(0).toUpperCase() + this.type.slice(1);
+  }
+
+  garrisonUnit(unit) {
+    if (this.garrisonedUnits === undefined) {
+      this.garrisonedUnits = [];
+    }
+    if (this.garrisonedUnits.length >= 10) {
+      if (unit.playerId === 0) {
+        this.gameManager.hud.showNotification("Transport Ship is full (Max 10 units)!");
+      }
+      return false;
+    }
+    
+    this.garrisonedUnits.push(unit);
+    
+    unit.state = 'GARRISONED';
+    unit.mesh.visible = false;
+    unit.setSelected(false);
+    
+    const idx = this.gameManager.selectedEntities.indexOf(unit);
+    if (idx !== -1) {
+      this.gameManager.selectedEntities.splice(idx, 1);
+      this.gameManager.hud.updateSelectionUI();
+    }
+    
+    if (this.playerId === 0) {
+      this.gameManager.hud.showNotification(`Garrisoned ${unit.type} in Transport Ship! (${this.garrisonedUnits.length}/10)`);
+      if (this.selected) {
+        this.gameManager.hud.updateSelectionUI();
+      }
+    }
+    
+    return true;
+  }
+
+  ungarrisonAll() {
+    if (!this.garrisonedUnits || this.garrisonedUnits.length === 0) return;
+    
+    const count = this.garrisonedUnits.length;
+    this.garrisonedUnits.forEach(unit => {
+      unit.state = 'IDLE';
+      unit.mesh.visible = true;
+      
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 1.5;
+      const tx = this.position.x + Math.cos(angle) * dist;
+      const tz = this.position.z + Math.sin(angle) * dist;
+      unit.position.set(
+        tx,
+        this.gameManager.terrain.getGroundHeight(tx, tz),
+        tz
+      );
+      unit.targetPosition.copy(unit.position);
+      unit.mesh.position.copy(unit.position);
+    });
+    
+    this.garrisonedUnits = [];
+    
+    if (this.playerId === 0) {
+      this.gameManager.hud.showNotification(`Ungarrisoned all ${count} units from Transport Ship!`);
+      if (this.selected) {
+        this.gameManager.hud.updateSelectionUI();
+      }
+    }
+    this.gameManager.soundManager.playClickSound('complete');
+  }
+
+  distanceToLine(p, a, b) {
+    const ab = new THREE.Vector3().subVectors(b, a);
+    const ap = new THREE.Vector3().subVectors(p, a);
+    const abLenSq = ab.lengthSq();
+    if (abLenSq === 0) return ap.length();
+    let t = ap.dot(ab) / abLenSq;
+    t = Math.max(0, Math.min(1, t));
+    const projection = a.clone().addScaledVector(ab, t);
+    return p.distanceTo(projection);
   }
 }

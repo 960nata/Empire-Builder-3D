@@ -31,6 +31,10 @@ export class Input {
     
     // Track if shift is held (for camera rotate via right-click)
     this.shiftHeld = false;
+
+    // Control group double press tracking
+    this.lastGroupPressed = null;
+    this.lastGroupPressTime = 0;
     
     this.setupListeners();
   }
@@ -40,15 +44,61 @@ export class Input {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Shift') this.shiftHeld = true;
       
+      // Don't capture inputs if chat input is focused
+      const chatInput = document.getElementById('chat-input-field');
+      if (chatInput && document.activeElement === chatInput) return;
+      
       // F key cycles formation
       if (e.key === 'f' || e.key === 'F') {
-        // Don't cycle if chat input is focused
-        const chatInput = document.getElementById('chat-input-field');
-        if (chatInput && document.activeElement === chatInput) return;
-        
         const newFormation = this.gameManager.cycleFormation();
         this.gameManager.hud.showNotification(`Formation: ${this.gameManager.getFormationName(newFormation)}`);
         this.gameManager.hud.updateSelectionUI();
+      }
+
+      // Control Groups 1-9
+      if (e.key >= '1' && e.key <= '9') {
+        const groupNum = parseInt(e.key);
+        const isCtrl = e.ctrlKey || e.metaKey;
+        if (isCtrl) {
+          // Assign selected player entities to control group
+          const playerEntities = this.gameManager.selectedEntities.filter(ent => ent.playerId === 0);
+          this.gameManager.controlGroups[groupNum] = [...playerEntities];
+          this.gameManager.hud.showNotification(`Group ${groupNum} assigned: ${playerEntities.length} units`);
+        } else {
+          // Select control group entities
+          const activeEntities = (this.gameManager.controlGroups[groupNum] || []).filter(ent => {
+            const units = this.gameManager.entityManager.units;
+            const buildings = this.gameManager.entityManager.buildings;
+            return units.includes(ent) || buildings.includes(ent);
+          });
+          this.gameManager.controlGroups[groupNum] = activeEntities;
+
+          if (activeEntities.length > 0) {
+            const now = performance.now();
+            if (this.lastGroupPressed === groupNum && now - this.lastGroupPressTime < 300) {
+              // Double click = jump camera to average position
+              let sumX = 0, sumZ = 0, count = 0;
+              activeEntities.forEach(ent => {
+                if (ent.position) {
+                  sumX += ent.position.x;
+                  sumZ += ent.position.z;
+                  count++;
+                }
+              });
+              if (count > 0) {
+                const avgX = sumX / count;
+                const avgZ = sumZ / count;
+                this.gameManager.renderer.cameraTarget.set(avgX, 0, avgZ);
+                this.gameManager.hud.showNotification(`Camera focused on Group ${groupNum}`);
+              }
+            } else {
+              // Single click = select entities
+              this.gameManager.selectEntities(activeEntities);
+            }
+            this.lastGroupPressed = groupNum;
+            this.lastGroupPressTime = now;
+          }
+        }
       }
     });
     window.addEventListener('keyup', (e) => {
@@ -350,9 +400,18 @@ export class Input {
           
           // Spawn preview mesh for each cell along the line
           const factory = this.gameManager.modelFactory;
-          cells.forEach(cell => {
+          for (let i = 0; i < cells.length; i++) {
+            const cell = cells[i];
+            let angle = 0;
+            if (i < cells.length - 1) {
+              angle = Math.atan2(cells[i+1].x - cell.x, cells[i+1].z - cell.z);
+            } else if (i > 0) {
+              angle = Math.atan2(cell.x - cells[i-1].x, cell.z - cells[i-1].z);
+            }
+            
             const preview = factory.createBuildingMesh(this.blueprintBuilding.type, 0);
             preview.position.set(cell.x, 0, cell.z);
+            preview.rotation.y = angle;
             
             const isValid = this.gameManager.checkBuildPosition(cell.x, cell.z, this.blueprintBuilding.type);
             preview.traverse(child => {
@@ -366,7 +425,7 @@ export class Input {
             });
             this.renderer.scene.add(preview);
             this.blueprintPreviewMeshes.push(preview);
-          });
+          }
         } else {
           this.blueprintMesh.visible = true;
           this.blueprintMesh.position.set(snapX, 0, snapZ);
@@ -412,15 +471,23 @@ export class Input {
         );
 
         let placedAny = false;
-        cells.forEach(cell => {
+        for (let i = 0; i < cells.length; i++) {
+          const cell = cells[i];
+          let angle = 0;
+          if (i < cells.length - 1) {
+            angle = Math.atan2(cells[i+1].x - cell.x, cells[i+1].z - cell.z);
+          } else if (i > 0) {
+            angle = Math.atan2(cell.x - cells[i-1].x, cell.z - cells[i-1].z);
+          }
+
           const cost = this.gameManager.getBuildingCost(this.blueprintBuilding.type);
           if (this.gameManager.hasResources(0, cost)) {
             if (this.gameManager.checkBuildPosition(cell.x, cell.z, this.blueprintBuilding.type)) {
-              const placed = this.gameManager.placeBuilding(cell.x, cell.z, this.blueprintBuilding.type);
+              const placed = this.gameManager.placeBuilding(cell.x, cell.z, this.blueprintBuilding.type, angle);
               if (placed) placedAny = true;
             }
           }
-        });
+        }
 
         if (!placedAny) {
           this.gameManager.hud.showNotification("Cannot build walls here! Terrain blocked or resources insufficient.");
@@ -664,7 +731,7 @@ export class Input {
       // Spawn indicator
       let color = 0x00ffcc; // Default command
       const isResource = ['wood', 'gold', 'stone', 'food', 'sheep', 'fish'].includes(targetEntity.type);
-      const isBuilding = ['townCenter', 'barracks', 'house', 'temple', 'market', 'dock', 'farm', 'palisadeWall', 'palisadeGate', 'stoneWall', 'stoneGate', 'watchTower'].includes(targetEntity.type);
+      const isBuilding = ['townCenter', 'barracks', 'house', 'temple', 'market', 'dock', 'farm', 'palisadeWall', 'palisadeGate', 'stoneWall', 'stoneGate', 'watchTower', 'university', 'siegeWorkshop', 'blacksmith', 'castle'].includes(targetEntity.type);
 
       if (isResource) color = 0xffd700; // Gold
       else if (targetEntity.playerId === 1) color = 0xff0000; // Enemy attack

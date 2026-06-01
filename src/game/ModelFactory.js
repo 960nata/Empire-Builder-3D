@@ -754,7 +754,7 @@ export class ModelFactory {
   // ── ADD CIVILIZATION-SPECIFIC HEADGEAR ──
   addCivHeadgear(bodyGroup, civ, type, age, teamMat) {
     const config = this.getCivUnitConfig(civ);
-    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer'].includes(type);
+    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher'].includes(type);
     if (!isMilitary && type !== 'villager') return;
 
     const helmetMat = this.materials[config.helmetMat] || this.materials.iron;
@@ -1086,7 +1086,7 @@ export class ModelFactory {
   // ── ADD CIVILIZATION-SPECIFIC BODY DETAILS ──
   addCivBodyDetails(bodyGroup, civ, type, age, teamMat) {
     const config = this.getCivUnitConfig(civ);
-    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer'].includes(type);
+    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher'].includes(type);
 
     // ── CAPE ──
     if (config.cape && isMilitary) {
@@ -1633,7 +1633,7 @@ export class ModelFactory {
   // -------------------------------------------------------------
   // UNIT MODELS
   // -------------------------------------------------------------
-  createUnitMesh(type, playerId, civ = 'inggris', age = 'dark') {
+  createUnitMesh(type, playerId, civ = 'inggris', age = 'dark', upgradeLvl = 0, carryingRelic = false) {
     const group = new THREE.Group();
     const teamMat = this.getTeamMaterial(playerId);
     
@@ -1675,7 +1675,7 @@ export class ModelFactory {
     this.addCivBodyDetails(bodyGroup, civ, type, age, teamMat);
 
     // Pauldrons & Knee armor details for Military Units (AoE style)
-    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer'].includes(type);
+    const isMilitary = ['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'horseArcher', 'archer', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher'].includes(type);
     if (isMilitary) {
       const armorMat = age === 'imperial' ? this.materials.goldMetal : this.materials.iron;
       const pauldronGeom = new THREE.SphereGeometry(0.12, 6, 6, 0, Math.PI * 2, 0, Math.PI / 2);
@@ -2886,6 +2886,625 @@ export class ModelFactory {
 
       bodyGroup.add(hullGroup);
     }
+    else if (type === 'transportShip') {
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      const hullGroup = new THREE.Group();
+      hullGroup.name = "boat";
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.45, 1.8), this.materials.woodDark);
+      mainHull.position.y = 0.22;
+      mainHull.castShadow = true;
+      hullGroup.add(mainHull);
+
+      const bow = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.65, 4), this.materials.woodDark);
+      bow.position.set(0, 0.22, 1.25);
+      bow.rotation.x = Math.PI / 2;
+      bow.rotation.y = Math.PI / 4;
+      bow.castShadow = true;
+      hullGroup.add(bow);
+
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.9), teamMat);
+      cabin.position.set(0, 0.6, -0.2);
+      cabin.castShadow = true;
+      hullGroup.add(cabin);
+
+      bodyGroup.add(hullGroup);
+    }
+    else if (type === 'galley') {
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      const hullGroup = new THREE.Group();
+      hullGroup.name = "boat";
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.45, 1.6), this.materials.woodDark);
+      mainHull.position.y = 0.22;
+      mainHull.castShadow = true;
+      hullGroup.add(mainHull);
+
+      const bow = new THREE.Mesh(new THREE.ConeGeometry(0.36, 0.6, 4), this.materials.woodDark);
+      bow.position.set(0, 0.22, 1.1);
+      bow.rotation.x = Math.PI / 2;
+      bow.rotation.y = Math.PI / 4;
+      bow.castShadow = true;
+      hullGroup.add(bow);
+
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.45, 4), this.materials.woodDark);
+      mast.position.set(0, 0.95, 0.1);
+      hullGroup.add(mast);
+
+      const sail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.9, 0.7), teamMat);
+      sail.position.set(0, 1.3, 0.2);
+      sail.rotation.y = 0.15;
+      hullGroup.add(sail);
+
+      const oarGeom = new THREE.CylinderGeometry(0.015, 0.015, 0.6, 4);
+      for (let i = 0; i < 3; i++) {
+        const oarL = new THREE.Mesh(oarGeom, this.materials.woodDark);
+        oarL.position.set(-0.55, 0.2, -0.3 + i * 0.35);
+        oarL.rotation.z = Math.PI / 3;
+        const oarR = new THREE.Mesh(oarGeom, this.materials.woodDark);
+        oarR.position.set(0.55, 0.2, -0.3 + i * 0.35);
+        oarR.rotation.z = -Math.PI / 3;
+        hullGroup.add(oarL, oarR);
+      }
+
+      bodyGroup.add(hullGroup);
+    }
+    else if (type === 'fireShip') {
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      const hullGroup = new THREE.Group();
+      hullGroup.name = "boat";
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 1.5), this.materials.woodDark);
+      mainHull.position.y = 0.25;
+      mainHull.castShadow = true;
+      hullGroup.add(mainHull);
+
+      const bow = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.6, 4), this.materials.woodDark);
+      bow.position.set(0, 0.25, 1.05);
+      bow.rotation.x = Math.PI / 2;
+      bow.rotation.y = Math.PI / 4;
+      bow.castShadow = true;
+      hullGroup.add(bow);
+
+      const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.5, 6), this.materials.bronze || this.materials.goldMetal);
+      nozzle.position.set(0, 0.3, 1.4);
+      nozzle.rotation.x = Math.PI / 2;
+      hullGroup.add(nozzle);
+
+      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), this.materials.fire);
+      flame.position.set(0, 0.3, 1.65);
+      hullGroup.add(flame);
+
+      bodyGroup.add(hullGroup);
+    }
+    else if (type === 'demolitionShip') {
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      const hullGroup = new THREE.Group();
+      hullGroup.name = "boat";
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.45, 1.3), this.materials.woodDark);
+      mainHull.position.y = 0.22;
+      mainHull.castShadow = true;
+      hullGroup.add(mainHull);
+
+      const bow = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.5, 4), this.materials.woodDark);
+      bow.position.set(0, 0.22, 0.9);
+      bow.rotation.x = Math.PI / 2;
+      bow.rotation.y = Math.PI / 4;
+      bow.castShadow = true;
+      hullGroup.add(bow);
+
+      const barrelGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.35, 6);
+      const b1 = new THREE.Mesh(barrelGeom, this.materials.clothesDark);
+      b1.position.set(-0.15, 0.45, 0);
+      const b2 = b1.clone();
+      b2.position.x = 0.15;
+      const b3 = b1.clone();
+      b3.position.set(0, 0.45, -0.35);
+      hullGroup.add(b1, b2, b3);
+
+      const fuse = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), this.materials.fire);
+      fuse.position.set(0, 0.65, -0.15);
+      hullGroup.add(fuse);
+
+      bodyGroup.add(hullGroup);
+    }
+    else if (type === 'cannonGalleon') {
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      const hullGroup = new THREE.Group();
+      hullGroup.name = "boat";
+
+      const mainHull = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 1.8), this.materials.woodDark);
+      mainHull.position.y = 0.27;
+      mainHull.castShadow = true;
+      hullGroup.add(mainHull);
+
+      const bow = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.75, 4), this.materials.woodDark);
+      bow.position.set(0, 0.27, 1.27);
+      bow.rotation.x = Math.PI / 2;
+      bow.rotation.y = Math.PI / 4;
+      bow.castShadow = true;
+      hullGroup.add(bow);
+
+      const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.6), this.materials.woodDark);
+      carriage.position.set(0, 0.6, 0.15);
+      hullGroup.add(carriage);
+
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 0.8, 8), this.materials.iron);
+      barrel.position.set(0, 0.75, 0.35);
+      barrel.rotation.x = Math.PI / 2.15;
+      hullGroup.add(barrel);
+
+      const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.7, 4), this.materials.woodDark);
+      flagPole.position.set(0, 0.6, -0.85);
+      hullGroup.add(flagPole);
+
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.02), teamMat);
+      flag.position.set(0.15, 0.9, -0.85);
+      hullGroup.add(flag);
+
+      bodyGroup.add(hullGroup);
+    }
+    else if (type === 'spearman') {
+      const armorGeom = new THREE.CylinderGeometry(0.28, 0.24, 0.45, 6);
+      const armorMat = age === 'imperial' ? this.materials.goldMetal : (age === 'castle' ? this.materials.iron : this.materials.clothesDark);
+      const armor = new THREE.Mesh(armorGeom, armorMat);
+      armor.position.y = 0.55;
+      armor.castShadow = true;
+      bodyGroup.add(armor);
+
+      if (upgradeLvl > 0) {
+        const helm = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.15, 6), this.materials.iron);
+        helm.position.y = 1.05;
+        bodyGroup.add(helm);
+      }
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.38, 0.55, 0);
+
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 4), this.materials.skin);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      const spear = new THREE.Group();
+      spear.name = "weapon";
+      spear.position.set(0, -0.3, 0.1);
+      spear.rotation.x = Math.PI / 2.2;
+
+      const shaftLen = upgradeLvl === 2 ? 1.8 : (upgradeLvl === 1 ? 1.6 : 1.4);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, shaftLen, 4), this.materials.woodDark);
+      shaft.rotation.x = Math.PI / 2;
+      spear.add(shaft);
+
+      let headGeom;
+      if (upgradeLvl === 2) {
+        headGeom = new THREE.BoxGeometry(0.2, 0.35, 0.05);
+      } else {
+        headGeom = new THREE.ConeGeometry(0.06, 0.25, 4);
+      }
+      const head = new THREE.Mesh(headGeom, this.materials.iron);
+      head.position.z = shaftLen / 2;
+      head.rotation.x = Math.PI / 2;
+      spear.add(head);
+
+      rightArm.add(spear);
+      bodyGroup.add(rightArm);
+    }
+    else if (type === 'skirmisher') {
+      const armor = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.45, 6), this.materials.clothes);
+      armor.position.y = 0.55;
+      bodyGroup.add(armor);
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.38, 0.55, 0);
+
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 4), this.materials.skin);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      const javelin = new THREE.Group();
+      javelin.name = "weapon";
+      javelin.position.set(0, -0.2, 0.1);
+      javelin.rotation.x = Math.PI / 2.3;
+
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.9, 4), this.materials.woodDark);
+      shaft.rotation.x = Math.PI / 2;
+      javelin.add(shaft);
+
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.15, 4), this.materials.iron);
+      head.position.z = 0.45;
+      head.rotation.x = Math.PI / 2;
+      javelin.add(head);
+
+      rightArm.add(javelin);
+      bodyGroup.add(rightArm);
+
+      const leftArm = new THREE.Group();
+      leftArm.name = "leftArm";
+      leftArm.position.set(-0.38, 0.55, 0);
+
+      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 4), this.materials.skin);
+      lArm.position.y = -0.15;
+      leftArm.add(lArm);
+
+      const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.04, 8), teamMat);
+      shield.position.set(-0.1, -0.15, 0.05);
+      shield.rotation.z = Math.PI / 2;
+      leftArm.add(shield);
+
+      bodyGroup.add(leftArm);
+    }
+    else if (type === 'scoutCavalry') {
+      const horseGroup = new THREE.Group();
+      horseGroup.name = "horse";
+
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.35, 1.4, 8), this.materials.woodDark);
+      barrel.position.set(0, 0.72, 0);
+      barrel.rotation.z = Math.PI / 2;
+      barrel.castShadow = true;
+      horseGroup.add(barrel);
+
+      const blanket = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.8), teamMat);
+      blanket.position.set(0, 0.95, 0);
+      horseGroup.add(blanket);
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.25, 0.65, 6), this.materials.woodDark);
+      neck.position.set(0, 1.05, 0.6);
+      neck.rotation.x = -0.6;
+      horseGroup.add(neck);
+
+      const horseHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.45), this.materials.woodDark);
+      horseHead.position.set(0, 1.28, 0.92);
+      horseHead.rotation.x = -0.2;
+      horseGroup.add(horseHead);
+
+      const legGeom = new THREE.CylinderGeometry(0.06, 0.05, 0.62, 5);
+      const legPositions = [
+        { name: "legFL", pos: [-0.2, 0.31, 0.4] },
+        { name: "legFR", pos: [0.2, 0.31, 0.4] },
+        { name: "legBL", pos: [-0.2, 0.31, -0.4] },
+        { name: "legBR", pos: [0.2, 0.31, -0.4] }
+      ];
+      legPositions.forEach(cfg => {
+        const legGroup = new THREE.Group();
+        legGroup.name = cfg.name;
+        legGroup.position.set(...cfg.pos);
+        const leg = new THREE.Mesh(legGeom, this.materials.woodDark);
+        leg.position.y = -0.05;
+        legGroup.add(leg);
+        horseGroup.add(legGroup);
+      });
+
+      bodyGroup.add(horseGroup);
+
+      const riderGroup = new THREE.Group();
+      riderGroup.name = "rider";
+      riderGroup.position.set(0, 1.05, 0);
+
+      const rTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.55, 6), this.materials.clothes);
+      rTorso.position.y = 0.28;
+      riderGroup.add(rTorso);
+
+      const rHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), this.materials.skin);
+      rHead.position.y = 0.68;
+      riderGroup.add(rHead);
+
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6, 0, Math.PI * 2, 0, Math.PI / 2), teamMat);
+      cap.position.y = 0.68;
+      riderGroup.add(cap);
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.3, 0.35, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 4), this.materials.skin);
+      arm.position.y = -0.1;
+      rightArm.add(arm);
+
+      const sword = new THREE.Group();
+      sword.name = "weapon";
+      sword.position.set(0, -0.22, 0.05);
+      sword.rotation.x = Math.PI / 2.3;
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.65), this.materials.iron);
+      blade.position.z = 0.32;
+      sword.add(blade);
+      rightArm.add(sword);
+      riderGroup.add(rightArm);
+
+      bodyGroup.add(riderGroup);
+
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+    }
+    else if (type === 'camelRider') {
+      const camelGroup = new THREE.Group();
+      camelGroup.name = "horse";
+
+      const camelMat = new THREE.MeshStandardMaterial({ color: 0xc6a07a, roughness: 0.8 });
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.38, 1.5, 8), camelMat);
+      barrel.position.set(0, 0.85, 0);
+      barrel.rotation.z = Math.PI / 2;
+      barrel.castShadow = true;
+      camelGroup.add(barrel);
+
+      const hump = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.45, 6), camelMat);
+      hump.position.set(0, 1.25, -0.15);
+      hump.rotation.y = Math.PI / 6;
+      hump.castShadow = true;
+      camelGroup.add(hump);
+
+      const blanket = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.06, 0.9), teamMat);
+      blanket.position.set(0, 1.08, 0);
+      camelGroup.add(blanket);
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.22, 0.9, 6), camelMat);
+      neck.position.set(0, 1.25, 0.65);
+      neck.rotation.x = -0.4;
+      camelGroup.add(neck);
+
+      const camelHead = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.48), camelMat);
+      camelHead.position.set(0, 1.58, 0.95);
+      camelHead.rotation.x = -0.15;
+      camelGroup.add(camelHead);
+
+      const legGeom = new THREE.CylinderGeometry(0.06, 0.05, 0.8, 5);
+      const legPositions = [
+        { name: "legFL", pos: [-0.2, 0.4, 0.45] },
+        { name: "legFR", pos: [0.2, 0.4, 0.45] },
+        { name: "legBL", pos: [-0.2, 0.4, -0.45] },
+        { name: "legBR", pos: [0.2, 0.4, -0.45] }
+      ];
+      legPositions.forEach(cfg => {
+        const legGroup = new THREE.Group();
+        legGroup.name = cfg.name;
+        legGroup.position.set(...cfg.pos);
+        const leg = new THREE.Mesh(legGeom, camelMat);
+        leg.position.y = -0.05;
+        legGroup.add(leg);
+        camelGroup.add(legGroup);
+      });
+
+      bodyGroup.add(camelGroup);
+
+      const riderGroup = new THREE.Group();
+      riderGroup.name = "rider";
+      riderGroup.position.set(0, 1.15, 0);
+
+      const rTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.55, 6), this.materials.clothesDark);
+      rTorso.position.y = 0.28;
+      riderGroup.add(rTorso);
+
+      const rHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), this.materials.skin);
+      rHead.position.y = 0.68;
+      riderGroup.add(rHead);
+
+      const turban = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.12, 8), teamMat);
+      turban.position.y = 0.75;
+      riderGroup.add(turban);
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.3, 0.35, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 4), this.materials.skin);
+      arm.position.y = -0.1;
+      rightArm.add(arm);
+
+      const scimitar = new THREE.Group();
+      scimitar.name = "weapon";
+      scimitar.position.set(0, -0.22, 0.05);
+      scimitar.rotation.x = Math.PI / 2.3;
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.75), this.materials.iron);
+      blade.position.z = 0.35;
+      blade.rotation.y = 0.25;
+      scimitar.add(blade);
+      rightArm.add(scimitar);
+      riderGroup.add(rightArm);
+
+      bodyGroup.add(riderGroup);
+
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+    }
+    else if (type === 'cavalryArcher') {
+      const horseGroup = new THREE.Group();
+      horseGroup.name = "horse";
+
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.36, 1.4, 8), this.materials.woodDark);
+      barrel.position.set(0, 0.72, 0);
+      barrel.rotation.z = Math.PI / 2;
+      barrel.castShadow = true;
+      horseGroup.add(barrel);
+
+      const blanket = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.06, 0.85), teamMat);
+      blanket.position.set(0, 0.96, 0);
+      horseGroup.add(blanket);
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 0.65, 6), this.materials.woodDark);
+      neck.position.set(0, 1.05, 0.6);
+      neck.rotation.x = -0.6;
+      horseGroup.add(neck);
+
+      const horseHead = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.22, 0.46), this.materials.woodDark);
+      horseHead.position.set(0, 1.28, 0.92);
+      horseHead.rotation.x = -0.2;
+      horseGroup.add(horseHead);
+
+      const legGeom = new THREE.CylinderGeometry(0.06, 0.05, 0.62, 5);
+      const legPositions = [
+        { name: "legFL", pos: [-0.2, 0.31, 0.4] },
+        { name: "legFR", pos: [0.2, 0.31, 0.4] },
+        { name: "legBL", pos: [-0.2, 0.31, -0.4] },
+        { name: "legBR", pos: [0.2, 0.31, -0.4] }
+      ];
+      legPositions.forEach(cfg => {
+        const legGroup = new THREE.Group();
+        legGroup.name = cfg.name;
+        legGroup.position.set(...cfg.pos);
+        const leg = new THREE.Mesh(legGeom, this.materials.woodDark);
+        leg.position.y = -0.05;
+        legGroup.add(leg);
+        horseGroup.add(legGroup);
+      });
+
+      bodyGroup.add(horseGroup);
+
+      const riderGroup = new THREE.Group();
+      riderGroup.name = "rider";
+      riderGroup.position.set(0, 1.05, 0);
+
+      const rTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.55, 6), this.materials.clothes);
+      rTorso.position.y = 0.28;
+      riderGroup.add(rTorso);
+
+      const rHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), this.materials.skin);
+      rHead.position.y = 0.68;
+      riderGroup.add(rHead);
+
+      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.25, 6), teamMat);
+      hat.position.y = 0.85;
+      riderGroup.add(hat);
+
+      const leftArm = new THREE.Group();
+      leftArm.name = "leftArm";
+      leftArm.position.set(-0.3, 0.35, 0);
+      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 4), this.materials.skin);
+      lArm.position.y = -0.1;
+      leftArm.add(lArm);
+
+      const bowGroup = new THREE.Group();
+      bowGroup.name = "bow";
+      bowGroup.position.set(-0.08, -0.22, 0.12);
+      bowGroup.rotation.z = Math.PI / 2;
+      const bowMesh = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.025, 6, 12, Math.PI * 0.85), this.materials.woodDark);
+      bowGroup.add(bowMesh);
+      leftArm.add(bowGroup);
+      riderGroup.add(leftArm);
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.3, 0.35, 0);
+      const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.32, 4), this.materials.skin);
+      rArm.position.y = -0.1;
+      rightArm.add(rArm);
+
+      const arrow = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.6), this.materials.woodDark);
+      arrow.position.set(0, -0.2, 0.05);
+      arrow.rotation.x = Math.PI / 2;
+      rightArm.add(arrow);
+      riderGroup.add(rightArm);
+
+      bodyGroup.add(riderGroup);
+
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+    }
+    else if (type === 'monk') {
+      const robeTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.38, 0.25, 6), this.materials.clothesDark);
+      robeTrim.position.y = 0.15;
+      robeTrim.castShadow = true;
+      bodyGroup.add(robeTrim);
+
+      const hood = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), this.materials.clothes);
+      hood.position.set(0, 0.98, -0.05);
+      bodyGroup.add(hood);
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.35, 0.55, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 4), this.materials.clothes);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      if (carryingRelic) {
+        const relicGroup = new THREE.Group();
+        relicGroup.name = "weapon";
+        relicGroup.position.set(-0.25, -0.22, 0.22);
+        
+        const relicBox = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.32), this.materials.goldMetal);
+        relicBox.castShadow = true;
+        relicGroup.add(relicBox);
+        
+        const relicLid = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.18, 4), this.materials.goldCrystal);
+        relicLid.position.y = 0.22;
+        relicGroup.add(relicLid);
+        
+        rightArm.add(relicGroup);
+      } else {
+        const staff = new THREE.Group();
+        staff.name = "tool";
+        staff.position.set(0, -0.2, 0.1);
+        staff.rotation.x = Math.PI / 2.2;
+        
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 4), this.materials.woodDark);
+        shaft.rotation.x = Math.PI / 2;
+        staff.add(shaft);
+
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.05, 0.05), this.materials.goldMetal);
+        head.position.z = 0.7;
+        staff.add(head);
+
+        const vert = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.05), this.materials.goldMetal);
+        vert.position.z = 0.7;
+        vert.rotation.y = Math.PI / 2;
+        staff.add(vert);
+
+        rightArm.add(staff);
+      }
+
+      bodyGroup.add(rightArm);
+    }
     // -------------------------------------------------------
     // SHEEP MODEL (Neutral/Tamed)
     // -------------------------------------------------------
@@ -2946,6 +3565,213 @@ export class ModelFactory {
 
       bodyGroup.add(sheepGroup);
     }
+    else if (type === 'batteringRam') {
+      const ramBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.6), this.materials.woodDark);
+      ramBody.position.y = 0.5;
+      ramBody.castShadow = true;
+      bodyGroup.add(ramBody);
+      
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.2, 1.7), this.materials.woodFeudal);
+      roof.position.set(0, 0.95, 0);
+      roof.rotation.x = 0.1;
+      bodyGroup.add(roof);
+      
+      const wheelGeom = new THREE.CylinderGeometry(0.2, 0.2, 0.15, 8);
+      wheelGeom.rotateZ(Math.PI / 2);
+      const wheelPositions = [[-0.6, 0.2, -0.5], [0.6, 0.2, -0.5], [-0.6, 0.2, 0.5], [0.6, 0.2, 0.5]];
+      wheelPositions.forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeom, this.materials.woodDark);
+        wheel.position.set(...pos);
+        bodyGroup.add(wheel);
+      });
+      
+      const ramHeadMat = upgradeLvl >= 2 ? this.materials.goldMetal : (upgradeLvl === 1 ? this.materials.iron : this.materials.woodDark);
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8), this.materials.woodDark);
+      shaft.rotation.x = Math.PI / 2;
+      shaft.position.set(0, 0.4, 0.2);
+      bodyGroup.add(shaft);
+      
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.4, 8), ramHeadMat);
+      head.rotation.x = Math.PI / 2;
+      head.position.set(0, 0.4, 1.2);
+      bodyGroup.add(head);
+    }
+    else if (type === 'mangonel') {
+      const frameMat = this.materials.woodDark;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.15, 1.4), frameMat);
+      base.position.y = 0.3;
+      bodyGroup.add(base);
+      
+      const wheelGeom = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 8);
+      wheelGeom.rotateZ(Math.PI / 2);
+      const wheelPositions = [[-0.5, 0.25, -0.4], [0.5, 0.25, -0.4], [-0.5, 0.25, 0.4], [0.5, 0.25, 0.4]];
+      wheelPositions.forEach(pos => {
+        const w = new THREE.Mesh(wheelGeom, this.materials.woodDark);
+        w.position.set(...pos);
+        bodyGroup.add(w);
+      });
+      
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.9, 0.15), frameMat);
+      post.position.set(0, 0.7, -0.2);
+      bodyGroup.add(post);
+      
+      const armGroup = new THREE.Group();
+      armGroup.position.set(0, 0.4, -0.2);
+      armGroup.rotation.x = -Math.PI / 6;
+      
+      const armShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), frameMat);
+      armShaft.position.y = 0.5;
+      armGroup.add(armShaft);
+      
+      const basket = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.3), upgradeLvl >= 1 ? this.materials.iron : frameMat);
+      basket.position.y = 1.1;
+      armGroup.add(basket);
+      
+      const projectileBall = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), this.materials.stone);
+      projectileBall.position.set(0, 1.2, 0);
+      armGroup.add(projectileBall);
+      
+      bodyGroup.add(armGroup);
+    }
+    else if (type === 'scorpion') {
+      const frameMat = this.materials.woodDark;
+      const carriage = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 1.2), frameMat);
+      carriage.position.y = 0.4;
+      bodyGroup.add(carriage);
+      
+      const wheelGeom = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8);
+      wheelGeom.rotateZ(Math.PI / 2);
+      [[-0.45, 0.2, -0.3], [0.45, 0.2, -0.3], [-0.45, 0.2, 0.3], [0.45, 0.2, 0.3]].forEach(pos => {
+        const w = new THREE.Mesh(wheelGeom, frameMat);
+        w.position.set(...pos);
+        bodyGroup.add(w);
+      });
+      
+      const metalMat = upgradeLvl >= 1 ? this.materials.goldMetal : this.materials.iron;
+      const bowBar = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.12), upgradeLvl >= 1 ? metalMat : frameMat);
+      bowBar.position.set(0, 0.55, 0.5);
+      bodyGroup.add(bowBar);
+      
+      const track = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 1.1), frameMat);
+      track.position.set(0, 0.5, 0.0);
+      bodyGroup.add(track);
+    }
+    else if (type === 'bombardCannon') {
+      const frameMat = this.materials.woodDark;
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 1.1), frameMat);
+      frame.position.y = 0.35;
+      bodyGroup.add(frame);
+      
+      const wheelGeom = new THREE.CylinderGeometry(0.35, 0.35, 0.15, 8);
+      wheelGeom.rotateZ(Math.PI / 2);
+      [[-0.45, 0.35, 0.0], [0.45, 0.35, 0.0]].forEach(pos => {
+        const w = new THREE.Mesh(wheelGeom, frameMat);
+        w.position.set(...pos);
+        bodyGroup.add(w);
+      });
+      
+      const barrelMat = upgradeLvl >= 1 ? this.materials.goldMetal : this.materials.iron;
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.2, 8), barrelMat);
+      barrel.rotation.x = Math.PI / 5;
+      barrel.position.set(0, 0.6, 0.15);
+      bodyGroup.add(barrel);
+    }
+    else if (type === 'siegeTower') {
+      const frameMat = this.materials.woodDark;
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.2, 1.0), frameMat);
+      tower.position.y = 1.1;
+      tower.castShadow = true;
+      bodyGroup.add(tower);
+      
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.15, 1.1), this.materials.woodFeudal);
+      roof.position.y = 2.25;
+      bodyGroup.add(roof);
+      
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.08), this.materials.woodFeudal);
+      door.position.set(0, 1.4, 0.52);
+      bodyGroup.add(door);
+      
+      const wheelGeom = new THREE.CylinderGeometry(0.22, 0.22, 0.12, 8);
+      wheelGeom.rotateZ(Math.PI / 2);
+      [[-0.55, 0.22, -0.3], [0.55, 0.22, -0.3], [-0.55, 0.22, 0.3], [0.55, 0.22, 0.3]].forEach(pos => {
+        const w = new THREE.Mesh(wheelGeom, frameMat);
+        w.position.set(...pos);
+        bodyGroup.add(w);
+      });
+    }
+    else if (type === 'trebuchet') {
+      const frameMat = this.materials.woodDark;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 1.8), frameMat);
+      base.position.y = 0.1;
+      bodyGroup.add(base);
+      
+      const postL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.12), frameMat);
+      postL.position.set(-0.4, 0.9, 0);
+      postL.rotation.z = -0.15;
+      
+      const postR = postL.clone();
+      postR.position.x = 0.4;
+      postR.rotation.z = 0.15;
+      bodyGroup.add(postL, postR);
+      
+      const beamGroup = new THREE.Group();
+      beamGroup.position.set(0, 1.6, 0);
+      beamGroup.rotation.x = -Math.PI / 6;
+      
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 2.4), frameMat);
+      shaft.position.y = -0.3;
+      beamGroup.add(shaft);
+      
+      const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.8), this.materials.woodFeudal);
+      box.position.y = -1.2;
+      beamGroup.add(box);
+      
+      const sling = new THREE.Mesh(new THREE.SphereGeometry(0.15, 6, 6), this.materials.clothes);
+      sling.position.set(0, 0.9, 0.1);
+      beamGroup.add(sling);
+      
+      bodyGroup.add(beamGroup);
+    }
+    else if (type === 'petard') {
+      const torsoGeom = new THREE.CylinderGeometry(0.28, 0.22, 0.7, 6);
+      const torso = new THREE.Mesh(torsoGeom, teamMat);
+      torso.position.y = 0.48;
+      bodyGroup.add(torso);
+      
+      const headGeom = new THREE.SphereGeometry(0.2, 8, 8);
+      const head = new THREE.Mesh(headGeom, this.materials.skin);
+      head.position.y = 0.95;
+      bodyGroup.add(head);
+      
+      const barrelGroup = new THREE.Group();
+      barrelGroup.position.set(0, 0.48, 0.45);
+      
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.65, 8), this.materials.woodFeudal);
+      barrel.rotation.x = Math.PI / 2;
+      barrelGroup.add(barrel);
+      
+      const band1 = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 8), this.materials.iron);
+      band1.rotation.x = Math.PI / 2;
+      band1.position.z = -0.2;
+      const band2 = band1.clone();
+      band2.position.z = 0.2;
+      barrelGroup.add(band1, band2);
+      
+      bodyGroup.add(barrelGroup);
+      
+      const armGeom = new THREE.CylinderGeometry(0.06, 0.06, 0.4, 4);
+      const lArm = new THREE.Mesh(armGeom, this.materials.clothes);
+      lArm.position.set(-0.35, 0.55, 0.2);
+      lArm.rotation.x = Math.PI / 3;
+      lArm.rotation.y = 0.5;
+      
+      const rArm = lArm.clone();
+      rArm.position.x = 0.35;
+      rArm.rotation.y = -0.5;
+      bodyGroup.add(lArm, rArm);
+    }
+    
+    bodyGroup.add(sheepGroup);
 
     return group;
   }
@@ -2970,7 +3796,7 @@ export class ModelFactory {
   // -------------------------------------------------------------
   // BUILDING MODELS
   // -------------------------------------------------------------
-  createBuildingMesh(type, playerId, civ = 'inggris', age = 'dark') {
+  createBuildingMesh(type, playerId, civ = 'inggris', age = 'dark', upgradeLvl = 0) {
     const group = new THREE.Group();
     const teamMat = this.getTeamMaterial(playerId);
     let woodMat, wallMat, roofMat, foundationMat;
@@ -4293,6 +5119,19 @@ export class ModelFactory {
       rope2.position.set(0, 1.2, 0);
       rope2.castShadow = true;
       group.add(rope2);
+
+      if (upgradeLvl >= 1) {
+        const braceGeom = new THREE.BoxGeometry(0.08, 1.5, 0.08);
+        const brace1 = new THREE.Mesh(braceGeom, this.materials.iron || this.materials.clothesDark);
+        brace1.position.set(0, 0.8, 0);
+        brace1.rotation.z = Math.PI / 4;
+        group.add(brace1);
+      }
+      if (upgradeLvl >= 2) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.6, 4), this.materials.iron || this.materials.clothesDark);
+        spike.position.set(0, 2.1, 0);
+        group.add(spike);
+      }
     }
     else if (type === 'palisadeGate') {
       // Two main side posts (thick logs)
@@ -4336,6 +5175,19 @@ export class ModelFactory {
       brace.rotation.z = Math.PI / 4;
       brace.castShadow = true;
       group.add(brace);
+
+      if (upgradeLvl >= 1) {
+        const stud = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), this.materials.iron);
+        stud.position.set(-0.4, 0.8, 0.07);
+        const stud2 = stud.clone(); stud2.position.x = 0.4;
+        group.add(stud, stud2);
+      }
+      if (upgradeLvl >= 2) {
+        const archGeom = new THREE.BoxGeometry(2.0, 0.15, 0.35);
+        const arch = new THREE.Mesh(archGeom, this.materials.woodDark);
+        arch.position.set(0, 2.3, 0);
+        group.add(arch);
+      }
     }
     else if (type === 'stoneWall') {
       // Thick stone block (size 1)
@@ -4357,6 +5209,19 @@ export class ModelFactory {
       battRight.position.set(0.35, 1.575, 0);
       battRight.castShadow = true;
       group.add(battRight);
+
+      if (upgradeLvl >= 1) {
+        const trim = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.1, 0.85), this.materials.iron);
+        trim.position.set(0, 1.4, 0);
+        group.add(trim);
+      }
+      if (upgradeLvl >= 2) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.8), this.materials.woodDark);
+        pole.position.set(0, 1.9, 0);
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.18, 0.02), teamMat);
+        flag.position.set(0.12, 2.1, 0);
+        group.add(pole, flag);
+      }
     }
     else if (type === 'stoneGate') {
       // Two stone guard towers on the sides
@@ -4412,6 +5277,20 @@ export class ModelFactory {
       barsGroup.add(hBar2);
 
       group.add(barsGroup);
+
+      if (upgradeLvl >= 1) {
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), this.materials.iron);
+        spike.position.set(-0.9, 3.4, 0);
+        const spike2 = spike.clone(); spike2.position.x = 0.9;
+        group.add(spike, spike2);
+      }
+      if (upgradeLvl >= 2) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), this.materials.iron);
+        pole.position.set(0, 2.6, 0);
+        const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.02), teamMat);
+        flag.position.set(0.2, 3.0, 0);
+        group.add(pole, flag);
+      }
     }
     else if (type === 'watchTower') {
       const style = this.getArchitectureStyle(civ);
@@ -4421,6 +5300,17 @@ export class ModelFactory {
       baseSlab.position.y = 0.1;
       baseSlab.receiveShadow = true;
       group.add(baseSlab);
+
+      if (upgradeLvl >= 1) {
+        const riser = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.8, 1.3), foundationMat);
+        riser.position.y = -0.3;
+        group.add(riser);
+      }
+      if (upgradeLvl >= 2) {
+        const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.15, 8, 1, true), this.materials.goldMetal || this.materials.iron);
+        ring.position.y = 2.2;
+        group.add(ring);
+      }
 
       if (style === 'eastAsian') {
         const postGeom = new THREE.CylinderGeometry(0.06, 0.06, 3.2, 4);
@@ -4633,6 +5523,188 @@ export class ModelFactory {
       const flag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.4, 0.05), teamMat);
       flag.position.set(0.4, 5.7, 0);
       group.add(flag);
+    }
+    else if (type === 'university') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.8), foundationMat);
+      base.position.y = 0.1;
+      base.receiveShadow = true;
+      group.add(base);
+      
+      const mainBuilding = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 2.2), wallMat);
+      mainBuilding.position.y = 0.8;
+      mainBuilding.castShadow = true;
+      mainBuilding.receiveShadow = true;
+      group.add(mainBuilding);
+      
+      const domeGeom = new THREE.SphereGeometry(0.8, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+      const dome = new THREE.Mesh(domeGeom, roofMat);
+      dome.position.y = 1.5;
+      dome.castShadow = true;
+      group.add(dome);
+      
+      const porch = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 0.5), wallMat);
+      porch.position.set(0, 0.55, 1.25);
+      porch.castShadow = true;
+      group.add(porch);
+      
+      const pillarGeom = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 4);
+      const p1 = new THREE.Mesh(pillarGeom, woodMat);
+      p1.position.set(-0.4, 0.5, 1.4);
+      const p2 = p1.clone(); p2.position.x = 0.4;
+      group.add(p1, p2);
+    }
+    else if (type === 'siegeWorkshop') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.8), this.materials.rock);
+      base.position.y = 0.1;
+      base.receiveShadow = true;
+      group.add(base);
+      
+      const postGeom = new THREE.BoxGeometry(0.18, 1.4, 0.18);
+      const posts = [[-1.2, 0.8, -1.2], [1.2, 0.8, -1.2], [-1.2, 0.8, 1.2], [1.2, 0.8, 1.2]];
+      posts.forEach(([px, py, pz]) => {
+        const post = new THREE.Mesh(postGeom, woodMat);
+        post.position.set(px, py, pz);
+        post.castShadow = true;
+        group.add(post);
+      });
+      
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.2, 2.7), roofMat);
+      roof.position.set(0, 1.6, 0);
+      roof.castShadow = true;
+      group.add(roof);
+      
+      const miniWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 6), woodMat);
+      miniWheel.rotation.z = Math.PI / 2;
+      miniWheel.position.set(0.6, 0.3, 0.5);
+      group.add(miniWheel);
+      
+      const anvil = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.2, 0.15), this.materials.iron);
+      anvil.position.set(-0.6, 0.2, 0.4);
+      group.add(anvil);
+    }
+    else if (type === 'stable') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.15, 2.8), this.materials.dirt);
+      base.position.y = 0.075;
+      base.receiveShadow = true;
+      group.add(base);
+
+      const pillarGeom = new THREE.CylinderGeometry(0.08, 0.08, 1.4, 4);
+      const positions = [[-1.2, 0.8, -1.2], [1.2, 0.8, -1.2], [-1.2, 0.8, 1.2], [1.2, 0.8, 1.2]];
+      positions.forEach(([px, py, pz]) => {
+        const post = new THREE.Mesh(pillarGeom, woodMat);
+        post.position.set(px, py, pz);
+        post.castShadow = true;
+        group.add(post);
+      });
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.15, 2.9), roofMat);
+      roof.position.set(0, 1.5, 0);
+      roof.rotation.x = 0.1;
+      roof.castShadow = true;
+      group.add(roof);
+
+      const fenceL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 2.4), woodMat);
+      fenceL.position.set(-1.1, 0.45, 0);
+      const fenceR = fenceL.clone();
+      fenceR.position.x = 1.1;
+      group.add(fenceL, fenceR);
+
+      const hay = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.55, 5), this.materials.thatch);
+      hay.position.set(-0.6, 0.4, -0.6);
+      group.add(hay);
+    }
+    else if (type === 'archeryRange') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.15, 2.8), this.materials.dirt);
+      base.position.y = 0.075;
+      group.add(base);
+
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.2, 0.25), wallMat);
+      wall.position.set(0, 0.7, -1.1);
+      wall.castShadow = true;
+      group.add(wall);
+
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.12, 1.2), roofMat);
+      roof.position.set(0, 1.35, -0.65);
+      roof.rotation.x = -0.15;
+      roof.castShadow = true;
+      group.add(roof);
+
+      const targetMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.6 });
+      const targetRingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+      const standMat = woodMat;
+
+      [-0.7, 0.7].forEach(offset => {
+        const stand = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7), standMat);
+        stand.position.set(offset, 0.45, 0.5);
+        stand.castShadow = true;
+        group.add(stand);
+
+        const outer = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.06, 8), targetRingMat);
+        outer.position.set(offset, 0.8, 0.5);
+        outer.rotation.x = Math.PI / 2.2;
+        outer.castShadow = true;
+        
+        const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.07, 8), targetMat);
+        inner.position.y = 0.01;
+        outer.add(inner);
+
+        group.add(outer);
+      });
+    }
+    else if (type === 'monastery') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.2, 2.8), foundationMat);
+      base.position.y = 0.1;
+      group.add(base);
+
+      const hall = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.0, 2.4), wallMat);
+      hall.position.set(0, 1.1, -0.1);
+      hall.castShadow = true;
+      group.add(hall);
+
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.2, 1.4, 4), roofMat);
+      roof.position.set(0, 2.7, -0.1);
+      roof.rotation.y = Math.PI / 4;
+      roof.scale.set(1.4, 1.0, 2.2);
+      roof.castShadow = true;
+      group.add(roof);
+
+      const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.25, 1.2, 4), wallMat);
+      spire.position.set(0, 3.4, 0.7);
+      group.add(spire);
+
+      const crossVert = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.45, 0.05), this.materials.goldMetal);
+      crossVert.position.set(0, 4.1, 0.7);
+      group.add(crossVert);
+
+      const crossHoriz = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.05), this.materials.goldMetal);
+      crossHoriz.position.set(0, 4.25, 0.7);
+      group.add(crossHoriz);
+    }
+    else if (type === 'bombardTower') {
+      const b1 = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.0, 1.0, 8), wallMat);
+      b1.position.y = 0.5;
+      b1.castShadow = true;
+      group.add(b1);
+
+      const b2 = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.85, 1.2, 8), wallMat);
+      b2.position.y = 1.6;
+      b2.castShadow = true;
+      group.add(b2);
+
+      const b3 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.72, 0.5, 8), wallMat);
+      b3.position.y = 2.45;
+      b3.castShadow = true;
+      group.add(b3);
+
+      const dome = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.8, 0.15, 8), roofMat);
+      dome.position.y = 2.75;
+      group.add(dome);
+
+      const cannon = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.75, 8), this.materials.iron);
+      cannon.position.set(0, 1.9, 0.7);
+      cannon.rotation.x = Math.PI / 2.05;
+      cannon.castShadow = true;
+      group.add(cannon);
     }
 
     return group;

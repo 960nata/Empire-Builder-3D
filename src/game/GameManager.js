@@ -43,7 +43,16 @@ export class GameManager {
         populationLimit: 10,
         age: 'dark',
         civ: 'inggris',
-        upgrades: { attack: 0, armor: 0, arrow: 0 }
+        upgrades: { 
+          attack: 0, armor: 0, arrow: 0,
+          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+          galleyUpgrade: 0, fireShipUpgrade: 0
+        }
       },
       1: { // Enemy (Red AI)
         resources: { wood: 1000, food: 1000, gold: 1000, stone: 1000 },
@@ -51,7 +60,16 @@ export class GameManager {
         populationLimit: 100,
         age: 'dark',
         civ: 'mongol',
-        upgrades: { attack: 0, armor: 0, arrow: 0 }
+        upgrades: { 
+          attack: 0, armor: 0, arrow: 0,
+          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+          galleyUpgrade: 0, fireShipUpgrade: 0
+        }
       },
       2: { // Ally (Green AI)
         resources: { wood: 400, food: 400, gold: 200, stone: 100 },
@@ -59,7 +77,16 @@ export class GameManager {
         populationLimit: 20,
         age: 'dark',
         civ: 'jepang',
-        upgrades: { attack: 0, armor: 0, arrow: 0 }
+        upgrades: { 
+          attack: 0, armor: 0, arrow: 0,
+          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+          galleyUpgrade: 0, fireShipUpgrade: 0
+        }
       },
       3: { // Neutral (Grey)
         resources: { wood: 500, food: 500, gold: 500, stone: 500 },
@@ -67,12 +94,39 @@ export class GameManager {
         populationLimit: 50,
         age: 'dark',
         civ: 'bizantium',
-        upgrades: { attack: 0, armor: 0, arrow: 0 }
+        upgrades: { 
+          attack: 0, armor: 0, arrow: 0,
+          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+          galleyUpgrade: 0, fireShipUpgrade: 0
+        }
       }
     };
 
+    // Initialize kills for each player
+    for (let pId in this.players) {
+      this.players[pId].kills = 0;
+    }
+
     // Selection
     this.selectedEntities = [];
+
+    // Control Groups (1-9)
+    this.controlGroups = {
+      1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+    };
+
+    // Faction Relations Matrix (0: player, 1: enemy, 2: ally, 3: neutral)
+    this.relations = {
+      0: { 1: 'enemy', 2: 'ally', 3: 'neutral' },
+      1: { 0: 'enemy', 2: 'enemy', 3: 'neutral' },
+      2: { 0: 'ally', 1: 'enemy', 3: 'neutral' },
+      3: { 0: 'neutral', 1: 'neutral', 2: 'neutral' }
+    };
 
     // Grid collision map (x,z key -> true/false/type)
     this.gridMap = {};
@@ -82,6 +136,7 @@ export class GameManager {
     
     // Time tracking
     this.clock = new THREE.Clock();
+    this.gameTime = 0;
     this.gameActive = false; // Set to true after lobby start
   }
 
@@ -350,6 +405,20 @@ export class GameManager {
       lobbyScreen.style.display = 'none';
     }
 
+    // Reset game logic variables
+    this.gameTime = 0;
+    this.fowGrid = null;
+    this.controlGroups = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] };
+    this.relations = {
+      0: { 1: 'enemy', 2: 'ally', 3: 'neutral' },
+      1: { 0: 'enemy', 2: 'enemy', 3: 'neutral' },
+      2: { 0: 'ally', 1: 'enemy', 3: 'neutral' },
+      3: { 0: 'neutral', 1: 'neutral', 2: 'neutral' }
+    };
+    for (let pId in this.players) {
+      this.players[pId].kills = 0;
+    }
+
     // Determine starting resources base values
     let baseResources = { wood: 500, food: 500, gold: 300, stone: 150 };
     if (this.startingResourcesOption === 'low') {
@@ -529,6 +598,18 @@ export class GameManager {
       return { food: 50 };
     } else if (type === 'swordsman') {
       return { food: 60, gold: 20 };
+    } else if (type === 'spearman') {
+      return { food: 35, wood: 25 };
+    } else if (type === 'skirmisher') {
+      return { food: 25, wood: 35 };
+    } else if (type === 'scoutCavalry') {
+      return { food: 80 };
+    } else if (type === 'camelRider') {
+      return { food: 55, gold: 60 };
+    } else if (type === 'cavalryArcher') {
+      return { food: 40, gold: 60 };
+    } else if (type === 'monk') {
+      return { gold: 100 };
     } else if (type === 'footKnight') {
       return { food: 75, gold: 35 };
     } else if (type === 'archer') {
@@ -545,11 +626,67 @@ export class GameManager {
       return { wood: 60, gold: 60 };
     } else if (type === 'fishingShip') {
       return { wood: 75 };
+    } else if (type === 'transportShip') {
+      return { wood: 125 };
+    } else if (type === 'galley') {
+      return { wood: 90, gold: 30 };
+    } else if (type === 'fireShip') {
+      return { wood: 75, gold: 45 };
+    } else if (type === 'demolitionShip') {
+      return { wood: 70, gold: 50 };
+    } else if (type === 'cannonGalleon') {
+      return { wood: 200, gold: 150 };
+    } else if (type === 'batteringRam') {
+      return { wood: 160, gold: 75 };
+    } else if (type === 'mangonel') {
+      return { wood: 160, gold: 135 };
+    } else if (type === 'scorpion') {
+      return { wood: 75, gold: 75 };
+    } else if (type === 'bombardCannon') {
+      return { wood: 225, gold: 225 };
+    } else if (type === 'siegeTower') {
+      return { wood: 200, gold: 160 };
+    } else if (type === 'trebuchet') {
+      return { wood: 200, gold: 200 };
+    } else if (type === 'petard') {
+      return { food: 65, gold: 20 };
     }
     return {};
   }
 
   getUpgradeCost(type, currentLevel) {
+    const costs = {
+      swordsmanUpgrade: [{ food: 100, gold: 40 }, { food: 200, gold: 100 }],
+      archerUpgrade: [{ food: 100, wood: 50 }, { food: 200, wood: 100 }],
+      knightUpgrade: [{ food: 150, gold: 80 }, { food: 300, gold: 150 }],
+      footKnightUpgrade: [{ food: 120, gold: 60 }, { food: 240, gold: 120 }],
+      heavyCavalryUpgrade: [{ food: 200, gold: 120 }, { food: 400, gold: 250 }],
+      horseArcherUpgrade: [{ food: 150, wood: 100 }, { food: 300, wood: 200 }],
+      palisadeWallUpgrade: [{ wood: 100, gold: 50 }, { wood: 200, gold: 100 }],
+      stoneWallUpgrade: [{ stone: 150, gold: 100 }, { stone: 300, gold: 200 }],
+      watchTowerUpgrade: [{ wood: 100, stone: 100 }, { wood: 200, stone: 200, gold: 100 }],
+      batteringRamUpgrade: [{ food: 150, gold: 100 }, { food: 300, gold: 200 }],
+      mangonelUpgrade: [{ food: 200, gold: 150 }, { food: 400, gold: 250 }],
+      scorpionUpgrade: [{ wood: 200, gold: 100 }],
+      bombardCannonUpgrade: [{ food: 300, gold: 200 }],
+      spearmanUpgrade: [{ food: 215, gold: 150 }, { food: 300, gold: 600 }],
+      skirmisherUpgrade: [{ food: 230, wood: 130 }],
+      scoutUpgrade: [{ food: 150, gold: 50 }, { food: 500, gold: 600 }],
+      camelUpgrade: [{ food: 325, gold: 360 }, { food: 500, gold: 500 }],
+      cavalryArcherUpgrade: [{ food: 350, gold: 250 }],
+      sanctity: [{ gold: 120 }],
+      fervor: [{ gold: 140 }],
+      redemption: [{ gold: 475 }],
+      atonement: [{ gold: 325 }],
+      illumination: [{ gold: 120 }],
+      blockPrinting: [{ gold: 200 }],
+      theocracy: [{ gold: 200 }],
+      galleyUpgrade: [{ food: 230, gold: 100 }, { food: 400, gold: 315 }],
+      fireShipUpgrade: [{ food: 280, gold: 250 }]
+    };
+    if (costs[type] && costs[type][currentLevel]) {
+      return costs[type][currentLevel];
+    }
     const multiplier = currentLevel + 1;
     return {
       food: multiplier * 100,
@@ -562,6 +699,10 @@ export class GameManager {
       return { wood: 50 };
     } else if (type === 'barracks') {
       return { wood: 120, stone: 50 };
+    } else if (type === 'stable' || type === 'archeryRange' || type === 'monastery') {
+      return { wood: 175 };
+    } else if (type === 'bombardTower') {
+      return { stone: 250, gold: 100 };
     } else if (type === 'temple') {
       return { wood: 120, gold: 100 };
     } else if (type === 'market') {
@@ -587,6 +728,10 @@ export class GameManager {
       return { wood: 100, stone: 125 };
     } else if (type === 'blacksmith') {
       return { wood: 150 };
+    } else if (type === 'university') {
+      return { wood: 200, gold: 100 };
+    } else if (type === 'siegeWorkshop') {
+      return { wood: 200, gold: 100 };
     } else if (type === 'castle') {
       return { wood: 200, stone: 650 };
     }
@@ -643,7 +788,7 @@ export class GameManager {
     return this.gridMap[`${x},${z}`] !== undefined;
   }
 
-  findPath(startX, startZ, endX, endZ, isWaterUnit = false) {
+  findPath(startX, startZ, endX, endZ, isWaterUnit = false, playerId = 0) {
     // A* Pathfinding implementation with a step size of 2 units (highly optimized)
     const step = 2;
     
@@ -685,7 +830,17 @@ export class GameManager {
       // Check grid map collisions (buildings, resources) in 3x3 footprint
       for (let dx = -1; dx <= 1; dx++) {
         for (let dz = -1; dz <= 1; dz++) {
-          if (this.isCellBlocked(x + dx, z + dz)) {
+          const val = this.gridMap[`${x + dx},${z + dz}`];
+          if (val !== undefined) {
+            // Friendly completed gates don't block friendly units during pathfinding
+            if (typeof val === 'object' && val.type) {
+              const isFriendlyGate = (val.type === 'palisadeGate' || val.type === 'stoneGate') && 
+                                     val.playerId === (isWaterUnit ? -1 : playerId) && 
+                                     val.isCompleted;
+              if (isFriendlyGate) {
+                continue;
+              }
+            }
             return false;
           }
         }
@@ -776,12 +931,13 @@ export class GameManager {
   }
 
   gridAddBuilding(building) {
-    const startX = Math.round(building.position.x - building.gridSize / 2);
-    const startZ = Math.round(building.position.z - building.gridSize / 2);
+    const size = building.gridSize;
+    const startX = Math.round(building.position.x - size / 2);
+    const startZ = Math.round(building.position.z - size / 2);
     
-    for (let dx = 0; dx < building.gridSize; dx++) {
-      for (let dz = 0; dz < building.gridSize; dz++) {
-        this.gridAdd(startX + dx, startZ + dz, 'building');
+    for (let dx = 0; dx < size; dx++) {
+      for (let dz = 0; dz < size; dz++) {
+        this.gridAdd(startX + dx, startZ + dz, building);
       }
     }
   }
@@ -800,8 +956,8 @@ export class GameManager {
   checkBuildPosition(x, z, buildingType) {
     let size = 2;
     if (buildingType === 'townCenter') size = 4;
-    else if (buildingType === 'barracks' || buildingType === 'temple' || buildingType === 'market' || buildingType === 'dock') size = 3;
-    else if (buildingType === 'palisadeWall' || buildingType === 'stoneWall' || buildingType === 'watchTower') size = 1;
+    else if (['barracks', 'temple', 'market', 'dock', 'university', 'siegeWorkshop', 'blacksmith', 'stable', 'archeryRange', 'monastery'].includes(buildingType)) size = 3;
+    else if (['palisadeWall', 'stoneWall', 'watchTower', 'bombardTower'].includes(buildingType)) size = 1;
     else if (buildingType === 'palisadeGate' || buildingType === 'stoneGate' || buildingType === 'mill' || buildingType === 'lumberCamp' || buildingType === 'miningCamp') size = 2;
     
     const startX = Math.round(x - size / 2);
@@ -836,6 +992,17 @@ export class GameManager {
         }
         
         if (this.isCellBlocked(curX, curZ)) {
+          // Allow replacement of walls by gates and watchtowers
+          const blockingEntity = this.gridMap[`${curX},${curZ}`];
+          if (typeof blockingEntity === 'object' && blockingEntity.type) {
+            const canReplace = 
+              (buildingType === 'palisadeGate' && blockingEntity.type === 'palisadeWall') ||
+              (buildingType === 'stoneGate' && blockingEntity.type === 'stoneWall') ||
+              (buildingType === 'watchTower' && (blockingEntity.type === 'palisadeWall' || blockingEntity.type === 'stoneWall'));
+            if (canReplace && blockingEntity.playerId === 0) {
+              continue;
+            }
+          }
           return false;
         }
       }
@@ -849,7 +1016,7 @@ export class GameManager {
     return true;
   }
 
-  placeBuilding(x, z, buildingType) {
+  placeBuilding(x, z, buildingType, angle = 0) {
     // Check Age and Civilization restrictions
     const playerCiv = this.players[0].civ || 'inggris';
     const civ = CIVILIZATIONS[playerCiv];
@@ -863,8 +1030,16 @@ export class GameManager {
     }
 
     // 2. Age Restrictions
-    if (currentAge === 'dark' && ['palisadeGate', 'stoneWall', 'stoneGate'].includes(buildingType)) {
+    if (currentAge === 'dark' && ['palisadeGate', 'stoneWall', 'stoneGate', 'university', 'siegeWorkshop', 'stable', 'archeryRange', 'watchTower'].includes(buildingType)) {
       this.hud.showNotification("Butuh Zaman Feodal ke atas untuk membangun struktur ini!");
+      return false;
+    }
+    if ((currentAge === 'dark' || currentAge === 'feudal') && ['monastery', 'castle'].includes(buildingType)) {
+      this.hud.showNotification("Butuh Zaman Kastil ke atas untuk membangun struktur ini!");
+      return false;
+    }
+    if (currentAge !== 'imperial' && ['bombardTower'].includes(buildingType)) {
+      this.hud.showNotification("Butuh Zaman Imperial untuk membangun struktur ini!");
       return false;
     }
 
@@ -881,9 +1056,34 @@ export class GameManager {
     
     // Deduct cost
     this.deductResources(0, cost);
+
+    // Overlapping walls replacement: destroy any overlapping wall entities
+    let size = 2;
+    if (buildingType === 'townCenter') size = 4;
+    else if (['barracks', 'temple', 'market', 'dock', 'university', 'siegeWorkshop', 'blacksmith', 'stable', 'archeryRange', 'monastery'].includes(buildingType)) size = 3;
+    else if (['palisadeWall', 'stoneWall', 'watchTower', 'bombardTower'].includes(buildingType)) size = 1;
+    else if (buildingType === 'palisadeGate' || buildingType === 'stoneGate' || buildingType === 'mill' || buildingType === 'lumberCamp' || buildingType === 'miningCamp') size = 2;
+    
+    const startX = Math.round(x - size / 2);
+    const startZ = Math.round(z - size / 2);
+    
+    const replacedBuildings = new Set();
+    for (let dx = 0; dx < size; dx++) {
+      for (let dz = 0; dz < size; dz++) {
+        const curX = startX + dx;
+        const curZ = startZ + dz;
+        const blocking = this.gridMap[`${curX},${curZ}`];
+        if (typeof blocking === 'object' && blocking.type) {
+          replacedBuildings.add(blocking);
+        }
+      }
+    }
+    replacedBuildings.forEach(b => {
+      b.destroy();
+    });
     
     // Spawn blueprint building
-    const b = this.entityManager.createBuilding(buildingType, 0, x, z, false);
+    const b = this.entityManager.createBuilding(buildingType, 0, x, z, false, angle);
     this.gridAddBuilding(b);
     
     // If we have selected villagers, automatically command them to build it
@@ -894,6 +1094,226 @@ export class GameManager {
     
     this.soundManager.playClickSound('build');
     return true;
+  }
+
+  isEnemy(p1, p2) {
+    if (p1 === p2) return false;
+    return this.relations[p1] && this.relations[p1][p2] === 'enemy';
+  }
+
+  isAlly(p1, p2) {
+    if (p1 === p2) return true;
+    return this.relations[p1] && this.relations[p1][p2] === 'ally';
+  }
+
+  changeRelation(playerId, targetPlayerId, stance) {
+    if (!this.relations[playerId]) this.relations[playerId] = {};
+    this.relations[playerId][targetPlayerId] = stance;
+    
+    if (playerId === 0) {
+      let responseText = "";
+      const targetName = targetPlayerId === 1 ? "Lord Kahn" : targetPlayerId === 2 ? "Gajah Mada" : "Nomad Grey";
+      
+      if (stance === 'enemy') {
+        // If we set an ally/neutral to enemy, they set us to enemy in return!
+        if (this.relations[targetPlayerId] && this.relations[targetPlayerId][0] !== 'enemy') {
+          this.relations[targetPlayerId][0] = 'enemy';
+          if (targetPlayerId === 2) {
+            responseText = "Gajah Mada: Pengkhianat! Kau akan membayar harga dari pembelotan ini!";
+          } else if (targetPlayerId === 3) {
+            responseText = "Nomad Grey: Kami tidak menginginkan pertempuran, tetapi kami akan mempertahankan diri!";
+          }
+        }
+      } else if (stance === 'ally') {
+        if (targetPlayerId === 1) {
+          responseText = "Lord Kahn: Kita masih berperang, dasar bodoh!";
+          this.relations[0][1] = 'enemy'; // Force back to enemy!
+        } else if (targetPlayerId === 3) {
+          responseText = "Nomad Grey: Semoga aliansi ini membawa kedamaian bagi wilayah kita.";
+          this.relations[3][0] = 'ally'; // Neutral accepts alliance!
+        } else if (targetPlayerId === 2) {
+          responseText = "Gajah Mada: Senang kita kembali menjadi sekutu sejati.";
+          this.relations[2][0] = 'ally';
+        }
+      } else if (stance === 'neutral') {
+        if (targetPlayerId === 1) {
+          responseText = "Lord Kahn: Tidak ada perdamaian di antara kita!";
+          this.relations[0][1] = 'enemy'; // Force back
+        } else {
+          responseText = `${targetName}: Kami akan menjaga jarak dan memantau gerak-gerikmu.`;
+          if (this.relations[targetPlayerId]) {
+            this.relations[targetPlayerId][0] = 'neutral';
+          }
+        }
+      }
+      
+      if (responseText) {
+        this.hud.addChatMessage('sys', targetName, responseText);
+      }
+      
+      this.hud.showNotification(`Relation to ${targetName} set to ${stance.toUpperCase()}`);
+    }
+  }
+
+  sendTribute(targetPlayerId, resourceType, amount) {
+    if (this.players[0].resources[resourceType] < amount) {
+      this.hud.showNotification(`Not enough ${resourceType} to send tribute!`);
+      return;
+    }
+    
+    // Deduct from player 0
+    this.players[0].resources[resourceType] -= amount;
+    // Add to target player
+    this.players[targetPlayerId].resources[resourceType] += amount;
+    
+    this.hud.updateResourcesUI();
+    
+    const targetName = targetPlayerId === 1 ? "Lord Kahn" : targetPlayerId === 2 ? "Gajah Mada" : "Nomad Grey";
+    this.hud.showNotification(`Sent tribute of ${amount} ${resourceType} to ${targetName}`);
+    this.hud.addChatMessage('sys', 'Anda', `Mengirim upeti ${amount} ${resourceType} ke ${targetName}`);
+    
+    // React to tribute
+    let reply = "";
+    if (targetPlayerId === 1) { // Enemy
+      reply = "Lord Kahn: Upeti ini tidak akan menyelamatkan kerajaanmu dari kehancuran, tetapi akan aku ambil!";
+    } else if (targetPlayerId === 2) { // Ally
+      reply = "Gajah Mada: Terima kasih atas bantuan logistik ini, sahabatku!";
+    } else { // Neutral
+      reply = "Nomad Grey: Keramahanmu sangat dihargai. Hubungan perdagangan kita akan semakin kuat.";
+    }
+    this.hud.addChatMessage('sys', targetName, reply);
+  }
+
+  calculatePlayerScore(playerId) {
+    const p = this.players[playerId];
+    if (!p) return 0;
+    
+    let score = 0;
+    // 1. Resources score: current resources / 10
+    score += Math.floor((p.resources.food + p.resources.wood + p.resources.gold + p.resources.stone) / 10);
+    
+    // 2. Units score: count active units * 15
+    const unitsCount = this.entityManager.units.filter(u => u.playerId === playerId && u.hp > 0).length;
+    score += unitsCount * 15;
+    
+    // 3. Buildings score: count active buildings * 30
+    const buildingsCount = this.entityManager.buildings.filter(b => b.playerId === playerId && b.hp > 0).length;
+    score += buildingsCount * 30;
+    
+    // 4. Technology upgrades score: count upgrades researched * 50
+    let upgradesCount = 0;
+    for (const k in p.upgrades) {
+      upgradesCount += p.upgrades[k] || 0;
+    }
+    score += upgradesCount * 50;
+    
+    // 5. Kills score: kills * 25
+    const kills = p.kills || 0;
+    score += kills * 25;
+    
+    return score;
+  }
+
+  updateFogOfWar(deltaTime) {
+    const FOW_GRID_SIZE = 50;
+    if (!this.fowGrid) {
+      this.fowGrid = Array(FOW_GRID_SIZE).fill(null).map(() => Array(FOW_GRID_SIZE).fill(0));
+    }
+    
+    // Reset currently visible (2) cells to explored (1)
+    for (let x = 0; x < FOW_GRID_SIZE; x++) {
+      for (let z = 0; z < FOW_GRID_SIZE; z++) {
+        if (this.fowGrid[x][z] === 2) {
+          this.fowGrid[x][z] = 1;
+        }
+      }
+    }
+    
+    const entities = [
+      ...this.entityManager.units.filter(u => u.playerId === 0 || u.playerId === 2),
+      ...this.entityManager.buildings.filter(b => b.playerId === 0 || b.playerId === 2)
+    ];
+    
+    const mapSize = this.terrain ? this.terrain.mapSize : 500;
+    
+    entities.forEach(ent => {
+      if (ent.hp <= 0 || ent.state === 'DEAD' || ent.state === 'GARRISONED') return;
+      
+      // Sight ranges
+      let sightRadius = 12.0;
+      if (ent.type === 'villager') sightRadius = 10.0;
+      else if (ent.type === 'scoutCavalry') sightRadius = 16.0;
+      else if (ent.type === 'watchTower') sightRadius = 25.0;
+      else if (ent.type === 'castle') sightRadius = 30.0;
+      else if (ent.type === 'townCenter') sightRadius = 22.0;
+      else if (ent.type === 'fishingShip') sightRadius = 10.0;
+      else if (['mill','barracks','stable','siegeWorkshop','monastery','university','blacksmith','market','dock'].includes(ent.type)) {
+        sightRadius = 16.0;
+      }
+      
+      const gx = Math.floor(((ent.position.x + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      const gz = Math.floor(((ent.position.z + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      
+      if (gx < 0 || gx >= FOW_GRID_SIZE || gz < 0 || gz >= FOW_GRID_SIZE) return;
+      
+      const gridSight = Math.ceil((sightRadius / mapSize) * FOW_GRID_SIZE);
+      
+      for (let dx = -gridSight; dx <= gridSight; dx++) {
+        for (let dz = -gridSight; dz <= gridSight; dz++) {
+          if (dx*dx + dz*dz <= gridSight*gridSight) {
+            const nx = gx + dx;
+            const nz = gz + dz;
+            if (nx >= 0 && nx < FOW_GRID_SIZE && nz >= 0 && nz < FOW_GRID_SIZE) {
+              this.fowGrid[nx][nz] = 2; // Visible
+            }
+          }
+        }
+      }
+    });
+    
+    // Apply visibility to units in the world
+    const units = this.entityManager.units;
+    units.forEach(u => {
+      if (u.playerId === 0 || u.playerId === 2) {
+        if (u.mesh) u.mesh.visible = true;
+        return;
+      }
+      const gx = Math.floor(((u.position.x + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      const gz = Math.floor(((u.position.z + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      let isVisible = false;
+      if (gx >= 0 && gx < FOW_GRID_SIZE && gz >= 0 && gz < FOW_GRID_SIZE) {
+        isVisible = (this.fowGrid[gx][gz] === 2);
+      }
+      if (u.mesh) u.mesh.visible = isVisible;
+    });
+    
+    // Apply visibility to buildings
+    const buildings = this.entityManager.buildings;
+    buildings.forEach(b => {
+      if (b.playerId === 0 || b.playerId === 2) {
+        if (b.mesh) b.mesh.visible = true;
+        return;
+      }
+      const gx = Math.floor(((b.position.x + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      const gz = Math.floor(((b.position.z + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      let isExplored = false;
+      if (gx >= 0 && gx < FOW_GRID_SIZE && gz >= 0 && gz < FOW_GRID_SIZE) {
+        isExplored = (this.fowGrid[gx][gz] > 0);
+      }
+      if (b.mesh) b.mesh.visible = isExplored;
+    });
+    
+    // Apply visibility to resources
+    const resources = this.entityManager.resources;
+    resources.forEach(node => {
+      const gx = Math.floor(((node.position.x + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      const gz = Math.floor(((node.position.z + mapSize/2) / mapSize) * FOW_GRID_SIZE);
+      let isExplored = false;
+      if (gx >= 0 && gx < FOW_GRID_SIZE && gz >= 0 && gz < FOW_GRID_SIZE) {
+        isExplored = (this.fowGrid[gx][gz] > 0);
+      }
+      if (node.mesh) node.mesh.visible = isExplored;
+    });
   }
 
   // -------------------------------------------------------------
@@ -1066,7 +1486,7 @@ export class GameManager {
 
       if (targetEntity) {
         const isResource = ['wood', 'gold', 'stone', 'food', 'sheep', 'fish'].includes(targetEntity.type);
-        const isBuilding = ['townCenter', 'barracks', 'house', 'temple', 'market', 'dock', 'farm', 'watchTower', 'blacksmith', 'palisadeWall', 'palisadeGate', 'stoneWall', 'stoneGate', 'castle'].includes(targetEntity.type);
+        const isBuilding = ['townCenter', 'barracks', 'house', 'temple', 'market', 'dock', 'farm', 'watchTower', 'blacksmith', 'palisadeWall', 'palisadeGate', 'stoneWall', 'stoneGate', 'castle', 'university', 'siegeWorkshop'].includes(targetEntity.type);
         const isUnit = ['villager', 'swordsman', 'archer', 'knight', 'priest', 'trader', 'footKnight', 'heavyCavalry', 'horseArcher', 'fishingShip', 'sheep'].includes(targetEntity.type);
 
         if (targetEntity.type === 'sheep' && targetEntity.hp !== undefined) {
@@ -1155,8 +1575,14 @@ export class GameManager {
     const baseDeltaTime = Math.min(0.1, this.clock.getDelta()); // clamp spike deltas
     const deltaTime = baseDeltaTime * this.gameSpeedMultiplier;
     
+    // Accumulate total game time
+    this.gameTime += baseDeltaTime;
+    
     // Update camera controls (independent of game speed)
     this.renderer.update(baseDeltaTime);
+    
+    // Update Fog of War visibility
+    this.updateFogOfWar(deltaTime);
     
     // Update water shader waves
     if (this.terrain) {
@@ -1168,6 +1594,26 @@ export class GameManager {
     
     // Periodic check for neutral sheep takeover
     this.checkSheepTakeover(deltaTime);
+
+    // Relic gold generation: +2 Gold/sec per relic in Monasteries
+    if (this.relicGoldTimer === undefined) this.relicGoldTimer = 0;
+    this.relicGoldTimer += deltaTime;
+    if (this.relicGoldTimer >= 1.0) {
+      this.relicGoldTimer = 0;
+      const monasteries = this.entityManager.buildings.filter(b => b.type === 'monastery' && b.isCompleted);
+      const relicsByPlayer = { 0: 0, 1: 0, 2: 0, 3: 0 };
+      monasteries.forEach(m => {
+        if (m.relicsCount) {
+          relicsByPlayer[m.playerId] = (relicsByPlayer[m.playerId] || 0) + m.relicsCount;
+        }
+      });
+      for (const pId in relicsByPlayer) {
+        const count = relicsByPlayer[pId];
+        if (count > 0) {
+          this.depositResources(parseInt(pId, 10), 'gold', count * 2);
+        }
+      }
+    }
 
     // Update AI factions
     if (this.enemyAI) {
@@ -1266,13 +1712,25 @@ export class GameManager {
     }
 
     // Reset player stats
+    const cleanUpgrades = () => ({
+      attack: 0, armor: 0, arrow: 0,
+      swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+      footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+      palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+      batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+      spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+      sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+      galleyUpgrade: 0, fireShipUpgrade: 0
+    });
+
     this.players[0] = {
       resources: { wood: 200, food: 150, gold: 100, stone: 50 },
       population: 0,
       populationLimit: 10,
       age: 'dark',
       civ: 'inggris',
-      upgrades: { attack: 0, armor: 0, arrow: 0 }
+      upgrades: cleanUpgrades(),
+      kills: 0
     };
     
     this.players[1] = {
@@ -1281,7 +1739,8 @@ export class GameManager {
       populationLimit: 100,
       age: 'dark',
       civ: 'mongol',
-      upgrades: { attack: 0, armor: 0, arrow: 0 }
+      upgrades: cleanUpgrades(),
+      kills: 0
     };
 
     this.players[2] = {
@@ -1290,7 +1749,8 @@ export class GameManager {
       populationLimit: 20,
       age: 'dark',
       civ: 'jepang',
-      upgrades: { attack: 0, armor: 0, arrow: 0 }
+      upgrades: cleanUpgrades(),
+      kills: 0
     };
 
     this.players[3] = {
@@ -1299,7 +1759,18 @@ export class GameManager {
       populationLimit: 50,
       age: 'dark',
       civ: 'bizantium',
-      upgrades: { attack: 0, armor: 0, arrow: 0 }
+      upgrades: cleanUpgrades(),
+      kills: 0
+    };
+    
+    this.gameTime = 0;
+    this.fowGrid = null;
+    this.controlGroups = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] };
+    this.relations = {
+      0: { 1: 'enemy', 2: 'ally', 3: 'neutral' },
+      1: { 0: 'enemy', 2: 'enemy', 3: 'neutral' },
+      2: { 0: 'ally', 1: 'enemy', 3: 'neutral' },
+      3: { 0: 'neutral', 1: 'neutral', 2: 'neutral' }
     };
     
     this.selectedEntities = [];
@@ -1647,5 +2118,77 @@ export class GameManager {
         }
       }
     });
+  }
+
+  spawnProjectile(fromPos, toPos, type) {
+    let geom, mat;
+    if (type === 'boulder') {
+      geom = new THREE.SphereGeometry(0.24, 8, 8);
+      mat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 });
+    } else if (type === 'bolt') {
+      geom = new THREE.CylinderGeometry(0.04, 0.04, 0.9, 4);
+      geom.rotateX(Math.PI / 2);
+      mat = new THREE.MeshBasicMaterial({ color: 0x92400e });
+    } else if (type === 'cannonball') {
+      geom = new THREE.SphereGeometry(0.14, 8, 8);
+      mat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.2 });
+    } else {
+      this.spawnArrow(fromPos, toPos);
+      return;
+    }
+    
+    const projectile = new THREE.Mesh(geom, mat);
+    const startPos = fromPos.clone();
+    startPos.y += 0.8;
+    projectile.position.copy(startPos);
+    
+    const target = toPos.clone();
+    target.y += 0.5;
+    
+    projectile.lookAt(target.x, target.y, target.z);
+    this.renderer.scene.add(projectile);
+    
+    const speed = type === 'cannonball' ? 35.0 : (type === 'bolt' ? 30.0 : 20.0);
+    const duration = startPos.distanceTo(target) / speed;
+    const startTime = performance.now();
+    
+    const animate = () => {
+      if (!this.gameActive) {
+        this.renderer.scene.remove(projectile);
+        geom.dispose();
+        mat.dispose();
+        return;
+      }
+      
+      const elapsed = (performance.now() - startTime) / 1000;
+      const t = Math.min(1.0, elapsed / duration);
+      
+      const currentPos = new THREE.Vector3().lerpVectors(startPos, target, t);
+      const arcHeight = type === 'boulder' ? Math.sin(t * Math.PI) * 3.5 : Math.sin(t * Math.PI) * 0.4;
+      currentPos.y += arcHeight;
+      
+      projectile.position.copy(currentPos);
+      
+      const nextT = Math.min(1.0, t + 0.05);
+      const nextPos = new THREE.Vector3().lerpVectors(startPos, target, nextT);
+      nextPos.y += type === 'boulder' ? Math.sin(nextT * Math.PI) * 3.5 : Math.sin(nextT * Math.PI) * 0.4;
+      projectile.lookAt(nextPos);
+      
+      if (t < 1.0) {
+        requestAnimationFrame(animate);
+      } else {
+        let impactColor = 0x888888;
+        if (type === 'cannonball') {
+          impactColor = 0xff5500;
+          this.spawnParticles(target, 0x555555, 8, 0.12);
+        }
+        this.spawnParticles(target, impactColor, 10, 0.1);
+        
+        this.renderer.scene.remove(projectile);
+        geom.dispose();
+        mat.dispose();
+      }
+    };
+    animate();
   }
 }

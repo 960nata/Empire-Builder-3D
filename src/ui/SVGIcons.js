@@ -69,7 +69,54 @@ export const SVGIcons = {
   roma: `<svg viewBox="0 0 24 24" class="svg-icon-civ" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a8 8 0 0 0 16 0M12 2v10M8 5l4-3 4 3"/></svg>`,
   blacksmith: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8c1-1.5 3-2 5-2h8c2 0 4 .5 5 2a3 3 0 0 1 1 2v4a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-4c0-.7.3-1.4 1-2z"/><path d="M8 17v3M16 17v3M4 20h16M7 11h10"/></svg>`,
   castle: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V8l3-3 3 3v14M20 22V8l-3-3-3 3v14M10 8h4M8 12h8M10 22v-5a2 2 0 0 1 4 0v5"/></svg>`,
-  
+  university: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2.5 3 6 3s6-1 6-3v-5"/></svg>`,
+  siegeWorkshop: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M3 18h18M6 15v-6h12v6M12 9V5l4-2"/></svg>`,
+  batteringRam: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h20M4 14l16-4v6H4zM6 18v2M18 18v2M2 12h4"/></svg>`,
+  mangonel: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M6 20l4-10M16 10l-6 2M16 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>`,
+  scorpion: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 10h20M4 6l8 4 8-4"/></svg>`,
+  bombardCannon: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 19h20M4 19l4-8M19 12l-11 2M19 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>`,
+  siegeTower: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22h12V4L12 2 6 4zM6 18h12M6 12h12M6 6h12"/></svg>`,
+  trebuchet: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 22h20M6 22l6-16M12 6l8 12M4 12l16-8"/></svg>`,
+  petard: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a5 5 0 0 0 5-5H7a5 5 0 0 0 5 5zM12 17V12M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>`,
+
+  // --- NEW STABLES, RANGE, MONASTERY, BOMBARD TOWER ---
+  stable: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18v11H3zM8 10V6a2 2 0 0 1 4 0v4M14 10V6a2 2 0 0 1 4 0v4M3 14h18"/></svg>`,
+  archeryRange: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22V4l8 4-8 4M12 4v18M18 12c0-3 3-3 3 0s-3 3-3 0z"/></svg>`,
+  archeryrange: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22V4l8 4-8 4M12 4v18M18 12c0-3 3-3 3 0s-3 3-3 0z"/></svg>`,
+  monastery: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8M9 4h6M4 22V10l8-5 8 5v12H4zM9 16h6v6H9z"/></svg>`,
+  bombardTower: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22V7l4-3 4 3v15M6 22h12M12 11h4M10 14h4"/></svg>`,
+  bombardtower: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22V7l4-3 4 3v15M6 22h12M12 11h4M10 14h4"/></svg>`,
+
+  // --- NEW UNIT LINES ---
+  spearman: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2L6 22M15 5l2-2-2-2M12 12c-2 0-4 1-4 3v4h8v-4c0-2-2-3-4-3z"/></svg>`,
+  skirmisher: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L2 22M20 6l-2-2M12 12c-2 0-4 1-4 3v4h8v-4c0-2-2-3-4-3z"/></svg>`,
+  scoutCavalry: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14c1 0 4-2 6-4s3-4 6-4 4 2 5 4-1 6-3 7-5 1-8 0-4-3-6-3zM8 5l-2 2M15 17v4"/></svg>`,
+  scoutcavalry: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14c1 0 4-2 6-4s3-4 6-4 4 2 5 4-1 6-3 7-5 1-8 0-4-3-6-3zM8 5l-2 2M15 17v4"/></svg>`,
+  camelRider: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 16c1 0 4-3 6-5s3-3 6-3 4 1 5 3-1 7-3 8-5 1-8 0-4-3-6-3zM14 6c0-1.5 1-2.5 2-2.5s2 1 2 2.5"/></svg>`,
+  camelrider: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 16c1 0 4-3 6-5s3-3 6-3 4 1 5 3-1 7-3 8-5 1-8 0-4-3-6-3zM14 6c0-1.5 1-2.5 2-2.5s2 1 2 2.5"/></svg>`,
+  monk: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="3"/><path d="M5 22v-3a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v3M10 11h4M12 2v6"/></svg>`,
+
+  // --- NEW SHIPS ---
+  transportShip: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM6 17c0-3 3-5 6-5s6 2 6 5"/></svg>`,
+  transportship: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM6 17c0-3 3-5 6-5s6 2 6 5"/></svg>`,
+  galley: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM12 2v15M8 6h8M6 10h12"/></svg>`,
+  fireShip: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM22 13l-4 2M10 8h4M8 12h8M12 5v12"/></svg>`,
+  fireship: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM22 13l-4 2M10 8h4M8 12h8M12 5v12"/></svg>`,
+  demolitionShip: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM8 12l2-2 4 4 2-2M12 5v12"/></svg>`,
+  demolitionship: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM8 12l2-2 4 4 2-2M12 5v12"/></svg>`,
+  cannonGalleon: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM15 13l5-2v4zM10 5v12"/></svg>`,
+  cannongalleon: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17h20l-3 5H5zM15 13l5-2v4zM10 5v12"/></svg>`,
+
+  // --- MONK TECHNOLOGIES ---
+  sanctity: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M5 12h14"/><circle cx="12" cy="12" r="8"/></svg>`,
+  fervor: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>`,
+  redemption: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20zM12 12v6"/></svg>`,
+  atonement: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>`,
+  illumination: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l3 3M16 16l3 3M5 19l3-3M16 8l3-3"/></svg>`,
+  blockPrinting: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>`,
+  blockprinting: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>`,
+  theocracy: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+
   // Custom utility function to get custom icons
   getIcon(name, customClass = '') {
     let raw = this[name] || this.house;
