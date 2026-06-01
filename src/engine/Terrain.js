@@ -32,6 +32,23 @@ function fbm(x, z, octaves = 4) {
   return value / max;
 }
 
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+function pointToSegmentDistance(px, pz, x1, z1, x2, z2) {
+  const dx = x2 - x1;
+  const dz = z2 - z1;
+  const lenSq = dx * dx + dz * dz;
+  if (lenSq === 0) return Math.sqrt((px - x1) * (px - x1) + (pz - z1) * (pz - z1));
+  let t = ((px - x1) * dx + (pz - z1) * dz) / lenSq;
+  t = Math.max(0, Math.min(1, t));
+  const projX = x1 + t * dx;
+  const projZ = z1 + t * dz;
+  return Math.sqrt((px - projX) * (px - projX) + (pz - projZ) * (pz - projZ));
+}
+
 export class Terrain {
   constructor(sceneInstance, gameManagerInstance, mapSize = 350) {
     this.scene = sceneInstance;
@@ -47,11 +64,52 @@ export class Terrain {
     this.mapType = this.gameManager.selectedMap || 'river';
     this._mapTypeInt = ['river','islands','coastal','oasis'].indexOf(this.mapType);
     if (this._mapTypeInt < 0) this._mapTypeInt = 0;
+
+    // Pre-calculate base-to-base road segments
+    const sd = Math.round(this.mapSize * 0.32);
+    this.roadSegments = [];
+    if (this.mapType === 'river') {
+      // Player to Ally
+      this.roadSegments.push({ x1: -sd, z1: -sd, x2: -sd, z2: sd });
+      // Ally to Enemy via Northern Bridge
+      this.roadSegments.push({ x1: -sd, z1: sd, x2: 0, z2: 35 });
+      this.roadSegments.push({ x1: 0, z1: 35, x2: sd, z2: sd });
+      // Enemy to Neutral
+      this.roadSegments.push({ x1: sd, z1: sd, x2: sd, z2: -sd });
+      // Neutral to Player via Southern Bridge
+      this.roadSegments.push({ x1: sd, z1: -sd, x2: 0, z2: -35 });
+      this.roadSegments.push({ x1: 0, z1: -35, x2: -sd, z2: -sd });
+    } else {
+      // Ring path for other maps
+      this.roadSegments.push({ x1: -sd, z1: -sd, x2: -sd, z2: sd });
+      this.roadSegments.push({ x1: -sd, z1: sd, x2: sd, z2: sd });
+      this.roadSegments.push({ x1: sd, z1: sd, x2: sd, z2: -sd });
+      this.roadSegments.push({ x1: sd, z1: -sd, x2: -sd, z2: -sd });
+    }
     
     this.initGround();
     this.initWaterShader();
     this.spawnResources();
     this.spawnScenery();
+  }
+
+  getDistanceToRoads(x, z, perturb = true) {
+    let px = x;
+    let pz = z;
+    if (perturb) {
+      px += noise2D(x * 0.08, z * 0.08) * 3.5;
+      pz += noise2D(x * 0.08 + 10.0, z * 0.08 + 10.0) * 3.5;
+    }
+    
+    let minDist = Infinity;
+    for (let i = 0; i < this.roadSegments.length; i++) {
+      const seg = this.roadSegments[i];
+      const dist = pointToSegmentDistance(px, pz, seg.x1, seg.z1, seg.x2, seg.z2);
+      if (dist < minDist) {
+        minDist = dist;
+      }
+    }
+    return minDist;
   }
 
   initGround() {
@@ -115,6 +173,19 @@ export class Terrain {
           col = cSand.clone();
           const depthFactor = Math.min(1.0, (WATER_LEVEL - y) / 3.0);
           col.lerp(cSandWet, depthFactor * 0.6);
+        }
+      }
+
+      // ── Paint traditional dirt/gravel road ──
+      if (y > -0.55) {
+        const roadDist = this.getDistanceToRoads(x, z, true);
+        if (roadDist < 3.8) {
+          const cRoad = new THREE.Color(0x8e765d); // Warm dirt color
+          const microRoad = fbm(x * 0.45, z * 0.45, 3) * 0.15;
+          cRoad.addScalar(microRoad);
+          
+          const t = 1.0 - smoothstep(1.5, 3.8, roadDist);
+          col.lerp(cRoad, t * 0.95);
         }
       }
 
@@ -694,6 +765,9 @@ export class Terrain {
         const height = this.getGroundHeight(x, z);
         if (height < -0.5) continue; // No spawns in water
 
+        // Road corridor check - keep roads clear
+        if (this.getDistanceToRoads(x, z, false) < 3.2) continue;
+
         // Add
         const node = new ResourceNode(this.gameManager, type, x, height, z);
         this.gameManager.entityManager.addResource(node);
@@ -703,8 +777,8 @@ export class Terrain {
     const half = this.mapSize / 2;
 
     // Dynamic resource counting scaling with map size
-    // Forest density factor (0.0004) increases clusters, satisfying user request
-    const treeClustersCount = Math.max(35, Math.round(this.mapSize * this.mapSize * 0.0004));
+    // Greatly scale up tree clusters for a lush forest visual
+    const treeClustersCount = Math.max(150, Math.round(this.mapSize * this.mapSize * 0.0016));
     const goldClustersCount = Math.max(15, Math.round(this.mapSize * this.mapSize * 0.0001));
     const stoneClustersCount = Math.max(15, Math.round(this.mapSize * this.mapSize * 0.0001));
     const fishCount = Math.max(12, Math.round(this.mapSize * this.mapSize * 0.0001));
@@ -717,8 +791,25 @@ export class Terrain {
       const rz = (Math.random() - 0.5) * (this.mapSize * 0.85);
       // Skip spawning directly at the center river channel if river valley
       if (this.mapType === 'river' && Math.abs(rx) < 22) continue;
-      // Increased trees per cluster (12-21 trees) for denser forests
-      spawnCluster(rx, rz, 12 + Math.floor(Math.random() * 10), 'wood', 10);
+      // Increased trees per cluster (16-30 trees) for denser forests
+      spawnCluster(rx, rz, 16 + Math.floor(Math.random() * 15), 'wood', 12);
+    }
+
+    // Scattered individual trees to fill in gaps and create dense forests
+    const scatteredTreesCount = Math.max(300, Math.round(this.mapSize * this.mapSize * 0.003));
+    for (let i = 0; i < scatteredTreesCount; i++) {
+      const rx = Math.round((Math.random() - 0.5) * (this.mapSize * 0.88));
+      const rz = Math.round((Math.random() - 0.5) * (this.mapSize * 0.88));
+      if (this.mapType === 'river' && Math.abs(rx) < 22) continue;
+      if (this.gameManager.isCellBlocked(rx, rz)) continue;
+      const height = this.getGroundHeight(rx, rz);
+      if (height < -0.5) continue;
+      
+      // Road corridor check
+      if (this.getDistanceToRoads(rx, rz, false) < 3.2) continue;
+      
+      const node = new ResourceNode(this.gameManager, 'wood', rx, height, rz);
+      this.gameManager.entityManager.addResource(node);
     }
 
     // Gold mines scattered
@@ -757,6 +848,10 @@ export class Terrain {
         const rx = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));
         const rz = Math.round((Math.random() - 0.5) * (this.mapSize * 0.8));
         if (this.mapType === 'river' && Math.abs(rx) < 22) continue;
+        
+        // Road corridor check
+        if (this.getDistanceToRoads(rx, rz, false) < 3.2) continue;
+        
         const height = this.getGroundHeight(rx, rz);
         if (height >= -0.3 && !this.gameManager.isCellBlocked(rx, rz)) {
           this.gameManager.entityManager.createUnit('sheep', 3, rx, rz);
