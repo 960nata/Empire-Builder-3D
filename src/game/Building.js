@@ -23,6 +23,8 @@ export class Building {
       this.hp = startCompleted ? 800 : 50;
       this.maxHp = 800;
       this.gridSize = 4;
+      this.garrisonedUnits = [];
+      this.maxGarrison = 15;
     } else if (this.type === 'barracks') {
       this.hp = startCompleted ? 500 : 30;
       this.maxHp = 500;
@@ -81,6 +83,8 @@ export class Building {
       this.hp = startCompleted ? 350 : 35;
       this.maxHp = 350;
       this.gridSize = 1;
+      this.garrisonedUnits = [];
+      this.maxGarrison = 5;
     } else if (this.type === 'blacksmith') {
       this.hp = startCompleted ? 400 : 40;
       this.maxHp = 400;

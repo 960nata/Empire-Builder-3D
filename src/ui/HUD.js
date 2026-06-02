@@ -1312,7 +1312,8 @@ export class HUD {
                 <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">▣ Box</button>
                 <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">═ Line</button>
                 <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'column' ? 'glow-btn-active' : ''}" id="btn-formation-column" title="Column Formation">║ Column</button>
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'spread' ? 'glow-btn-active' : ''}" id="btn-formation-spread" title="Spread Formation">◇ Spread</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'flank' ? 'glow-btn-active' : ''}" id="btn-formation-flank" title="Flank Formation">⇄ Flank</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'deathball' ? 'glow-btn-active' : ''}" id="btn-formation-deathball" title="Deathball Formation">● Deathball</button>
               </div>
               <div style="font-size:0.65rem; color:#888; margin-top:4px;">Formation: ${this.gameManager.getFormationName(this.gameManager.currentFormation)} (Press F to cycle)</div>
             `;
@@ -1335,7 +1336,7 @@ export class HUD {
           });
 
           if (isMilitary) {
-            ['box', 'line', 'column', 'spread'].forEach(f => {
+            ['box', 'line', 'column', 'flank', 'deathball'].forEach(f => {
               const btn = document.getElementById(`btn-formation-${f}`);
               if (btn) {
                 btn.addEventListener('click', () => {

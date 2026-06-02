@@ -794,8 +794,107 @@ export class Unit {
   // -------------------------------------------------------------
   // UPDATE LOOP
   // -------------------------------------------------------------
+  scanPriorityTargets(deltaTime) {
+    if (this.playerId === 0 || this.state === 'DEAD') return;
+    
+    // Auto-scan periodically (every 1.0s)
+    if (this._aiScanTimer === undefined) this._aiScanTimer = Math.random(); // offset start phases
+    this._aiScanTimer += deltaTime;
+    if (this._aiScanTimer < 1.0) return;
+    this._aiScanTimer = 0;
+    
+    const isMilitary = ['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon', 'mangonel', 'trebuchet', 'scorpion', 'bombardCannon'].includes(this.type);
+    if (!isMilitary) return;
+
+    // Scan range
+    const scanRange = ['archer', 'horseArcher', 'cavalryArcher', 'mangonel', 'trebuchet', 'bombardCannon'].includes(this.type) ? 16.0 : 12.0;
+
+    let bestTarget = null;
+    let bestScore = -Infinity;
+
+    // 1. Scan Units
+    const units = this.gameManager.entityManager.units;
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (u.hp <= 0 || u.state === 'DEAD' || u.state === 'GARRISONED') continue;
+      if (!this.gameManager.isEnemy(this.playerId, u.playerId)) continue;
+      
+      const dist = this.position.distanceTo(u.position);
+      if (dist > scanRange) continue;
+
+      let score = 0;
+      if (u.type === 'villager') {
+        score = 100 - dist * 2;
+      } else if (['mangonel', 'trebuchet', 'scorpion', 'bombardCannon', 'batteringRam'].includes(u.type)) {
+        score = 90 - dist * 2;
+      } else if (u.type === 'monk') {
+        score = 85 - dist * 2;
+      } else {
+        score = 70 - dist * 2;
+      }
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestTarget = u;
+      }
+    }
+
+    // 2. Scan Buildings
+    if (bestScore < 60) {
+      const buildings = this.gameManager.entityManager.buildings;
+      for (let i = 0; i < buildings.length; i++) {
+        const b = buildings[i];
+        if (b.hp <= 0 || !b.isCompleted) continue;
+        if (!this.gameManager.isEnemy(this.playerId, b.playerId)) continue;
+
+        const dist = this.position.distanceTo(b.position);
+        if (dist > scanRange) continue;
+
+        let score = 0;
+        if (b.type === 'townCenter') {
+          score = 55 - dist * 1.5;
+        } else if (['mill', 'lumberCamp', 'miningCamp', 'market', 'dock', 'farm', 'house'].includes(b.type)) {
+          score = 50 - dist * 1.5;
+        } else if (['watchTower', 'bombardTower', 'castle', 'barracks', 'stable', 'archeryRange', 'siegeWorkshop', 'monastery', 'blacksmith', 'university'].includes(b.type)) {
+          score = 45 - dist * 1.5;
+        } else {
+          score = 15 - dist * 1.5;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestTarget = b;
+        }
+      }
+    }
+
+    if (bestTarget) {
+      const currentTarget = this.targetEntity;
+      if (currentTarget && currentTarget.hp > 0) {
+        let currentScore = 0;
+        if (currentTarget.type === 'villager') currentScore = 100;
+        else if (['mangonel', 'trebuchet', 'scorpion', 'bombardCannon', 'batteringRam'].includes(currentTarget.type)) currentScore = 90;
+        else if (currentTarget.type === 'monk') currentScore = 85;
+        else if (currentTarget.playerId !== undefined) currentScore = 70;
+        else if (currentTarget.type === 'townCenter') currentScore = 55;
+        else if (['mill', 'lumberCamp', 'miningCamp', 'market', 'dock', 'farm', 'house'].includes(currentTarget.type)) currentScore = 50;
+        else currentScore = 40;
+
+        if (bestScore - currentScore > 20) {
+          this.commandAttack(bestTarget);
+        }
+      } else {
+        this.commandAttack(bestTarget);
+      }
+    }
+  }
+
   update(deltaTime) {
     if (this.state === 'DEAD' || this.state === 'GARRISONED') return;
+
+    if (this.playerId !== 0) {
+      this.scanPriorityTargets(deltaTime);
+    }
 
     this.animTime += deltaTime;
 
@@ -826,8 +925,9 @@ export class Unit {
         this.scanTimer += deltaTime;
         if (this.scanTimer >= 1.5) {
           this.scanTimer = 0;
+          const scanRange = this.playerId !== 0 ? 16.0 : 8.0;
           const friendlyInjured = this.gameManager.entityManager.units.find(u => 
-            u.playerId === this.playerId && u.hp < u.maxHp && u.state !== 'DEAD' && this.position.distanceTo(u.position) < 8.0
+            u.playerId === this.playerId && u.hp < u.maxHp && u.state !== 'DEAD' && this.position.distanceTo(u.position) < scanRange
           );
           if (friendlyInjured) {
             this.commandHeal(friendlyInjured);

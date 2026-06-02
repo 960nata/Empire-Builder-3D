@@ -1350,14 +1350,20 @@ export class GameManager {
   // -------------------------------------------------------------
   
   cycleFormation() {
-    const formations = ['box', 'line', 'column', 'spread'];
+    const formations = ['box', 'line', 'column', 'flank', 'deathball'];
     const idx = formations.indexOf(this.currentFormation);
     this.currentFormation = formations[(idx + 1) % formations.length];
     return this.currentFormation;
   }
 
   getFormationName(key) {
-    const names = { box: '■ Box', line: '═ Line', column: '║ Column', spread: '◇ Spread' };
+    const names = { 
+      box: '■ Box (Kotak)', 
+      line: '═ Line (Baris)', 
+      column: '║ Column (Kolom)', 
+      flank: '⇄ Flank (Mengapit)', 
+      deathball: '● Deathball (Gumpalan)' 
+    };
     return names[key] || key;
   }
 
@@ -1409,14 +1415,27 @@ export class GameManager {
           dz: lx * sinH + lz * cosH
         });
       }
-    } else if (formation === 'spread') {
-      // Spread evenly in a circle
-      const radius = Math.max(spacing, count * spacing / (2 * Math.PI));
+    } else if (formation === 'flank') {
+      // Split into 2 columns on the left and right sides
+      const half = Math.ceil(count / 2);
       for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2;
+        const side = (i % 2 === 0) ? -1 : 1;
+        const row = Math.floor(i / 2);
+        const lx = side * 5.0; // 5 units offset left/right
+        const lz = (row - (half - 1) / 2) * spacing;
         offsets.push({
-          dx: Math.cos(angle) * radius,
-          dz: Math.sin(angle) * radius
+          dx: lx * cosH - lz * sinH,
+          dz: lx * sinH + lz * cosH
+        });
+      }
+    } else if (formation === 'deathball') {
+      // Extremely tight spiral cluster
+      for (let i = 0; i < count; i++) {
+        const r = Math.sqrt(i) * spacing * 0.7;
+        const angle = i * 2.39996; // Golden angle
+        offsets.push({
+          dx: Math.cos(angle) * r,
+          dz: Math.sin(angle) * r
         });
       }
     }
@@ -1448,6 +1467,23 @@ export class GameManager {
     }
 
     const formationOffsets = this.calculateFormationOffsets(count, this.currentFormation, heading);
+
+    // Sort units and offsets for box formation to protect Monk/Siege in the center
+    if (this.currentFormation === 'box' && count > 1) {
+      const getRolePriority = (type) => {
+        if (['monk', 'trebuchet', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower'].includes(type)) return 0; // Center
+        if (['archer', 'skirmisher', 'cavalryArcher', 'horseArcher'].includes(type)) return 1; // Middle
+        return 2; // Perimeter guards
+      };
+      commandableUnits.sort((a, b) => getRolePriority(a.type) - getRolePriority(b.type));
+      
+      const centerOffsets = [...formationOffsets];
+      centerOffsets.sort((a, b) => (a.dx * a.dx + a.dz * a.dz) - (b.dx * b.dx + b.dz * b.dz));
+      
+      for (let i = 0; i < count; i++) {
+        formationOffsets[i] = centerOffsets[i];
+      }
+    }
 
     // Compute maximum distance for speed normalization
     let maxDist = 0;

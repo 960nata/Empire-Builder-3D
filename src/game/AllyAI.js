@@ -53,6 +53,35 @@ export class AllyAI {
       this.manageEconomy();
     }
 
+    // Garrison Defense check for villagers under attack (moderate/hard/hardest/extreme difficulties)
+    const difficulty = this.gameManager.aiDifficulty || 'normal';
+    if (difficulty !== 'easy' && difficulty !== 'normal' && this.allyBaseTC) {
+      if (this.underAttackTimer === undefined) this.underAttackTimer = 0;
+      
+      const enemiesNearBase = this.gameManager.entityManager.units.some(u => 
+        u.hp > 0 && u.state !== 'DEAD' && this.gameManager.isEnemy(2, u.playerId) && 
+        u.position.distanceTo(this.allyBaseTC.position) < 18.0
+      );
+      
+      if (enemiesNearBase) {
+        this.underAttackTimer = 10.0;
+        const villagers = this.gameManager.entityManager.units.filter(u => 
+          u.playerId === 2 && u.type === 'villager' && u.state !== 'DEAD' && u.state !== 'GARRISONED' &&
+          u.position.distanceTo(this.allyBaseTC.position) < 20.0
+        );
+        villagers.forEach(v => {
+          v.commandGarrison(this.allyBaseTC);
+        });
+      } else {
+        if (this.underAttackTimer > 0) {
+          this.underAttackTimer -= deltaTime;
+          if (this.underAttackTimer <= 0) {
+            this.allyBaseTC.ungarrisonAll();
+          }
+        }
+      }
+    }
+
     // 2. Periodic chat banter
     this.chatTimer += deltaTime;
     if (this.chatTimer >= this.chatInterval) {
@@ -64,12 +93,68 @@ export class AllyAI {
   manageEconomy() {
     const em = this.gameManager.entityManager;
     const allyState = this.gameManager.players[2];
+    const difficulty = this.gameManager.aiDifficulty || 'normal';
+    const resources = allyState.resources;
+
+    // Extreme/Insane difficulty cheat: resources never dry up
+    if (difficulty === 'extreme') {
+      if (resources.wood < 300) resources.wood = 1000;
+      if (resources.food < 300) resources.food = 1000;
+      if (resources.gold < 300) resources.gold = 1000;
+      if (resources.stone < 300) resources.stone = 1000;
+    }
+
     const villagers = em.units.filter(u => u.playerId === 2 && u.type === 'villager' && u.state !== 'DEAD');
     const villagerCount = villagers.length;
-    const resources = allyState.resources;
     const pop = allyState.population;
     const limit = allyState.populationLimit;
     const maxCap = this.gameManager.maxPopulationCap;
+
+    // A0. Dock and Navy Builder on water maps (moderate/hard/hardest/extreme)
+    const isWaterMap = ['river', 'islands', 'coastal'].includes(this.gameManager.terrain.mapType);
+    if (isWaterMap && difficulty !== 'easy' && difficulty !== 'normal') {
+      const hasDock = em.buildings.some(b => b.playerId === 2 && b.type === 'dock' && b.hp > 0);
+      if (!hasDock && resources.wood >= 150) {
+        const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+        if (builder) {
+          const spot = this.findDockBuildSpot();
+          if (spot) {
+            resources.wood -= 150;
+            const dk = em.createBuilding('dock', 2, spot.x, spot.z, false);
+            this.gameManager.gridAddBuilding(dk);
+            builder.commandBuild(dk);
+          }
+        }
+      }
+      
+      // Train fishing ships and warships at the dock
+      const dock = em.buildings.find(b => b.playerId === 2 && b.type === 'dock' && b.isCompleted);
+      if (dock && dock.queue.length < 2) {
+        const fishingShipsCount = em.units.filter(u => u.playerId === 2 && u.type === 'fishingShip' && u.state !== 'DEAD').length;
+        let shipToTrain = null;
+        if (fishingShipsCount < 3 && resources.wood >= 75) {
+          shipToTrain = 'fishingShip';
+        } else if (resources.wood >= 90 && resources.gold >= 30) {
+          const rand = Math.random();
+          if (allyState.age === 'imperial' && rand < 0.25) {
+            shipToTrain = 'cannonGalleon';
+          } else if (rand < 0.5) {
+            shipToTrain = 'fireShip';
+          } else if (rand < 0.75) {
+            shipToTrain = 'demolitionShip';
+          } else {
+            shipToTrain = 'galley';
+          }
+        }
+        
+        if (shipToTrain) {
+          const cost = this.gameManager.getUnitCost(shipToTrain);
+          if (this.gameManager.hasResources(2, cost) && pop < limit) {
+            dock.queueUnit(shipToTrain);
+          }
+        }
+      }
+    }
 
     // A. Rebuild Barracks if destroyed
     const hasBarracks = em.buildings.some(b => b.playerId === 2 && b.type === 'barracks' && b.hp > 0);
@@ -539,7 +624,14 @@ export class AllyAI {
     }
 
     // D. Train Villagers at Town Center
-    const maxVillagers = 12; // Ally standard
+    let maxVillagers = 12;
+    if (difficulty === 'easy') maxVillagers = 6;
+    else if (difficulty === 'normal') maxVillagers = 12;
+    else if (difficulty === 'moderate') maxVillagers = 16;
+    else if (difficulty === 'hard') maxVillagers = 22;
+    else if (difficulty === 'hardest') maxVillagers = 32;
+    else if (difficulty === 'extreme') maxVillagers = 45;
+
     if (villagerCount < maxVillagers && this.allyBaseTC && this.allyBaseTC.queue.length === 0) {
       const cost = this.gameManager.getUnitCost('villager');
       if (this.gameManager.hasResources(2, cost) && pop < limit) {
@@ -780,5 +872,18 @@ export class AllyAI {
     this.gameManager.hud.updateResourcesUI();
     this.gameManager.hud.addChatMessage("GajahMada_35", `Nih gw kirim 100 ${type.toUpperCase()}! Semoga berkah rajanya.`, 'ally');
     this.gameManager.hud.showResourceFloatingText(new THREE.Vector3(-48, 4, -48), `+100 ${type.toUpperCase()}`, type);
+  }
+
+  findDockBuildSpot() {
+    for (let radius = 10; radius < 60; radius += 3) {
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.4) {
+        const x = Math.round(this.baseX + Math.cos(angle) * radius);
+        const z = Math.round(this.baseZ + Math.sin(angle) * radius);
+        if (this.gameManager.checkBuildPosition(x, z, 'dock')) {
+          return { x, z };
+        }
+      }
+    }
+    return null;
   }
 }

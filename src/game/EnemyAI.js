@@ -18,10 +18,18 @@ export class EnemyAI {
     const difficulty = this.gameManager.aiDifficulty || 'normal';
     if (difficulty === 'easy') {
       this.waveInterval = 240.0; // Attack every 4 mins (Easy)
+    } else if (difficulty === 'normal') {
+      this.waveInterval = 150.0; // Attack every 2.5 mins (Standard)
+    } else if (difficulty === 'moderate') {
+      this.waveInterval = 120.0; // Attack every 2 mins (Moderate)
     } else if (difficulty === 'hard') {
-      this.waveInterval = 90.0;  // Attack every 1.5 mins (Hard)
+      this.waveInterval = 85.0;  // Attack every 1.4 mins (Hard)
+    } else if (difficulty === 'hardest') {
+      this.waveInterval = 65.0;  // Attack every 1.1 mins (Hardest)
+    } else if (difficulty === 'extreme') {
+      this.waveInterval = 45.0;  // Attack every 45s (Extreme)
     } else {
-      this.waveInterval = 150.0; // Attack every 2.5 mins (Normal)
+      this.waveInterval = 150.0;
     }
     
     this.waveCount = 0;
@@ -54,18 +62,34 @@ export class EnemyAI {
     const enemyState = this.gameManager.players[1];
     
     const difficulty = this.gameManager.aiDifficulty || 'normal';
-    let feudalTime = 60.0;
-    let castleTime = 150.0;
-    let imperialTime = 260.0;
+    let feudalTime = 80.0;
+    let castleTime = 190.0;
+    let imperialTime = 310.0;
     
     if (difficulty === 'easy') {
-      feudalTime = 100.0;
-      castleTime = 240.0;
-      imperialTime = 380.0;
+      feudalTime = 120.0;
+      castleTime = 280.0;
+      imperialTime = 450.0;
+    } else if (difficulty === 'normal') {
+      feudalTime = 80.0;
+      castleTime = 190.0;
+      imperialTime = 310.0;
+    } else if (difficulty === 'moderate') {
+      feudalTime = 60.0;
+      castleTime = 150.0;
+      imperialTime = 260.0;
     } else if (difficulty === 'hard') {
-      feudalTime = 40.0;
-      castleTime = 100.0;
-      imperialTime = 180.0;
+      feudalTime = 45.0;
+      castleTime = 110.0;
+      imperialTime = 190.0;
+    } else if (difficulty === 'hardest') {
+      feudalTime = 35.0;
+      castleTime = 90.0;
+      imperialTime = 150.0;
+    } else if (difficulty === 'extreme') {
+      feudalTime = 25.0;
+      castleTime = 65.0;
+      imperialTime = 110.0;
     }
     
     if (enemyState.age === 'dark' && this.ageTimer >= feudalTime) {
@@ -92,7 +116,35 @@ export class EnemyAI {
       this.manageEconomy();
     }
 
-    // 3. Spawn Raid Waves
+    // 3. Garrison Defense check for villagers under attack (moderate/hard/hardest/extreme difficulties)
+    if (difficulty !== 'easy' && difficulty !== 'normal' && this.enemyBaseTC) {
+      if (this.underAttackTimer === undefined) this.underAttackTimer = 0;
+      
+      const enemiesNearBase = this.gameManager.entityManager.units.some(u => 
+        u.hp > 0 && u.state !== 'DEAD' && this.gameManager.isEnemy(1, u.playerId) && 
+        u.position.distanceTo(this.enemyBaseTC.position) < 18.0
+      );
+      
+      if (enemiesNearBase) {
+        this.underAttackTimer = 10.0;
+        const villagers = this.gameManager.entityManager.units.filter(u => 
+          u.playerId === 1 && u.type === 'villager' && u.state !== 'DEAD' && u.state !== 'GARRISONED' &&
+          u.position.distanceTo(this.enemyBaseTC.position) < 20.0
+        );
+        villagers.forEach(v => {
+          v.commandGarrison(this.enemyBaseTC);
+        });
+      } else {
+        if (this.underAttackTimer > 0) {
+          this.underAttackTimer -= deltaTime;
+          if (this.underAttackTimer <= 0) {
+            this.enemyBaseTC.ungarrisonAll();
+          }
+        }
+      }
+    }
+
+    // 4. Spawn Raid Waves
     this.waveTimer += deltaTime;
     if (this.waveTimer >= this.waveInterval) {
       this.waveTimer = 0;
@@ -103,12 +155,68 @@ export class EnemyAI {
   manageEconomy() {
     const em = this.gameManager.entityManager;
     const enemyState = this.gameManager.players[1];
+    const difficulty = this.gameManager.aiDifficulty || 'normal';
+    const resources = enemyState.resources;
+
+    // Extreme/Insane difficulty cheat: resources never dry up
+    if (difficulty === 'extreme') {
+      if (resources.wood < 300) resources.wood = 1000;
+      if (resources.food < 300) resources.food = 1000;
+      if (resources.gold < 300) resources.gold = 1000;
+      if (resources.stone < 300) resources.stone = 1000;
+    }
+
     const villagers = em.units.filter(u => u.playerId === 1 && u.type === 'villager' && u.state !== 'DEAD');
     const villagerCount = villagers.length;
-    const resources = enemyState.resources;
     const pop = enemyState.population;
     const limit = enemyState.populationLimit;
     const maxCap = this.gameManager.maxPopulationCap;
+
+    // A0. Dock and Navy Builder on water maps (moderate/hard/hardest/extreme)
+    const isWaterMap = ['river', 'islands', 'coastal'].includes(this.gameManager.terrain.mapType);
+    if (isWaterMap && difficulty !== 'easy' && difficulty !== 'normal') {
+      const hasDock = em.buildings.some(b => b.playerId === 1 && b.type === 'dock' && b.hp > 0);
+      if (!hasDock && resources.wood >= 150) {
+        const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
+        if (builder) {
+          const spot = this.findDockBuildSpot();
+          if (spot) {
+            resources.wood -= 150;
+            const dk = em.createBuilding('dock', 1, spot.x, spot.z, false);
+            this.gameManager.gridAddBuilding(dk);
+            builder.commandBuild(dk);
+          }
+        }
+      }
+      
+      // Train fishing ships and warships at the dock
+      const dock = em.buildings.find(b => b.playerId === 1 && b.type === 'dock' && b.isCompleted);
+      if (dock && dock.queue.length < 2) {
+        const fishingShipsCount = em.units.filter(u => u.playerId === 1 && u.type === 'fishingShip' && u.state !== 'DEAD').length;
+        let shipToTrain = null;
+        if (fishingShipsCount < 3 && resources.wood >= 75) {
+          shipToTrain = 'fishingShip';
+        } else if (resources.wood >= 90 && resources.gold >= 30) {
+          const rand = Math.random();
+          if (enemyState.age === 'imperial' && rand < 0.25) {
+            shipToTrain = 'cannonGalleon';
+          } else if (rand < 0.5) {
+            shipToTrain = 'fireShip';
+          } else if (rand < 0.75) {
+            shipToTrain = 'demolitionShip';
+          } else {
+            shipToTrain = 'galley';
+          }
+        }
+        
+        if (shipToTrain) {
+          const cost = this.gameManager.getUnitCost(shipToTrain);
+          if (this.gameManager.hasResources(1, cost) && pop < limit) {
+            dock.queueUnit(shipToTrain);
+          }
+        }
+      }
+    }
 
     // A. Rebuild Barracks if destroyed
     const hasBarracks = em.buildings.some(b => b.playerId === 1 && b.type === 'barracks' && b.hp > 0);
@@ -578,7 +686,14 @@ export class EnemyAI {
     }
 
     // D. Train Villagers at Town Center
-    const maxVillagers = this.gameManager.aiDifficulty === 'easy' ? 6 : (this.gameManager.aiDifficulty === 'hard' ? 18 : 12);
+    let maxVillagers = 12;
+    if (difficulty === 'easy') maxVillagers = 6;
+    else if (difficulty === 'normal') maxVillagers = 12;
+    else if (difficulty === 'moderate') maxVillagers = 16;
+    else if (difficulty === 'hard') maxVillagers = 22;
+    else if (difficulty === 'hardest') maxVillagers = 32;
+    else if (difficulty === 'extreme') maxVillagers = 45;
+
     if (villagerCount < maxVillagers && this.enemyBaseTC && this.enemyBaseTC.queue.length === 0) {
       const cost = this.gameManager.getUnitCost('villager');
       if (this.gameManager.hasResources(1, cost) && pop < limit) {
@@ -710,6 +825,16 @@ export class EnemyAI {
   }
 
   spawnAttackWave() {
+    const difficulty = this.gameManager.aiDifficulty || 'normal';
+    
+    // Easy AI: 50% chance to skip or abort raid
+    if (difficulty === 'easy' && Math.random() < 0.5) {
+      if (this.gameManager.hud) {
+        this.gameManager.hud.showNotification("Easy AI canceled raid wave preparation.");
+      }
+      return;
+    }
+
     this.waveCount++;
     const em = this.gameManager.entityManager;
     
@@ -723,11 +848,16 @@ export class EnemyAI {
     
     // Scale target wave size by AI difficulty
     let count = Math.min(8, 1 + Math.floor(this.waveCount * 1.2));
-    const difficulty = this.gameManager.aiDifficulty || 'normal';
     if (difficulty === 'easy') {
-      count = Math.max(1, Math.round(count * 0.6));
+      count = Math.max(1, Math.round(count * 0.5));
+    } else if (difficulty === 'moderate') {
+      count = Math.round(count * 1.1);
     } else if (difficulty === 'hard') {
       count = Math.round(count * 1.5);
+    } else if (difficulty === 'hardest') {
+      count = Math.round(count * 2.0);
+    } else if (difficulty === 'extreme') {
+      count = Math.round(count * 2.5);
     }
     
     const waveSize = Math.max(2, Math.round(count));
@@ -754,31 +884,109 @@ export class EnemyAI {
     }
 
     const targetTC = em.buildings.find(b => b.playerId === targetPlayerId && b.type === 'townCenter');
-    const targetPoint = targetTC ? targetTC.position : new THREE.Vector3(-48, 0, -48);
+    const targetPoint = targetTC ? targetTC.position.clone() : new THREE.Vector3(-48, 0, -48);
     const factionName = targetPlayerId === 0 ? "Anda (Player)" : "Sekutu Anda (Ally)";
 
+    // Define formation used for this raid wave
+    const waveFormations = ['line', 'column', 'box', 'flank', 'deathball'];
+    const selectedFormation = waveFormations[Math.floor(Math.random() * waveFormations.length)];
+    const formationNameIndo = {
+      line: "Baris (Line)",
+      column: "Kolom (Column)",
+      box: "Box / Kotak",
+      flank: "Flank (Mengapit)",
+      deathball: "Deathball (Gumpalan)"
+    }[selectedFormation];
+
     if (this.gameManager.hud) {
-      this.gameManager.hud.showNotification(`⚠️ Raid Wave ${this.waveCount} faksi merah menyerang base ${factionName}!`);
-      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", `Serang base ${targetPlayerId === 0 ? 'biru' : 'hijau'}! Hancurkan TC mereka!`, 'enemy');
+      this.gameManager.hud.showNotification(`⚠️ Raid Wave ${this.waveCount} faksi merah menyerang base ${factionName}! Formasi: ${formationNameIndo}`);
+      
+      const chatMsgs = {
+        easy: "Kami datang berkunjung saja...",
+        normal: `Serang base ${targetPlayerId === 0 ? 'biru' : 'hijau'} dengan formasi ${selectedFormation}!`,
+        moderate: `Ayo bergerak bersama! Formasi ${selectedFormation} siap menghantam TC mereka!`,
+        hard: `Gunakan taktik ${formationNameIndo}! Hancurkan pertahanan mereka!`,
+        hardest: `Taktik multi-arah diaktifkan! Kepung base ${targetPlayerId === 0 ? 'biru' : 'hijau'}!`,
+        extreme: `MAMPUKAH KALIAN MENAHAN TSUNAMI PASUKAN KAMI DENGAN TAKTIK ${selectedFormation.toUpperCase()}?!`
+      };
+      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", chatMsgs[difficulty] || chatMsgs.normal, 'enemy');
     }
 
-    // Command actual trained units to attack target
-    army.forEach(soldier => {
-      soldier.commandAttack({
-        position: targetPoint,
-        hp: 1, // Dummy target mapping
-        takeDamage: (amount) => {
-          if (targetTC) targetTC.takeDamage(amount);
-        }
+    // Naval Assault handling (spawns supporting warships near player TC)
+    const isWaterMap = ['river', 'islands', 'coastal'].includes(this.gameManager.terrain.mapType);
+    if (isWaterMap && difficulty !== 'easy' && difficulty !== 'normal') {
+      const shipTypes = ['galley', 'fireShip', 'cannonGalleon'];
+      const shipType = shipTypes[Math.floor(Math.random() * shipTypes.length)];
+      const wx = targetPoint.x + (Math.random() - 0.5) * 15;
+      const wz = targetPoint.z + (Math.random() - 0.5) * 15;
+      const height = this.gameManager.terrain.getGroundHeight(wx, wz);
+      if (height < -0.5) {
+        em.createUnit(shipType, 1, wx, wz);
+        this.gameManager.players[1].population++;
+      }
+    }
+
+    // Coordinated target routing based on strategy (Rush, Turtle Bust, Multi-Prong)
+    const isMultiProng = (difficulty === 'hardest' || difficulty === 'extreme') && army.length >= 6;
+    
+    if (isMultiProng) {
+      const size1 = Math.ceil(army.length * 0.4);
+      const size2 = Math.ceil(army.length * 0.3);
+      
+      const group1 = army.slice(0, size1);
+      const group2 = army.slice(size1, size1 + size2);
+      const group3 = army.slice(size1 + size2);
+      
+      // Group 1: Front attack Town Center directly
+      group1.forEach(s => {
+        s.commandAttack(targetTC || { position: targetPoint });
+      });
+
+      // Group 2: Flank/Back attack Town Center (offset target point)
+      const offsetPoint = targetPoint.clone().add(new THREE.Vector3((Math.random() - 0.5) * 40 + 20, 0, (Math.random() - 0.5) * 40 + 20));
+      group2.forEach(s => {
+        s.commandAttack({
+          position: offsetPoint,
+          hp: 1,
+          takeDamage: (amount) => { if (targetTC) targetTC.takeDamage(amount); }
+        });
+      });
+
+      // Group 3: Eco Raid targets villagers directly if possible
+      const playerVillager = em.units.find(u => u.playerId === targetPlayerId && u.type === 'villager' && u.state !== 'DEAD');
+      group3.forEach(s => {
+        s.commandAttack(playerVillager || targetTC || { position: targetPoint });
       });
       
-      soldier.state = 'CHASING';
-      if (targetTC) {
-        soldier.targetEntity = targetTC;
+    } else {
+      // Standard target selection (direct Town Center siege or Feudal rush)
+      const isFeudalRush = (this.gameManager.players[1].age === 'feudal' && this.waveCount <= 2 && (difficulty === 'hard' || difficulty === 'hardest' || difficulty === 'extreme'));
+      
+      let finalTarget = targetTC || { position: targetPoint };
+      if (isFeudalRush) {
+        const playerVillager = em.units.find(u => u.playerId === targetPlayerId && u.type === 'villager' && u.state !== 'DEAD');
+        if (playerVillager) finalTarget = playerVillager;
       }
-    });
+      
+      army.forEach(soldier => {
+        soldier.commandAttack(finalTarget);
+      });
+    }
 
     // Play raid alert sound
     this.gameManager.soundManager.playClickSound('hit');
+  }
+
+  findDockBuildSpot() {
+    for (let radius = 10; radius < 60; radius += 3) {
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.4) {
+        const x = Math.round(this.baseX + Math.cos(angle) * radius);
+        const z = Math.round(this.baseZ + Math.sin(angle) * radius);
+        if (this.gameManager.checkBuildPosition(x, z, 'dock')) {
+          return { x, z };
+        }
+      }
+    }
+    return null;
   }
 }
