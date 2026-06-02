@@ -120,6 +120,20 @@ export class Building {
       this.hp = startCompleted ? 800 : 80;
       this.maxHp = 800;
       this.gridSize = 1;
+    } else if (this.type === 'outpost') {
+      this.hp = startCompleted ? 200 : 20;
+      this.maxHp = 200;
+      this.gridSize = 1;
+    } else if (this.type === 'wonder') {
+      this.hp = startCompleted ? 5000 : 500;
+      this.maxHp = 5000;
+      this.gridSize = 4;
+    } else if (this.type === 'fishTrap') {
+      this.hp = startCompleted ? 200 : 20;
+      this.maxHp = 200;
+      this.gridSize = 1;
+      this.amount = Infinity; // Infinite fish node!
+      this.maxAmount = Infinity;
     }
 
     // Apply Civilization building HP modifiers (e.g. Bizantium +25% building HP)
@@ -243,8 +257,13 @@ export class Building {
     
     // Apply building effect
     if (this.type === 'farm') {
-      this.amount = 250;
-      this.maxAmount = 250;
+      const player = this.gameManager.players[this.playerId];
+      const hc = player ? (player.upgrades.horseCollar || 0) : 0;
+      const hp = player ? (player.upgrades.heavyPlow || 0) : 0;
+      const cr = player ? (player.upgrades.cropRotation || 0) : 0;
+      const extra = hc * 75 + hp * 125 + cr * 175;
+      this.amount = 250 + extra;
+      this.maxAmount = 250 + extra;
       if (this.mesh) {
         this.mesh.scale.set(1.0, 1.0, 1.0);
       }
@@ -253,6 +272,10 @@ export class Building {
     if (this.type === 'house') {
       // Increase population limit
       this.gameManager.addPopulationLimit(this.playerId, 5);
+    }
+
+    if (this.type === 'wonder') {
+      this.gameManager.startWonderCountdown(this.playerId);
     }
     
     // VFX & Audio
@@ -529,9 +552,10 @@ export class Building {
     if (this.garrisonedUnits === undefined) {
       this.garrisonedUnits = [];
     }
-    if (this.garrisonedUnits.length >= (this.maxGarrison || 100)) {
+    const maxG = this.maxGarrison || 100;
+    if (this.garrisonedUnits.length >= maxG) {
       if (unit.playerId === 0) {
-        this.gameManager.hud.showNotification("Castle is full (Max 100 garrisoned units)!");
+        this.gameManager.hud.showNotification(`${this.getDisplayName()} is full (Max ${maxG} garrisoned units)!`);
       }
       return false;
     }
@@ -549,7 +573,7 @@ export class Building {
     }
     
     if (this.playerId === 0) {
-      this.gameManager.hud.showNotification(`Garrisoned ${unit.type} in Castle! (${this.garrisonedUnits.length}/100)`);
+      this.gameManager.hud.showNotification(`Garrisoned ${unit.type} in ${this.getDisplayName()}! (${this.garrisonedUnits.length}/${maxG})`);
       if (this.selected) {
         this.gameManager.hud.updateSelectionUI();
       }
@@ -580,7 +604,7 @@ export class Building {
     this.garrisonedUnits = [];
     
     if (this.playerId === 0) {
-      this.gameManager.hud.showNotification(`Ungarrisoned all ${count} units from Castle!`);
+      this.gameManager.hud.showNotification(`Ungarrisoned all ${count} units from ${this.getDisplayName()}!`);
       if (this.selected) {
         this.gameManager.hud.updateSelectionUI();
       }
@@ -854,6 +878,10 @@ export class Building {
     if (this.type === 'house' && this.isCompleted) {
       this.gameManager.addPopulationLimit(this.playerId, -5);
     }
+
+    if (this.type === 'wonder' && this.isCompleted) {
+      this.gameManager.cancelWonderCountdown(this.playerId);
+    }
     
     // Refund training queue
     while (this.queue.length > 0) {
@@ -875,7 +903,9 @@ export class Building {
   }
 
   gather(gatherRate) {
-    if (this.type !== 'farm') return 0;
+    if (this.type !== 'farm' && this.type !== 'fishTrap') return 0;
+    if (this.type === 'fishTrap') return gatherRate; // Infinite fish trap node!
+    
     const toGather = Math.min(this.amount, gatherRate);
     this.amount -= toGather;
     
@@ -895,7 +925,11 @@ export class Building {
       const reseedCost = { wood: 60 };
       if (this.gameManager.hasResources(this.playerId, reseedCost)) {
         this.gameManager.deductResources(this.playerId, reseedCost);
-        this.amount = 250;
+        const player = this.gameManager.players[this.playerId];
+        const hc = player ? (player.upgrades.horseCollar || 0) : 0;
+        const hp = player ? (player.upgrades.heavyPlow || 0) : 0;
+        const cr = player ? (player.upgrades.cropRotation || 0) : 0;
+        this.amount = 250 + hc * 75 + hp * 125 + cr * 175;
         this.isCompleted = true;
         this.buildProgress = 100;
         this.hp = this.maxHp;
@@ -944,5 +978,23 @@ export class Building {
       }
     }
     return toGather;
+  }
+
+  ringBell() {
+    if (this.type !== 'townCenter') return;
+    const villagers = this.gameManager.entityManager.units.filter(u => 
+      u.playerId === this.playerId && u.type === 'villager' && u.state !== 'DEAD' && u.state !== 'GARRISONED' &&
+      u.position.distanceTo(this.position) < 30.0
+    );
+    let count = 0;
+    for (const v of villagers) {
+      if (this.garrisonedUnits.length >= this.maxGarrison) break;
+      v.commandGarrison(this);
+      count++;
+    }
+    this.gameManager.soundManager.playClickSound('bell');
+    if (this.playerId === 0 && this.gameManager.hud) {
+      this.gameManager.hud.showNotification(`Lonceng kota dibunyikan! ${count} villager berlindung.`);
+    }
   }
 }

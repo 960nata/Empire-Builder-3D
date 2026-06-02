@@ -3770,6 +3770,327 @@ export class ModelFactory {
       rArm.rotation.y = -0.5;
       bodyGroup.add(lArm, rArm);
     }
+    else if (['eagleWarrior', 'jaguarWarrior', 'throwingAxeman', 'samurai', 'karambitWarrior', 'woadRaider', 'huskarl', 'teutonicKnight', 'centurion', 'berserk'].includes(type)) {
+      // Melee infantry visual base
+      const armorGeom = new THREE.CylinderGeometry(0.3, 0.25, 0.45, 6);
+      const armorMat = type === 'teutonicKnight' ? this.materials.clothes : (age === 'imperial' ? this.materials.goldMetal : this.materials.iron);
+      const armor = new THREE.Mesh(armorGeom, armorMat);
+      armor.position.y = 0.55;
+      armor.castShadow = true;
+      bodyGroup.add(armor);
+
+      // Unique Headgear/Cape
+      if (type === 'eagleWarrior') {
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 4), this.materials.goldMetal);
+        beak.position.set(0, 1.1, 0.15);
+        beak.rotation.x = Math.PI / 3;
+        bodyGroup.add(beak);
+      } else if (type === 'jaguarWarrior') {
+        const spots = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), this.materials.woodDark);
+        spots.position.set(0, 1.05, 0);
+        bodyGroup.add(spots);
+      } else if (type === 'teutonicKnight') {
+        // Flat bucket helm with horns
+        const helm = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.35, 6), this.materials.iron);
+        helm.position.y = 1.1;
+        bodyGroup.add(helm);
+        
+        const cape = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.2, 0.05), this.materials.clothes);
+        cape.position.set(0, 0.5, -0.28);
+        bodyGroup.add(cape);
+      } else if (type === 'centurion' || type === 'berserk') {
+        const crest = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.32), teamMat);
+        crest.position.set(0, 1.18, -0.05);
+        bodyGroup.add(crest);
+      } else {
+        const helm = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.18, 6), this.materials.iron);
+        helm.position.y = 1.05;
+        bodyGroup.add(helm);
+      }
+
+      // Weapons
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.38, 0.55, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4), this.materials.clothes);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      const weapon = new THREE.Group();
+      weapon.name = "weapon";
+      weapon.position.set(0, -0.35, 0.05);
+      weapon.rotation.x = Math.PI / 2.2;
+
+      if (type === 'throwingAxeman') {
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6), this.materials.woodDark);
+        handle.rotation.x = Math.PI / 2;
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.15), this.materials.iron);
+        blade.position.set(0, 0, 0.22);
+        weapon.add(handle, blade);
+      } else if (type === 'samurai') {
+        // Katana
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.02, 1.1), this.materials.iron);
+        blade.position.z = 0.55;
+        weapon.add(blade);
+      } else if (type === 'karambitWarrior') {
+        // Cheap daggers
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3), this.materials.woodDark);
+        handle.rotation.x = Math.PI / 2;
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.02, 0.35), this.materials.iron);
+        blade.position.set(0, 0, 0.15);
+        weapon.add(handle, blade);
+      } else {
+        // Sword
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.03, 0.95), this.materials.iron);
+        blade.position.z = 0.475;
+        weapon.add(blade);
+      }
+      rightArm.add(weapon);
+      bodyGroup.add(rightArm);
+
+      // Shield for shielded units
+      if (['huskarl', 'teutonicKnight', 'centurion', 'berserk', 'eagleWarrior'].includes(type)) {
+        const leftArm = new THREE.Group();
+        leftArm.name = "leftArm";
+        leftArm.position.set(-0.38, 0.55, 0);
+        const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.4), this.materials.clothes);
+        lArm.position.y = -0.15;
+        leftArm.add(lArm);
+
+        const shield = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.05, 8), teamMat);
+        shield.position.set(-0.15, -0.15, 0.1);
+        shield.rotation.y = Math.PI / 2;
+        leftArm.add(shield);
+        bodyGroup.add(leftArm);
+      }
+    }
+    else if (['longbowman', 'chuKoNu', 'plumedArcher'].includes(type)) {
+      // Ranged foot units
+      const armorGeom = new THREE.CylinderGeometry(0.28, 0.22, 0.5, 6);
+      const armor = new THREE.Mesh(armorGeom, this.materials.clothes);
+      armor.position.y = 0.5;
+      bodyGroup.add(armor);
+
+      if (type === 'plumedArcher') {
+        const plumes = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.05), teamMat);
+        plumes.position.set(0, 1.25, 0);
+        bodyGroup.add(plumes);
+      }
+
+      // Bow arm gesture
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.35, 0.55, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4), this.materials.clothes);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      const weapon = new THREE.Group();
+      weapon.name = "weapon";
+      weapon.position.set(0, -0.3, 0.1);
+      weapon.rotation.x = Math.PI / 2.2;
+
+      if (type === 'chuKoNu') {
+        // Crossbow box
+        const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.7), this.materials.woodDark);
+        const prod = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.04, 0.08), this.materials.woodDark);
+        prod.position.z = 0.3;
+        weapon.add(shaft, prod);
+      } else {
+        // Standard or Long bow
+        const bowLength = type === 'longbowman' ? 1.4 : 1.0;
+        const bow = new THREE.Mesh(new THREE.BoxGeometry(0.04, bowLength, 0.04), this.materials.woodDark);
+        bow.rotation.x = Math.PI / 2;
+        weapon.add(bow);
+      }
+      rightArm.add(weapon);
+      bodyGroup.add(rightArm);
+    }
+    else if (['handCannoneer', 'janissary'].includes(type)) {
+      // Hand Cannoneer units
+      const armor = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.5, 6), this.materials.clothes);
+      armor.position.y = 0.5;
+      bodyGroup.add(armor);
+
+      if (type === 'janissary') {
+        const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.35, 6), this.materials.clothes);
+        hat.position.set(0, 1.2, 0);
+        bodyGroup.add(hat);
+      }
+
+      const rightArm = new THREE.Group();
+      rightArm.name = "rightArm";
+      rightArm.position.set(0.35, 0.55, 0);
+      const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4), this.materials.clothes);
+      arm.position.y = -0.15;
+      rightArm.add(arm);
+
+      // Gun
+      const gun = new THREE.Group();
+      gun.name = "weapon";
+      gun.position.set(0, -0.3, 0.1);
+      gun.rotation.x = Math.PI / 2.2;
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.8), this.materials.iron);
+      barrel.position.z = 0.2;
+      barrel.rotation.x = Math.PI / 2;
+      gun.add(barrel);
+
+      rightArm.add(gun);
+      bodyGroup.add(rightArm);
+    }
+    else if (['elephantArcher', 'battleElephant', 'warElephant'].includes(type)) {
+      // Remove default human elements
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+      
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+      
+      const elephant = new THREE.Group();
+      elephant.name = "elephant";
+      
+      // Body
+      const elBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 1.6), this.materials.skin);
+      elBody.position.y = 0.7;
+      elBody.castShadow = true;
+      elephant.add(elBody);
+      
+      // Head
+      const elHead = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), this.materials.skin);
+      elHead.position.set(0, 1.0, 0.95);
+      elephant.add(elHead);
+      
+      // Trunk
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 0.8), this.materials.skin);
+      trunk.position.set(0, 0.6, 1.35);
+      trunk.rotation.x = 0.2;
+      elephant.add(trunk);
+      
+      // 4 thick legs
+      const legGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.5, 6);
+      const legPositions = [[-0.45, 0.25, 0.55], [0.45, 0.25, 0.55], [-0.45, 0.25, -0.55], [0.45, 0.25, -0.55]];
+      legPositions.forEach(pos => {
+        const leg = new THREE.Mesh(legGeom, this.materials.skin);
+        leg.position.set(...pos);
+        leg.castShadow = true;
+        elephant.add(leg);
+      });
+      
+      // Tusks
+      const tuskGeom = new THREE.CylinderGeometry(0.04, 0.01, 0.5);
+      tuskGeom.rotateX(Math.PI / 2);
+      const t1 = new THREE.Mesh(tuskGeom, this.materials.rock); t1.position.set(-0.35, 0.75, 1.2); t1.rotation.y = -0.2;
+      const t2 = new THREE.Mesh(tuskGeom, this.materials.rock); t2.position.set(0.35, 0.75, 1.2); t2.rotation.y = 0.2;
+      elephant.add(t1, t2);
+
+      if (type === 'elephantArcher') {
+        // Howdah (box on back)
+        const howdah = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.45, 0.8), this.materials.woodDark);
+        howdah.position.set(0, 1.4, -0.15);
+        elephant.add(howdah);
+        
+        // Mini Archer inside
+        const miniArcher = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5), teamMat);
+        miniArcher.position.set(0, 1.75, -0.15);
+        elephant.add(miniArcher);
+      } else {
+        // Rider
+        const rider = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5), teamMat);
+        rider.position.set(0, 1.45, 0.45);
+        elephant.add(rider);
+      }
+      bodyGroup.add(elephant);
+    }
+    else if (['missionary', 'conquistador', 'cataphract', 'boyar', 'steppeLancer', 'tarkan', 'mangudai'].includes(type)) {
+      // Mounted units
+      const existLeftFoot = bodyGroup.getObjectByName("leftFoot");
+      const existRightFoot = bodyGroup.getObjectByName("rightFoot");
+      if (existLeftFoot) bodyGroup.remove(existLeftFoot);
+      if (existRightFoot) bodyGroup.remove(existRightFoot);
+
+      const torsoMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'CylinderGeometry');
+      const headMesh = bodyGroup.children.find(c => c.geometry && c.geometry.type === 'SphereGeometry');
+      if (torsoMesh) bodyGroup.remove(torsoMesh);
+      if (headMesh) bodyGroup.remove(headMesh);
+
+      // Horse body
+      const horseGroup = new THREE.Group();
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.35, 1.4, 8), new THREE.MeshStandardMaterial({ color: 0x553311, roughness: 0.8 }));
+      barrel.rotation.z = Math.PI / 2;
+      barrel.position.set(0, 0.65, 0);
+      horseGroup.add(barrel);
+
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x553311 }));
+      neck.position.set(0, 0.95, 0.55);
+      neck.rotation.x = -0.6;
+      horseGroup.add(neck);
+
+      const hHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 0.45), new THREE.MeshStandardMaterial({ color: 0x553311 }));
+      hHead.position.set(0, 1.2, 0.85);
+      hHead.rotation.x = -0.2;
+      horseGroup.add(hHead);
+
+      bodyGroup.add(horseGroup);
+
+      // Rider Torso
+      const riderGroup = new THREE.Group();
+      riderGroup.name = "rider";
+      riderGroup.position.set(0, 0.95, 0);
+
+      const rTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.2, 0.55, 6), teamMat);
+      rTorso.position.y = 0.28;
+      riderGroup.add(rTorso);
+
+      const rHead = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), this.materials.skin);
+      rHead.position.y = 0.68;
+      riderGroup.add(rHead);
+
+      const rRightArm = new THREE.Group();
+      rRightArm.name = "rightArm";
+      rRightArm.position.set(0.3, 0.32, 0);
+      const rArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.35), this.materials.clothes);
+      rArmMesh.position.y = -0.1;
+      rRightArm.add(rArmMesh);
+
+      const weapon = new THREE.Group();
+      weapon.name = "weapon";
+      weapon.position.set(0, -0.2, 0.1);
+      weapon.rotation.x = Math.PI / 2.2;
+
+      if (type === 'missionary') {
+        // Staff
+        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2), this.materials.woodDark);
+        staff.rotation.x = Math.PI / 2;
+        weapon.add(staff);
+      } else if (type === 'conquistador') {
+        // Mounted Gun
+        const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75), this.materials.iron);
+        gun.rotation.x = Math.PI / 2;
+        weapon.add(gun);
+      } else if (type === 'steppeLancer') {
+        // Extremely long lance
+        const lance = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 2.6), this.materials.woodDark);
+        lance.rotation.x = Math.PI / 2;
+        weapon.add(lance);
+      } else if (type === 'mangudai') {
+        // Bow
+        const bow = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.0, 0.04), this.materials.woodDark);
+        bow.rotation.x = Math.PI / 2;
+        weapon.add(bow);
+      } else {
+        // Sword / Mace
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.03, 0.95), this.materials.iron);
+        blade.position.z = 0.475;
+        weapon.add(blade);
+      }
+      rRightArm.add(weapon);
+      riderGroup.add(rRightArm);
+      bodyGroup.add(riderGroup);
+    }
     
     return group;
   }
@@ -5703,6 +6024,83 @@ export class ModelFactory {
       cannon.rotation.x = Math.PI / 2.05;
       cannon.castShadow = true;
       group.add(cannon);
+    }
+    else if (type === 'outpost') {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.5, 0.6), woodMat);
+      base.position.y = 1.25;
+      base.castShadow = true;
+      group.add(base);
+      
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 1.2), woodMat);
+      deck.position.y = 2.5;
+      group.add(deck);
+      
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.8, 0.6, 4), roofMat);
+      roof.position.y = 3.1;
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      group.add(roof);
+    }
+    else if (type === 'wonder') {
+      // Grand stone foundation
+      const base = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.5, 3.6), foundationMat);
+      base.position.y = 0.25;
+      base.receiveShadow = true;
+      group.add(base);
+
+      // Main majestic hall
+      const hall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.0, 2.4), wallMat);
+      hall.position.y = 1.5;
+      hall.castShadow = true;
+      group.add(hall);
+
+      // 4 stone pillars at the corners
+      const pillarGeom = new THREE.CylinderGeometry(0.18, 0.18, 2.5, 8);
+      const offsets = [[-1.5, 1.25, -1.5], [1.5, 1.25, -1.5], [-1.5, 1.25, 1.5], [1.5, 1.25, 1.5]];
+      offsets.forEach(([px, py, pz]) => {
+        const pillar = new THREE.Mesh(pillarGeom, foundationMat);
+        pillar.position.set(px, py, pz);
+        pillar.castShadow = true;
+        group.add(pillar);
+        
+        // Small gold cap on each pillar
+        const cap = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), this.materials.goldMetal);
+        cap.position.set(px, py + 1.25, pz);
+        group.add(cap);
+      });
+
+      // Giant central golden dome
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2), this.materials.goldMetal);
+      dome.position.y = 2.5;
+      dome.castShadow = true;
+      group.add(dome);
+
+      // Flagpole with team material flag
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.0, 8), this.materials.iron);
+      pole.position.set(0, 4.0, 0);
+      group.add(pole);
+
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.05), teamMat);
+      flag.position.set(0.4, 4.75, 0);
+      group.add(flag);
+    }
+    else if (type === 'fishTrap') {
+      const frameGeom = new THREE.BoxGeometry(1.4, 0.15, 0.15);
+      const f1 = new THREE.Mesh(frameGeom, this.materials.woodDark); f1.position.set(0, 0.05, -0.7);
+      const f2 = new THREE.Mesh(frameGeom, this.materials.woodDark); f2.position.set(0, 0.05, 0.7);
+      
+      const frameGeom2 = new THREE.BoxGeometry(0.15, 0.15, 1.4);
+      const f3 = new THREE.Mesh(frameGeom2, this.materials.woodDark); f3.position.set(-0.7, 0.05, 0);
+      const f4 = new THREE.Mesh(frameGeom2, this.materials.woodDark); f4.position.set(0.7, 0.05, 0);
+      
+      group.add(f1, f2, f3, f4);
+
+      // Net inside
+      const netMat = new THREE.MeshStandardMaterial({ color: 0x223322, transparent: true, opacity: 0.7, wireframe: true });
+      const net = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.2), netMat);
+      net.rotation.x = -Math.PI / 2;
+      net.position.y = 0.02;
+      group.add(net);
     }
 
     return group;

@@ -35,6 +35,31 @@ export class GameManager {
     this.aiDifficulty = 'normal';
     this.gameSpeedMultiplier = 1.0;
 
+    // Helper to generate the complete tech/upgrade tree initialized to 0
+    const createFullUpgradesObj = () => ({
+      attack: 0, armor: 0, arrow: 0,
+      swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
+      footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
+      palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
+      batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
+      spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
+      sanctity: 0, fervor: 0, redemption: 0, atonement: 0, heresy: 0, faith: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+      galleyUpgrade: 0, fireShipUpgrade: 0,
+      loom: 0, wheelbarrow: 0, handCart: 0, townWatch: 0, townPatrol: 0,
+      horseCollar: 0, heavyPlow: 0, cropRotation: 0,
+      doubleBitAxe: 0, bowSaw: 0, twoManSaw: 0,
+      goldMining: 0, goldShaftMining: 0, stoneMining: 0, stoneShaftMining: 0,
+      coinage: 0, banking: 0, guilds: 0,
+      careening: 0, dryDock: 0, shipwright: 0, gillnets: 0,
+      squires: 0, arson: 0,
+      thumbRing: 0, ballistics: 0,
+      bloodlines: 0, husbandry: 0,
+      hoardings: 0, sapper: 0, conscription: 0, spies: 0,
+      heatedShot: 0,
+      masonry: 0, architecture: 0,
+      chemistry: 0, siegeEngineers: 0, murderHoles: 0, arrowslits: 0
+    });
+
     // Game stats & Player states (4 Factions: 0: Player, 1: Enemy, 2: Ally, 3: Neutral)
     this.players = {
       0: { // Player
@@ -43,16 +68,7 @@ export class GameManager {
         populationLimit: 10,
         age: 'dark',
         civ: 'inggris',
-        upgrades: { 
-          attack: 0, armor: 0, arrow: 0,
-          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
-          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
-          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
-          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
-          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
-          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
-          galleyUpgrade: 0, fireShipUpgrade: 0
-        }
+        upgrades: createFullUpgradesObj()
       },
       1: { // Enemy (Red AI)
         resources: { wood: 1000, food: 1000, gold: 1000, stone: 1000 },
@@ -60,16 +76,7 @@ export class GameManager {
         populationLimit: 100,
         age: 'dark',
         civ: 'mongol',
-        upgrades: { 
-          attack: 0, armor: 0, arrow: 0,
-          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
-          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
-          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
-          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
-          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
-          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
-          galleyUpgrade: 0, fireShipUpgrade: 0
-        }
+        upgrades: createFullUpgradesObj()
       },
       2: { // Ally (Green AI)
         resources: { wood: 400, food: 400, gold: 200, stone: 100 },
@@ -77,16 +84,7 @@ export class GameManager {
         populationLimit: 20,
         age: 'dark',
         civ: 'jepang',
-        upgrades: { 
-          attack: 0, armor: 0, arrow: 0,
-          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
-          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
-          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
-          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
-          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
-          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
-          galleyUpgrade: 0, fireShipUpgrade: 0
-        }
+        upgrades: createFullUpgradesObj()
       },
       3: { // Neutral (Grey)
         resources: { wood: 500, food: 500, gold: 500, stone: 500 },
@@ -94,16 +92,7 @@ export class GameManager {
         populationLimit: 50,
         age: 'dark',
         civ: 'bizantium',
-        upgrades: { 
-          attack: 0, armor: 0, arrow: 0,
-          swordsmanUpgrade: 0, archerUpgrade: 0, knightUpgrade: 0, 
-          footKnightUpgrade: 0, heavyCavalryUpgrade: 0, horseArcherUpgrade: 0,
-          palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
-          batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
-          spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
-          sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
-          galleyUpgrade: 0, fireShipUpgrade: 0
-        }
+        upgrades: createFullUpgradesObj()
       }
     };
 
@@ -650,6 +639,56 @@ export class GameManager {
       return { wood: 200, gold: 200 };
     } else if (type === 'petard') {
       return { food: 65, gold: 20 };
+    } else if (type === 'eagleWarrior') {
+      return { food: 20, gold: 50 };
+    } else if (type === 'handCannoneer') {
+      return { food: 45, gold: 50 };
+    } else if (type === 'elephantArcher') {
+      return { food: 100, gold: 70 };
+    } else if (type === 'battleElephant') {
+      return { food: 120, gold: 70 };
+    } else if (type === 'steppeLancer') {
+      return { food: 70, gold: 30 };
+    } else if (type === 'missionary') {
+      return { gold: 100 };
+    } else if (type === 'longbowman') {
+      return { wood: 35, gold: 40 };
+    } else if (type === 'cataphract') {
+      return { food: 75, gold: 75 };
+    } else if (type === 'throwingAxeman') {
+      return { food: 55, gold: 25 };
+    } else if (type === 'mangudai') {
+      return { wood: 55, gold: 65 };
+    } else if (type === 'conquistador') {
+      return { food: 60, gold: 60 };
+    } else if (type === 'karambitWarrior') {
+      return { food: 30, gold: 15 };
+    } else if (type === 'boyar') {
+      return { food: 50, gold: 80 };
+    } else if (type === 'samurai') {
+      return { food: 60, gold: 30 };
+    } else if (type === 'chuKoNu') {
+      return { wood: 40, gold: 35 };
+    } else if (type === 'woadRaider') {
+      return { food: 65, gold: 25 };
+    } else if (type === 'huskarl') {
+      return { food: 52, gold: 26 };
+    } else if (type === 'teutonicKnight') {
+      return { food: 85, gold: 40 };
+    } else if (type === 'tarkan') {
+      return { food: 60, gold: 60 };
+    } else if (type === 'janissary') {
+      return { food: 60, gold: 55 };
+    } else if (type === 'warElephant') {
+      return { food: 200, gold: 75 };
+    } else if (type === 'jaguarWarrior') {
+      return { food: 60, gold: 30 };
+    } else if (type === 'plumedArcher') {
+      return { wood: 50, gold: 50 };
+    } else if (type === 'centurion') {
+      return { food: 75, gold: 85 };
+    } else if (type === 'berserk') {
+      return { food: 65, gold: 25 };
     }
     return {};
   }
@@ -678,11 +717,52 @@ export class GameManager {
       fervor: [{ gold: 140 }],
       redemption: [{ gold: 475 }],
       atonement: [{ gold: 325 }],
+      heresy: [{ gold: 1000 }],
+      faith: [{ gold: 750 }],
       illumination: [{ gold: 120 }],
       blockPrinting: [{ gold: 200 }],
       theocracy: [{ gold: 200 }],
       galleyUpgrade: [{ food: 230, gold: 100 }, { food: 400, gold: 315 }],
-      fireShipUpgrade: [{ food: 280, gold: 250 }]
+      fireShipUpgrade: [{ food: 280, gold: 250 }],
+      loom: [{ gold: 50 }],
+      wheelbarrow: [{ food: 175, wood: 50 }],
+      handCart: [{ food: 300, wood: 200 }],
+      townWatch: [{ food: 75 }],
+      townPatrol: [{ food: 300, gold: 200 }],
+      horseCollar: [{ food: 75, wood: 75 }],
+      heavyPlow: [{ food: 125, wood: 125 }],
+      cropRotation: [{ food: 250, wood: 250 }],
+      doubleBitAxe: [{ food: 100, wood: 50 }],
+      bowSaw: [{ food: 150, wood: 100 }],
+      twoManSaw: [{ food: 300, wood: 200 }],
+      goldMining: [{ food: 100, wood: 75 }],
+      goldShaftMining: [{ food: 200, wood: 150 }],
+      stoneMining: [{ food: 100, wood: 75 }],
+      stoneShaftMining: [{ food: 200, wood: 150 }],
+      coinage: [{ food: 200, gold: 100 }],
+      banking: [{ food: 300, gold: 200 }],
+      guilds: [{ food: 200, gold: 300 }],
+      careening: [{ food: 250, gold: 150 }],
+      dryDock: [{ food: 600, gold: 400 }],
+      shipwright: [{ food: 1000, gold: 800 }],
+      gillnets: [{ food: 150, gold: 200 }],
+      squires: [{ food: 100 }],
+      arson: [{ food: 150, gold: 50 }],
+      thumbRing: [{ food: 300, wood: 250 }],
+      ballistics: [{ wood: 400, gold: 175 }],
+      bloodlines: [{ food: 150, gold: 100 }],
+      husbandry: [{ food: 150 }],
+      hoardings: [{ food: 400, wood: 400 }],
+      sapper: [{ food: 400, gold: 200 }],
+      conscription: [{ food: 150, gold: 150 }],
+      spies: [{ gold: 1000 }],
+      heatedShot: [{ food: 350, gold: 100 }],
+      masonry: [{ food: 150, wood: 175 }],
+      architecture: [{ food: 200, wood: 300, gold: 100 }],
+      chemistry: [{ food: 300, gold: 200 }],
+      siegeEngineers: [{ food: 500, wood: 600 }],
+      murderHoles: [{ food: 200, stone: 200 }],
+      arrowslits: [{ food: 250, wood: 250 }]
     };
     if (costs[type] && costs[type][currentLevel]) {
       return costs[type][currentLevel];
@@ -734,6 +814,12 @@ export class GameManager {
       return { wood: 200, gold: 100 };
     } else if (type === 'castle') {
       return { wood: 200, stone: 650 };
+    } else if (type === 'outpost') {
+      return { wood: 25, stone: 5 };
+    } else if (type === 'wonder') {
+      return { wood: 1000, gold: 1000, stone: 1000 };
+    } else if (type === 'fishTrap') {
+      return { wood: 100 };
     }
     return {};
   }
@@ -955,9 +1041,9 @@ export class GameManager {
 
   checkBuildPosition(x, z, buildingType) {
     let size = 2;
-    if (buildingType === 'townCenter') size = 4;
+    if (buildingType === 'townCenter' || buildingType === 'wonder') size = 4;
     else if (['barracks', 'temple', 'market', 'dock', 'university', 'siegeWorkshop', 'blacksmith', 'stable', 'archeryRange', 'monastery'].includes(buildingType)) size = 3;
-    else if (['palisadeWall', 'stoneWall', 'watchTower', 'bombardTower'].includes(buildingType)) size = 1;
+    else if (['palisadeWall', 'stoneWall', 'watchTower', 'bombardTower', 'outpost', 'fishTrap'].includes(buildingType)) size = 1;
     else if (buildingType === 'palisadeGate' || buildingType === 'stoneGate' || buildingType === 'mill' || buildingType === 'lumberCamp' || buildingType === 'miningCamp') size = 2;
     
     const startX = Math.round(x - size / 2);
@@ -984,6 +1070,10 @@ export class GameManager {
         if (buildingType === 'dock') {
           if (height >= -0.4) hasLand = true;
           if (height < -0.4) hasWater = true;
+        } else if (buildingType === 'fishTrap') {
+          if (height >= -0.4) {
+            return false; // Water only
+          }
         } else {
           // Terrain steepness check (no building in water/slopes for normal buildings)
           if (height < -0.4) {
@@ -1090,6 +1180,11 @@ export class GameManager {
     const selectedVillagers = this.selectedEntities.filter(e => e.type === 'villager' && e.playerId === 0);
     if (selectedVillagers.length > 0) {
       selectedVillagers.forEach(v => v.commandBuild(b));
+    }
+    // If we have selected fishing ships and placing a fishTrap, command them to build it
+    const selectedFishingShips = this.selectedEntities.filter(e => e.type === 'fishingShip' && e.playerId === 0);
+    if (selectedFishingShips.length > 0 && buildingType === 'fishTrap') {
+      selectedFishingShips.forEach(fs => fs.commandBuild(b));
     }
     
     this.soundManager.playClickSound('build');
@@ -1662,6 +1757,16 @@ export class GameManager {
       this.neutralAI.update(deltaTime);
     }
     
+    // Update Wonder countdown
+    if (this.wonderCountdown !== null && this.wonderCountdown !== undefined) {
+      this.wonderCountdown -= deltaTime;
+      if (this.wonderCountdown <= 0) {
+        this.wonderCountdown = 0;
+        const isPlayerTeam = (this.wonderOwnerId === 0 || this.wonderOwnerId === 2);
+        this.gameOver(isPlayerTeam);
+      }
+    }
+    
     // Render 3D Canvas
     this.renderer.render();
   }
@@ -1725,7 +1830,31 @@ export class GameManager {
     }
   }
 
+  startWonderCountdown(playerId) {
+    this.wonderOwnerId = playerId;
+    this.wonderCountdown = 300.0;
+    const name = this.players[playerId].civ.toUpperCase();
+    if (playerId === 0) {
+      this.hud.showNotification("Wonder completed! Victory countdown started: 300 seconds! 🏛️");
+    } else {
+      this.hud.showNotification(`⚠️ Enemy ${name} completed a Wonder! Defeat imminent in 300 seconds! ⚠️`);
+    }
+  }
+
+  cancelWonderCountdown(playerId) {
+    if (this.wonderOwnerId === playerId) {
+      const otherWonders = this.entityManager.buildings.some(b => b.playerId === playerId && b.type === 'wonder' && b.isCompleted && b.hp > 0);
+      if (!otherWonders) {
+        this.wonderOwnerId = null;
+        this.wonderCountdown = null;
+        this.hud.showNotification("A Wonder was destroyed! Countdown cancelled.");
+      }
+    }
+  }
+
   restartGame() {
+    this.wonderCountdown = null;
+    this.wonderOwnerId = null;
     this.gameActive = false;
     this.entityManager.clearAll();
     this.gridMap = {};
@@ -1755,8 +1884,21 @@ export class GameManager {
       palisadeWallUpgrade: 0, stoneWallUpgrade: 0, watchTowerUpgrade: 0,
       batteringRamUpgrade: 0, mangonelUpgrade: 0, scorpionUpgrade: 0, bombardCannonUpgrade: 0,
       spearmanUpgrade: 0, skirmisherUpgrade: 0, scoutUpgrade: 0, camelUpgrade: 0, cavalryArcherUpgrade: 0,
-      sanctity: 0, fervor: 0, redemption: 0, atonement: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
-      galleyUpgrade: 0, fireShipUpgrade: 0
+      sanctity: 0, fervor: 0, redemption: 0, atonement: 0, heresy: 0, faith: 0, illumination: 0, blockPrinting: 0, theocracy: 0,
+      galleyUpgrade: 0, fireShipUpgrade: 0,
+      loom: 0, wheelbarrow: 0, handCart: 0, townWatch: 0, townPatrol: 0,
+      horseCollar: 0, heavyPlow: 0, cropRotation: 0,
+      doubleBitAxe: 0, bowSaw: 0, twoManSaw: 0,
+      goldMining: 0, goldShaftMining: 0, stoneMining: 0, stoneShaftMining: 0,
+      coinage: 0, banking: 0, guilds: 0,
+      careening: 0, dryDock: 0, shipwright: 0, gillnets: 0,
+      squires: 0, arson: 0,
+      thumbRing: 0, ballistics: 0,
+      bloodlines: 0, husbandry: 0,
+      hoardings: 0, sapper: 0, conscription: 0, spies: 0,
+      heatedShot: 0,
+      masonry: 0, architecture: 0,
+      chemistry: 0, siegeEngineers: 0, murderHoles: 0, arrowslits: 0
     });
 
     this.players[0] = {
@@ -1846,6 +1988,37 @@ export class GameManager {
     }
 
     if (!nextAge) return;
+
+    // Check building requirements before checking resources or advancing age
+    const buildingsList = this.entityManager.buildings.filter(b => b.playerId === playerId);
+    if (currentAge === 'dark') {
+      const darkAgeBuildingsCount = buildingsList.filter(b => b.isCompleted && b.type !== 'townCenter' && b.type !== 'house').length;
+      if (darkAgeBuildingsCount < 2) {
+        if (playerId === 0) {
+          this.hud.showNotification("⚠️ Requires at least 2 Dark Age buildings (excluding Town Center and Houses) to age up!");
+        }
+        return;
+      }
+    } else if (currentAge === 'feudal') {
+      const feudalTypes = ['blacksmith', 'market', 'stable', 'archeryRange', 'watchTower', 'stoneWall', 'stoneGate'];
+      const feudalCount = buildingsList.filter(b => b.isCompleted && feudalTypes.includes(b.type)).length;
+      if (feudalCount < 2) {
+        if (playerId === 0) {
+          this.hud.showNotification("⚠️ Requires at least 2 Feudal Age buildings (e.g. Blacksmith, Market, Stable, Archery Range) to age up!");
+        }
+        return;
+      }
+    } else if (currentAge === 'castle') {
+      const castleCount = buildingsList.filter(b => b.isCompleted && b.type === 'castle').length;
+      const castleTypes = ['monastery', 'university', 'siegeWorkshop'];
+      const castleCountOthers = buildingsList.filter(b => b.isCompleted && castleTypes.includes(b.type)).length;
+      if (castleCount < 1 && (castleCount + castleCountOthers) < 2) {
+        if (playerId === 0) {
+          this.hud.showNotification("⚠️ Requires at least 2 Castle Age buildings (Monastery, University, Siege Workshop) or 1 Castle to age up!");
+        }
+        return;
+      }
+    }
 
     if (!this.hasResources(playerId, cost)) {
       if (playerId === 0) {

@@ -116,6 +116,28 @@ export class SoundManager {
       osc.start(now);
       osc.stop(now + 0.09);
     } 
+    else if (type === 'bell') {
+      // Town Bell alarm sound
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(550, now);
+      osc.frequency.linearRampToValueAtTime(440, now + 0.5);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.start(now);
+      osc.stop(now + 0.6);
+      
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(660, now + 0.04);
+      osc2.frequency.exponentialRampToValueAtTime(550, now + 0.45);
+      gain2.gain.setValueAtTime(0.15, now + 0.04);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now + 0.04);
+      osc2.stop(now + 0.48);
+    } 
     else if (type === 'build') {
       // Hammer knock
       osc.type = 'triangle';

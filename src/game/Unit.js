@@ -270,27 +270,47 @@ export class Unit {
     let baseRange = 1.0;
     let baseArmor = 0;
     
+    const isInfantry = ['swordsman', 'footKnight', 'spearman', 'skirmisher', 'throwingAxeman', 'karambitWarrior', 'samurai', 'woadRaider', 'huskarl', 'teutonicKnight', 'jaguarWarrior', 'berserk', 'eagleWarrior'].includes(this.type);
+    const isCavalry = ['knight', 'heavyCavalry', 'horseArcher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'cataphract', 'mangudai', 'conquistador', 'boyar', 'tarkan', 'warElephant', 'centurion', 'elephantArcher', 'battleElephant', 'steppeLancer', 'missionary'].includes(this.type);
+    const isArcher = ['archer', 'horseArcher', 'skirmisher', 'cavalryArcher', 'longbowman', 'mangudai', 'chuKoNu', 'plumedArcher', 'elephantArcher'].includes(this.type);
+    const isGunpowder = ['handCannoneer', 'janissary', 'conquistador'].includes(this.type);
+
     if (this.type === 'villager') {
       baseHp = 50;
       baseSpeed = 3.5;
       baseAttack = 2;
       baseRange = 1.0;
+      
+      // Loom upgrade
+      if (player.upgrades.loom > 0) {
+        baseHp += 15;
+        baseArmor += 1;
+      }
+      
+      // Carry capacity & Speed upgrades
+      let carryMax = 10;
+      if (player.upgrades.wheelbarrow > 0) {
+        baseSpeed *= 1.10;
+        carryMax += 3;
+      }
+      if (player.upgrades.handCart > 0) {
+        baseSpeed *= 1.15;
+        carryMax += 5;
+      }
+      this.inventory.max = carryMax;
+      
     } else if (this.type === 'swordsman') {
       if (age === 'dark') {
-        baseHp = 90;
-        baseAttack = 12;
+        baseHp = 90; baseAttack = 12;
       } else if (age === 'feudal') {
-        baseHp = 110;
-        baseAttack = 16;
+        baseHp = 110; baseAttack = 16;
       } else if (age === 'castle') {
-        baseHp = 140;
-        baseAttack = 22;
+        baseHp = 140; baseAttack = 22;
       } else {
-        baseHp = 180;
-        baseAttack = 32;
+        baseHp = 180; baseAttack = 32;
       }
-      baseSpeed = 2.8;
-      baseRange = 1.1;
+      baseSpeed = 2.8; baseRange = 1.1;
+      
     } else if (this.type === 'spearman') {
       const level = player.upgrades.spearmanUpgrade || 0;
       if (level === 0) {
@@ -301,14 +321,16 @@ export class Unit {
         baseHp = 60; baseAttack = 6; // Halberdier
       }
       baseSpeed = 3.0; baseRange = 1.0;
+      
     } else if (this.type === 'skirmisher') {
       const level = player.upgrades.skirmisherUpgrade || 0;
       if (level === 0) {
-        baseHp = 30; baseAttack = 2; baseRange = 5.0; baseArmor = 3; // high base pierce armor
+        baseHp = 30; baseAttack = 2; baseRange = 5.0; baseArmor = 3;
       } else {
-        baseHp = 35; baseAttack = 3; baseRange = 6.0; baseArmor = 4; // Elite
+        baseHp = 35; baseAttack = 3; baseRange = 6.0; baseArmor = 4;
       }
       baseSpeed = 3.0;
+      
     } else if (this.type === 'scoutCavalry') {
       const level = player.upgrades.scoutUpgrade || 0;
       if (level === 0) {
@@ -319,269 +341,318 @@ export class Unit {
         baseHp = 75; baseAttack = 7; baseSpeed = 5.0; // Hussar
       }
       baseRange = 1.0;
+      
     } else if (this.type === 'camelRider') {
       const level = player.upgrades.camelUpgrade || 0;
       if (level === 0) {
         baseHp = 100; baseAttack = 6;
       } else if (level === 1) {
-        baseHp = 120; baseAttack = 7; // Heavy Camel
+        baseHp = 120; baseAttack = 7;
       } else {
-        baseHp = 140; baseAttack = 9; // Imperial Camel
+        baseHp = 140; baseAttack = 9;
       }
       baseSpeed = 4.6; baseRange = 1.0;
+      
     } else if (this.type === 'cavalryArcher') {
       const level = player.upgrades.cavalryArcherUpgrade || 0;
       if (level === 0) {
         baseHp = 50; baseAttack = 6;
       } else {
-        baseHp = 60; baseAttack = 7; // Heavy Cavalry Archer
+        baseHp = 60; baseAttack = 7;
       }
       baseSpeed = 4.4; baseRange = 4.0;
-    } else if (this.type === 'monk') {
+      
+    } else if (this.type === 'monk' || this.type === 'missionary') {
       baseHp = 30;
       if (player.upgrades.sanctity > 0) baseHp += 15;
-      baseSpeed = 2.5;
+      baseSpeed = this.type === 'monk' ? 2.5 : 3.8; // missionary is mounted monk
       if (player.upgrades.fervor > 0) baseSpeed *= 1.15;
       baseAttack = 0;
       baseRange = 4.0;
       if (player.upgrades.blockPrinting > 0) baseRange += 3.0;
+      
     } else if (this.type === 'transportShip') {
       baseHp = 150; baseSpeed = 3.6; baseAttack = 0; baseRange = 0.0;
+      
     } else if (this.type === 'galley') {
       const level = player.upgrades.galleyUpgrade || 0;
       if (level === 0) {
         baseHp = 120; baseAttack = 6; baseRange = 5.0;
       } else if (level === 1) {
-        baseHp = 135; baseAttack = 7; baseRange = 6.0; // War Galley
+        baseHp = 135; baseAttack = 7; baseRange = 6.0;
       } else {
-        baseHp = 165; baseAttack = 8; baseRange = 7.0; // Galleon
+        baseHp = 165; baseAttack = 8; baseRange = 7.0;
       }
       baseSpeed = 3.2;
+      
     } else if (this.type === 'fireShip') {
       const level = player.upgrades.fireShipUpgrade || 0;
       if (level === 0) {
         baseHp = 100; baseAttack = 2;
       } else {
-        baseHp = 120; baseAttack = 3; // Fast Fire Ship
+        baseHp = 120; baseAttack = 3;
       }
       baseSpeed = 3.3; baseRange = 2.0;
+      
     } else if (this.type === 'demolitionShip') {
       baseHp = 50; baseSpeed = 3.8; baseAttack = 0; baseRange = 1.0;
+      
     } else if (this.type === 'cannonGalleon') {
       baseHp = 120; baseSpeed = 2.8; baseAttack = 35; baseRange = 10.0;
+      
     } else if (this.type === 'footKnight') {
       if (age === 'dark') {
-        baseHp = 100;
-        baseAttack = 15;
+        baseHp = 100; baseAttack = 15;
       } else if (age === 'feudal') {
-        baseHp = 120;
-        baseAttack = 18;
+        baseHp = 120; baseAttack = 18;
       } else if (age === 'castle') {
-        baseHp = 160;
-        baseAttack = 25;
+        baseHp = 160; baseAttack = 25;
       } else {
-        baseHp = 210;
-        baseAttack = 35;
+        baseHp = 210; baseAttack = 35;
       }
-      baseSpeed = 2.6;
-      baseRange = 1.1;
+      baseSpeed = 2.6; baseRange = 1.1;
+      
     } else if (this.type === 'archer') {
       if (age === 'dark') {
-        baseHp = 45;
-        baseAttack = 6;
-        baseRange = 5.5;
+        baseHp = 45; baseAttack = 6; baseRange = 5.5;
       } else if (age === 'feudal') {
-        baseHp = 50;
-        baseAttack = 8;
-        baseRange = 5.5;
+        baseHp = 50; baseAttack = 8; baseRange = 5.5;
       } else if (age === 'castle') {
-        baseHp = 65;
-        baseAttack = 11;
-        baseRange = 6.0;
+        baseHp = 65; baseAttack = 11; baseRange = 6.0;
       } else {
-        baseHp = 80;
-        baseAttack = 15;
-        baseRange = 6.5;
+        baseHp = 80; baseAttack = 15; baseRange = 6.5;
       }
       baseSpeed = 3.0;
+      
     } else if (this.type === 'knight') {
       if (age === 'dark') {
-        baseHp = 120;
-        baseAttack = 14;
+        baseHp = 120; baseAttack = 14;
       } else if (age === 'feudal') {
-        baseHp = 135;
-        baseAttack = 17;
+        baseHp = 135; baseAttack = 17;
       } else if (age === 'castle') {
-        baseHp = 170;
-        baseAttack = 23;
+        baseHp = 170; baseAttack = 23;
       } else {
-        baseHp = 220;
-        baseAttack = 32;
+        baseHp = 220; baseAttack = 32;
       }
-      baseSpeed = 4.8;
-      baseRange = 1.3;
+      baseSpeed = 4.8; baseRange = 1.3;
+      
     } else if (this.type === 'heavyCavalry') {
       if (age === 'dark') {
-        baseHp = 180;
-        baseAttack = 18;
+        baseHp = 180; baseAttack = 18;
       } else if (age === 'feudal') {
-        baseHp = 200;
-        baseAttack = 21;
+        baseHp = 200; baseAttack = 21;
       } else if (age === 'castle') {
-        baseHp = 250;
-        baseAttack = 28;
+        baseHp = 250; baseAttack = 28;
       } else {
-        baseHp = 320;
-        baseAttack = 38;
+        baseHp = 320; baseAttack = 38;
       }
-      baseSpeed = 4.2;
-      baseRange = 1.4;
+      baseSpeed = 4.2; baseRange = 1.4;
+      
     } else if (this.type === 'horseArcher') {
       if (age === 'dark') {
-        baseHp = 80;
-        baseAttack = 7;
-        baseRange = 5.0;
+        baseHp = 80; baseAttack = 7; baseRange = 5.0;
       } else if (age === 'feudal') {
-        baseHp = 95;
-        baseAttack = 9;
-        baseRange = 5.0;
+        baseHp = 95; baseAttack = 9; baseRange = 5.0;
       } else if (age === 'castle') {
-        baseHp = 120;
-        baseAttack = 13;
-        baseRange = 5.5;
+        baseHp = 120; baseAttack = 13; baseRange = 5.5;
       } else {
-        baseHp = 150;
-        baseAttack = 17;
-        baseRange = 6.0;
+        baseHp = 150; baseAttack = 17; baseRange = 6.0;
       }
       baseSpeed = 4.9;
+      
     } else if (this.type === 'priest') {
-      baseHp = 60;
-      baseSpeed = 2.5;
-      baseAttack = 0;
-      baseRange = 3.5;
+      baseHp = 60; baseSpeed = 2.5; baseAttack = 0; baseRange = 3.5;
+      
     } else if (this.type === 'trader') {
-      baseHp = 80;
-      baseSpeed = 3.2;
-      baseAttack = 0;
-      baseRange = 1.0;
+      baseHp = 80; baseSpeed = 3.2; baseAttack = 0; baseRange = 1.0;
+      
     } else if (this.type === 'fishingShip') {
-      baseHp = 120;
-      baseSpeed = 3.5;
-      baseAttack = 0;
-      baseRange = 1.0;
+      baseHp = 120; baseSpeed = 3.5; baseAttack = 0; baseRange = 1.0;
+      
     } else if (this.type === 'batteringRam') {
       const ramLevel = player.upgrades.batteringRamUpgrade || 0;
       if (ramLevel === 0) {
-        baseHp = 250;
-        baseAttack = 40;
-        this.buildingBonus = 200;
+        baseHp = 250; baseAttack = 40; this.buildingBonus = 200;
       } else if (ramLevel === 1) {
-        baseHp = 350;
-        baseAttack = 60;
-        this.buildingBonus = 350;
+        baseHp = 350; baseAttack = 60; this.buildingBonus = 350;
       } else {
-        baseHp = 500;
-        baseAttack = 80;
-        this.buildingBonus = 500;
+        baseHp = 500; baseAttack = 80; this.buildingBonus = 500;
       }
-      baseSpeed = 1.8;
-      baseRange = 1.2;
-      baseArmor = 50;
+      baseSpeed = 1.8; baseRange = 1.2; baseArmor = 50;
+      
     } else if (this.type === 'mangonel') {
       const mangonelLevel = player.upgrades.mangonelUpgrade || 0;
       if (mangonelLevel === 0) {
-        baseHp = 100;
-        baseAttack = 25;
-        baseRange = 6.5;
+        baseHp = 100; baseAttack = 25; baseRange = 6.5;
       } else if (mangonelLevel === 1) {
-        baseHp = 140;
-        baseAttack = 35;
-        baseRange = 7.5;
+        baseHp = 140; baseAttack = 35; baseRange = 7.5;
       } else {
-        baseHp = 180;
-        baseAttack = 50;
-        baseRange = 8.5;
+        baseHp = 180; baseAttack = 50; baseRange = 8.5;
       }
-      baseSpeed = 2.0;
-      baseArmor = 10;
+      baseSpeed = 2.0; baseArmor = 10;
+      
     } else if (this.type === 'scorpion') {
       const scorpionLevel = player.upgrades.scorpionUpgrade || 0;
       if (scorpionLevel === 0) {
-        baseHp = 80;
-        baseAttack = 15;
-        baseRange = 7.0;
+        baseHp = 80; baseAttack = 15; baseRange = 7.0;
       } else {
-        baseHp = 110;
-        baseAttack = 22;
-        baseRange = 8.0;
+        baseHp = 110; baseAttack = 22; baseRange = 8.0;
       }
-      baseSpeed = 2.2;
-      baseArmor = 5;
+      baseSpeed = 2.2; baseArmor = 5;
+      
     } else if (this.type === 'bombardCannon') {
       const canonLevel = player.upgrades.bombardCannonUpgrade || 0;
       if (canonLevel === 0) {
-        baseHp = 120;
-        baseAttack = 80;
-        baseRange = 10.0;
+        baseHp = 120; baseAttack = 80; baseRange = 10.0;
       } else {
-        baseHp = 160;
-        baseAttack = 120;
-        baseRange = 12.0;
+        baseHp = 160; baseAttack = 120; baseRange = 12.0;
       }
-      baseSpeed = 1.9;
-      baseArmor = 8;
+      baseSpeed = 1.9; baseArmor = 8;
+      
     } else if (this.type === 'siegeTower') {
-      baseHp = 300;
-      baseSpeed = 2.3;
-      baseRange = 0;
-      baseAttack = 0;
-      baseArmor = 30;
+      baseHp = 300; baseSpeed = 2.3; baseRange = 0; baseAttack = 0; baseArmor = 30;
+      
     } else if (this.type === 'trebuchet') {
-      baseHp = 200;
-      baseAttack = 150;
-      baseRange = 15.0;
-      baseSpeed = 1.5;
-      baseArmor = 15;
+      baseHp = 200; baseAttack = 150; baseRange = 15.0; baseSpeed = 1.5; baseArmor = 15;
+      
     } else if (this.type === 'petard') {
-      baseHp = 60;
-      baseAttack = 100;
-      this.buildingBonus = 1000;
-      baseRange = 1.2;
-      baseSpeed = 3.8;
-      baseArmor = 0;
+      baseHp = 60; baseAttack = 100; this.buildingBonus = 1000; baseRange = 1.2; baseSpeed = 3.8; baseArmor = 0;
+      
+    } else if (this.type === 'longbowman') {
+      baseHp = 40; baseSpeed = 3.0; baseAttack = 6; baseRange = 6.0;
+    } else if (this.type === 'cataphract') {
+      baseHp = 110; baseSpeed = 4.3; baseAttack = 9; baseRange = 1.2; baseArmor = 2;
+    } else if (this.type === 'throwingAxeman') {
+      baseHp = 60; baseSpeed = 3.0; baseAttack = 8; baseRange = 3.0;
+    } else if (this.type === 'mangudai') {
+      baseHp = 60; baseSpeed = 4.5; baseAttack = 6; baseRange = 4.0;
+    } else if (this.type === 'conquistador') {
+      baseHp = 55; baseSpeed = 4.2; baseAttack = 16; baseRange = 5.5; baseArmor = 2;
+    } else if (this.type === 'karambitWarrior') {
+      baseHp = 40; baseSpeed = 3.2; baseAttack = 6; baseRange = 1.0; baseArmor = 1;
+    } else if (this.type === 'boyar') {
+      baseHp = 120; baseSpeed = 4.0; baseAttack = 12; baseRange = 1.2; baseArmor = 4;
+    } else if (this.type === 'samurai') {
+      baseHp = 80; baseSpeed = 3.0; baseAttack = 10; baseRange = 1.1; baseArmor = 1;
+    } else if (this.type === 'chuKoNu') {
+      baseHp = 45; baseSpeed = 3.0; baseAttack = 8; baseRange = 4.5;
+    } else if (this.type === 'woadRaider') {
+      baseHp = 65; baseSpeed = 3.4; baseAttack = 8; baseRange = 1.0;
+    } else if (this.type === 'huskarl') {
+      baseHp = 60; baseSpeed = 3.1; baseAttack = 10; baseRange = 1.0; baseArmor = 6;
+    } else if (this.type === 'teutonicKnight') {
+      baseHp = 100; baseSpeed = 2.4; baseAttack = 14; baseRange = 1.0; baseArmor = 8;
+    } else if (this.type === 'tarkan') {
+      baseHp = 100; baseSpeed = 4.3; baseAttack = 8; baseRange = 1.2; this.buildingBonus = 15;
+    } else if (this.type === 'janissary') {
+      baseHp = 44; baseSpeed = 3.0; baseAttack = 17; baseRange = 8.0;
+    } else if (this.type === 'warElephant') {
+      baseHp = 450; baseSpeed = 2.4; baseAttack = 15; baseRange = 1.3; baseArmor = 3;
+    } else if (this.type === 'jaguarWarrior') {
+      baseHp = 75; baseSpeed = 3.0; baseAttack = 12; baseRange = 1.0; baseArmor = 2;
+    } else if (this.type === 'plumedArcher') {
+      baseHp = 50; baseSpeed = 3.3; baseAttack = 5; baseRange = 5.0; baseArmor = 1;
+    } else if (this.type === 'centurion') {
+      baseHp = 120; baseSpeed = 4.1; baseAttack = 12; baseRange = 1.3; baseArmor = 3;
+    } else if (this.type === 'berserk') {
+      baseHp = 60; baseSpeed = 3.1; baseAttack = 9; baseRange = 1.0; baseArmor = 1;
+    } else if (this.type === 'eagleWarrior') {
+      baseHp = 50; baseSpeed = 3.3; baseAttack = 7; baseRange = 1.0; baseArmor = 3;
+    } else if (this.type === 'handCannoneer') {
+      baseHp = 35; baseSpeed = 3.0; baseAttack = 17; baseRange = 7.0;
+    } else if (this.type === 'elephantArcher') {
+      baseHp = 230; baseSpeed = 2.6; baseAttack = 6; baseRange = 5.0; baseArmor = 2;
+    } else if (this.type === 'battleElephant') {
+      baseHp = 250; baseSpeed = 2.6; baseAttack = 12; baseRange = 1.2; baseArmor = 2;
+    } else if (this.type === 'steppeLancer') {
+      baseHp = 80; baseSpeed = 4.4; baseAttack = 9; baseRange = 1.5;
     }
-    
-    if (this.type === 'swordsman' || this.type === 'footKnight' || this.type === 'spearman' || this.type === 'skirmisher') {
+
+    if (isInfantry) {
       const hpMult = civModifiers.hpInfantry || 1.0;
       const speedMult = civModifiers.speedInfantry || 1.0;
       const dmgMult = civModifiers.damageInfantry || 1.0;
       baseHp = Math.round(baseHp * hpMult);
       baseSpeed = baseSpeed * speedMult;
       baseAttack = Math.round(baseAttack * dmgMult);
-    } else if (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'horseArcher' || this.type === 'scoutCavalry' || this.type === 'camelRider' || this.type === 'cavalryArcher') {
+      
+      // Apply Squires upgrade (+10% speed)
+      if (player.upgrades.squires > 0) {
+        baseSpeed *= 1.10;
+      }
+      // Apply Arson upgrade (+2 building damage)
+      if (player.upgrades.arson > 0) {
+        this.buildingBonus = (this.buildingBonus || 0) + 2;
+      }
+      // Apply Teuton armor bonus (+2 armor)
+      if (civModifiers.armorInfantry) {
+        baseArmor += civModifiers.armorInfantry;
+      }
+    } else if (isCavalry) {
       const hpMult = civModifiers.hpCavalry || 1.0;
       const speedMult = civModifiers.speedCavalry || 1.0;
       baseHp = Math.round(baseHp * hpMult);
       baseSpeed = baseSpeed * speedMult;
+      
+      // Apply Husbandry upgrade (+10% speed)
+      if (player.upgrades.husbandry > 0) {
+        baseSpeed *= 1.10;
+      }
+      // Apply Bloodlines upgrade (+20 HP)
+      if (player.upgrades.bloodlines > 0) {
+        baseHp += 20;
+      }
     }
-    if (['archer', 'horseArcher', 'skirmisher', 'cavalryArcher'].includes(this.type)) {
-      const dmgMult = civModifiers.damageInfantry || 1.0;
+    
+    if (isArcher) {
+      const dmgMult = civModifiers.damageInfantry || 1.0; // archers use same damageInfantry modifier
       const rangeBonus = civModifiers.archerRange || 0;
       baseAttack = Math.round(baseAttack * dmgMult);
       baseRange = baseRange + rangeBonus;
     }
     
+    if (isGunpowder) {
+      const hpMult = civModifiers.hpGunpowder || 1.0;
+      const dmgBonus = civModifiers.gunpowderDamage || 1.0;
+      baseHp = Math.round(baseHp * hpMult);
+      baseAttack = Math.round(baseAttack * dmgBonus);
+    }
+
+    // Wood gather rates
+    this.gatherRateWoodMultiplier = 1.0;
+    if (player.upgrades.doubleBitAxe > 0) this.gatherRateWoodMultiplier *= 1.20;
+    if (player.upgrades.bowSaw > 0) this.gatherRateWoodMultiplier *= 1.20;
+    if (player.upgrades.twoManSaw > 0) this.gatherRateWoodMultiplier *= 1.10;
+
+    // Gold gather rates
+    this.gatherRateGoldMultiplier = 1.0;
+    if (player.upgrades.goldMining > 0) this.gatherRateGoldMultiplier *= 1.15;
+    if (player.upgrades.goldShaftMining > 0) this.gatherRateGoldMultiplier *= 1.15;
+
+    // Stone gather rates
+    this.gatherRateStoneMultiplier = 1.0;
+    if (player.upgrades.stoneMining > 0) this.gatherRateStoneMultiplier *= 1.15;
+    if (player.upgrades.stoneShaftMining > 0) this.gatherRateStoneMultiplier *= 1.15;
+
+    // Food gather rates (e.g. Gillnets for fishing ship)
+    this.gatherRateFoodMultiplier = 1.0;
+    if (player.upgrades.gillnets > 0) this.gatherRateFoodMultiplier *= 1.25;
+    
     const upgrades = player.upgrades || { attack: 0, armor: 0, arrow: 0 };
     
-    if (['swordsman', 'footKnight', 'knight', 'heavyCavalry', 'spearman', 'scoutCavalry', 'camelRider'].includes(this.type)) {
+    const isMeleeUpgradeUnit = isInfantry && !isArcher; // swordsman, spearman, throwing axeman, etc.
+    const isCavalryMeleeUpgradeUnit = isCavalry && !isArcher && this.type !== 'missionary'; // knight, heavy cav, etc.
+    
+    if (isMeleeUpgradeUnit || isCavalryMeleeUpgradeUnit) {
       baseAttack += (upgrades.attack || 0) * 2;
     }
-    if (['archer', 'horseArcher', 'skirmisher', 'cavalryArcher', 'galley', 'cannonGalleon'].includes(this.type)) {
+    if (isArcher || isGunpowder || ['galley', 'cannonGalleon'].includes(this.type)) {
       baseAttack += (upgrades.arrow || 0) * 2;
       baseRange += (upgrades.arrow || 0) * 1.0;
     }
-    if (['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon'].includes(this.type)) {
+    
+    const isCombatUnit = isInfantry || isCavalry || ['galley', 'fireShip', 'cannonGalleon', 'demolitionShip'].includes(this.type);
+    if (isCombatUnit) {
       baseArmor += (upgrades.armor || 0) * 1;
     }
     
@@ -917,7 +988,7 @@ export class Unit {
     }
     
     // Priest/Monk specific timers
-    if (this.type === 'priest' || this.type === 'monk') {
+    if (this.type === 'priest' || this.type === 'monk' || this.type === 'missionary') {
       if (this.conversionCooldown > 0) {
         this.conversionCooldown -= deltaTime;
       }
@@ -935,16 +1006,31 @@ export class Unit {
         }
       }
     }
+
+    // Berserk regeneration: +2 HP per second
+    if (this.type === 'berserk' && this.hp > 0 && this.hp < this.maxHp) {
+      if (this.regenTimer === undefined) this.regenTimer = 0;
+      this.regenTimer += deltaTime;
+      if (this.regenTimer >= 1.0) {
+        this.regenTimer = 0;
+        this.hp = Math.min(this.maxHp, this.hp + 2);
+        this.gameManager.hud.showFloatingText(this.position, "+2 HP", 0x2ecc71);
+      }
+    }
     
     // Military unit auto-scanning behavior
-    const isMilitary = ['swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon'].includes(this.type);
+    const isMilitary = [
+      'swordsman', 'footKnight', 'archer', 'knight', 'heavyCavalry', 'horseArcher', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'galley', 'fireShip', 'cannonGalleon', 'demolitionShip',
+      'longbowman', 'cataphract', 'throwingAxeman', 'mangudai', 'conquistador', 'karambitWarrior', 'boyar', 'samurai', 'chuKoNu', 'woadRaider', 'huskarl', 'teutonicKnight', 'tarkan', 'janissary', 'warElephant', 'jaguarWarrior', 'plumedArcher', 'centurion', 'berserk',
+      'eagleWarrior', 'handCannoneer', 'elephantArcher', 'battleElephant', 'steppeLancer'
+    ].includes(this.type);
     if (isMilitary && this.state === 'IDLE') {
       if (this.militaryScanTimer === undefined) this.militaryScanTimer = 0;
       this.militaryScanTimer += deltaTime;
       if (this.militaryScanTimer >= 1.0) {
         this.militaryScanTimer = 0;
         
-        const scanRange = ['archer', 'horseArcher'].includes(this.type) ? 14.0 : 10.0;
+        const scanRange = ['archer', 'horseArcher', 'longbowman', 'mangudai', 'chuKoNu', 'plumedArcher', 'elephantArcher', 'handCannoneer', 'janissary'].includes(this.type) ? 14.0 : 10.0;
         let nearestEnemy = null;
         let minDistance = Infinity;
         
@@ -1012,12 +1098,21 @@ export class Unit {
         this.harvestTimer = 0;
         this.swingProgress = 1.0; // trigger chop anim
         
-        // Apply Civ gather rate modifiers
+        // Apply Civ gather rate modifiers and camp/dock upgrades
         let gatherRateMult = 1.0;
-        if (this.targetEntity.type === 'wood') gatherRateMult = this.civModifiers.gatherWood || 1.0;
-        else if (['food', 'sheep', 'fish', 'farm'].includes(this.targetEntity.type)) gatherRateMult = this.civModifiers.gatherFood || 1.0;
-        else if (this.targetEntity.type === 'stone') gatherRateMult = this.civModifiers.gatherStone || 1.0;
-        else if (this.targetEntity.type === 'gold') gatherRateMult = this.civModifiers.gatherGold || 1.0;
+        if (this.targetEntity.type === 'wood') {
+          gatherRateMult = (this.civModifiers.gatherWood || 1.0) * (this.gatherRateWoodMultiplier || 1.0);
+        } else if (['food', 'sheep', 'fish', 'farm', 'fishTrap'].includes(this.targetEntity.type)) {
+          let foodMult = this.civModifiers.gatherFood || 1.0;
+          if (this.targetEntity.type === 'fish' || this.targetEntity.type === 'fishTrap') {
+            foodMult *= (this.gatherRateFoodMultiplier || 1.0);
+          }
+          gatherRateMult = foodMult;
+        } else if (this.targetEntity.type === 'stone') {
+          gatherRateMult = (this.civModifiers.gatherStone || 1.0) * (this.gatherRateStoneMultiplier || 1.0);
+        } else if (this.targetEntity.type === 'gold') {
+          gatherRateMult = (this.civModifiers.gatherGold || 1.0) * (this.gatherRateGoldMultiplier || 1.0);
+        }
 
         // Apply AI Difficulty gather multiplier
         if (this.playerId === 1) { // Enemy Red AI
@@ -1033,7 +1128,7 @@ export class Unit {
         if (gathered > 0) {
           // Initialize inventory type if empty
           let resourceType = this.targetEntity.type;
-          if (['sheep', 'fish', 'farm'].includes(resourceType)) {
+          if (['sheep', 'fish', 'farm', 'fishTrap'].includes(resourceType)) {
             resourceType = 'food';
           }
           if (this.inventory.type !== resourceType) {
@@ -1058,7 +1153,7 @@ export class Unit {
             particleColor = 0x888888; // stone
           } else if (this.targetEntity.type === 'food') {
             particleColor = 0xcc2222; // red berry particle
-          } else if (this.targetEntity.type === 'fish') {
+          } else if (this.targetEntity.type === 'fish' || this.targetEntity.type === 'fishTrap') {
             particleColor = 0x3a86c8; // blue fish water splash
           } else if (this.targetEntity.type === 'sheep') {
             particleColor = 0xeeeeee; // white wool splash
@@ -1067,7 +1162,7 @@ export class Unit {
           }
           this.gameManager.spawnParticles(this.targetEntity.position, particleColor, 6, 0.08);
           
-          // Inventory full? Go back to Town Center
+          // Inventory full? Go back to Town Center / Dock
           if (this.inventory.amount >= this.inventory.max) {
             this.returnResourcesToHQ();
           }
@@ -1078,6 +1173,8 @@ export class Unit {
       // Check if building is completed
       if (!this.targetEntity || this.targetEntity.isCompleted) {
         if (this.targetEntity && this.targetEntity.type === 'farm') {
+          this.commandGather(this.targetEntity);
+        } else if (this.targetEntity && this.targetEntity.type === 'fishTrap') {
           this.commandGather(this.targetEntity);
         } else {
           this.findAlternativeBuilding();
@@ -1762,6 +1859,20 @@ export class Unit {
       const buildings = this.gameManager.entityManager.buildings;
       buildings.forEach(b => {
         if (b.type === 'farm' && b.playerId === this.playerId && b.isCompleted && b.amount > 0) {
+          const d = this.position.distanceTo(b.position);
+          if (d < closestDist) {
+            closestDist = d;
+            closestNode = b;
+          }
+        }
+      });
+    }
+
+    // If type to find is food, we search for friendly completed fish traps (fishing ships only)
+    if (typeToFind === 'food' && this.type === 'fishingShip') {
+      const buildings = this.gameManager.entityManager.buildings;
+      buildings.forEach(b => {
+        if (b.type === 'fishTrap' && b.playerId === this.playerId && b.isCompleted && b.amount > 0) {
           const d = this.position.distanceTo(b.position);
           if (d < closestDist) {
             closestDist = d;

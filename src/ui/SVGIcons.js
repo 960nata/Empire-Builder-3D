@@ -86,6 +86,10 @@ export const SVGIcons = {
   monastery: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v8M9 4h6M4 22V10l8-5 8 5v12H4zM9 16h6v6H9z"/></svg>`,
   bombardTower: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22V7l4-3 4 3v15M6 22h12M12 11h4M10 14h4"/></svg>`,
   bombardtower: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 22V7l4-3 4 3v15M6 22h12M12 11h4M10 14h4"/></svg>`,
+  outpost: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L4 7v10l8 5 8-5V7zM12 12V2M12 12h8M12 12H4M12 12v10"/></svg>`,
+  wonder: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16M6 22V8l6-5 6 5v14M10 13h4v9h-4zM12 3v5"/></svg>`,
+  fishTrap: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="2 2"/><path d="M12 3v18M3 12h18"/></svg>`,
+  fishtrap: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="2 2"/><path d="M12 3v18M3 12h18"/></svg>`,
 
   // --- NEW UNIT LINES ---
   spearman: `<svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2L6 22M15 5l2-2-2-2M12 12c-2 0-4 1-4 3v4h8v-4c0-2-2-3-4-3z"/></svg>`,

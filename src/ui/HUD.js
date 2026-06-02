@@ -2,6 +2,26 @@ import * as THREE from 'three';
 import { CIVILIZATIONS } from '../game/ModelFactory';
 import { SVGIcons } from './SVGIcons';
 
+const CIV_UNIQUE_UNITS = {
+  inggris: { id: 'longbowman', name: 'Longbowman', cost: '35W, 40G' },
+  prancis: { id: 'throwingAxeman', name: 'Throwing Axeman', cost: '55F, 25G' },
+  mongol: { id: 'mangudai', name: 'Mangudai', cost: '55W, 65G' },
+  jepang: { id: 'samurai', name: 'Samurai', cost: '60F, 30G' },
+  tiongkok: { id: 'chuKoNu', name: 'Chu Ko Nu', cost: '40W, 35G' },
+  saracen: { id: 'camelRider', name: 'Camel Rider', cost: '55F, 60G' },
+  spanyol: { id: 'conquistador', name: 'Conquistador', cost: '60F, 60G' },
+  viking: { id: 'berserk', name: 'Berserker', cost: '65F, 25G' },
+  bizantium: { id: 'cataphract', name: 'Cataphract', cost: '75F, 75G' },
+  persia: { id: 'warElephant', name: 'War Elephant', cost: '200F, 75G' },
+  aztec: { id: 'jaguarWarrior', name: 'Jaguar Warrior', cost: '60F, 30G' },
+  maya: { id: 'plumedArcher', name: 'Plumed Archer', cost: '50W, 50G' },
+  hun: { id: 'tarkan', name: 'Tarkan', cost: '60F, 60G' },
+  turki: { id: 'janissary', name: 'Janissary', cost: '60F, 55G' },
+  kelt: { id: 'woadRaider', name: 'Woad Raider', cost: '65F, 25G' },
+  goth: { id: 'huskarl', name: 'Huskarl', cost: '52F, 26G' },
+  teuton: { id: 'teutonicKnight', name: 'Teutonic Knight', cost: '85F, 40G' }
+};
+
 export class HUD {
   constructor(gameManager) {
     this.gameManager = gameManager;
@@ -64,6 +84,7 @@ export class HUD {
           <div class="timer-score-group">
             <div class="timer-item" id="timer-display" title="Game Time">⏳ 00:00</div>
             <div class="score-item" id="score-display" title="Player Score">⭐ Score: 0</div>
+            <div class="wonder-item" id="wonder-countdown-display" style="display: none; background: #9a3412; color: #ffedd5; border: 1px solid #ea580c; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.8rem; margin-left: 6px;" title="Wonder Victory Countdown">🏛️ Wonder: 300s</div>
           </div>
           <div class="top-controls">
             <button id="btn-diplomacy" class="hud-btn small-btn" style="background:#5b21b6; border-color:#7c3aed;" title="Diplomacy & Tributes">🤝 Diplomasi</button>
@@ -525,7 +546,7 @@ export class HUD {
       }
 
       // If owned by Player
-      let isBuilding = ['townCenter', 'barracks', 'blacksmith', 'castle', 'university', 'siegeWorkshop', 'temple', 'market', 'dock', 'farm', 'stable', 'archeryRange', 'monastery', 'bombardTower'].includes(entity.type);
+      let isBuilding = ['townCenter', 'barracks', 'blacksmith', 'castle', 'university', 'siegeWorkshop', 'temple', 'market', 'dock', 'farm', 'stable', 'archeryRange', 'monastery', 'bombardTower', 'outpost', 'wonder', 'fishTrap', 'mill', 'lumberCamp', 'miningCamp', 'watchTower'].includes(entity.type);
 
       if (isBuilding) {
         const garrisonedCount = entity.garrisonedUnits ? entity.garrisonedUnits.length : 0;
@@ -587,9 +608,43 @@ export class HUD {
             ageUpBtnHtml = `<button class="action-btn" id="btn-age-up" title="Advance to Imperial Age (1000 Food, 800 Gold)">Zaman Imperial (1000F, 800G)</button>`;
           }
 
+          let techButtons = "";
+          // Check if upgrades are queued or researched
+          let qLoom = 0, qWatch = 0, qPatrol = 0, qWheel = 0, qCart = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_loom') qLoom++;
+            if (item === 'upgrade_townWatch') qWatch++;
+            if (item === 'upgrade_townPatrol') qPatrol++;
+            if (item === 'upgrade_wheelbarrow') qWheel++;
+            if (item === 'upgrade_handCart') qCart++;
+          }
+
+          const hasLoom = (playerState.upgrades.loom || 0) + qLoom > 0;
+          const hasWatch = (playerState.upgrades.townWatch || 0) + qWatch > 0;
+          const hasPatrol = (playerState.upgrades.townPatrol || 0) + qPatrol > 0;
+          const hasWheel = (playerState.upgrades.wheelbarrow || 0) + qWheel > 0;
+          const hasCart = (playerState.upgrades.handCart || 0) + qCart > 0;
+
+          if (!hasLoom) {
+            techButtons += `<button class="action-btn" id="btn-research-loom" title="Research Loom (+15 HP for Villagers) - Cost: 50 Gold">Loom (50G)</button>`;
+          }
+          if (!hasWatch) {
+            techButtons += `<button class="action-btn" id="btn-research-townwatch" title="Research Town Watch - Cost: 75 Food">Town Watch (75F)</button>`;
+          } else if (!hasPatrol && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-townpatrol" title="Research Town Patrol - Cost: 300 Food, 200 Gold">Town Patrol (300F, 200G)</button>`;
+          }
+          if (!hasWheel && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-wheelbarrow" title="Research Wheelbarrow (+3 Carry cap, +10% Speed) - Cost: 175 Food, 50 Wood">Wheelbarrow (175F, 50W)</button>`;
+          } else if (hasWheel && !hasCart && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-handcart" title="Research Hand Cart (+5 Carry cap, +15% Speed) - Cost: 300 Food, 200 Wood">Hand Cart (300F, 200W)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-villager" title="Train Villager (50 Food)">${SVGIcons.villager} Train Villager (50F)</button>
+            <button class="action-btn" id="btn-ring-bell" title="Ring Town Bell to Garrison Villagers">🔔 Town Bell</button>
+            ${garrisonedCount > 0 ? `<button class="action-btn" id="btn-ungarrison-all" title="Ungarrison all units">Ungarrison All</button>` : ''}
             ${ageUpBtnHtml}
+            ${techButtons}
           `;
         } else if (entity.type === 'barracks') {
           const player = this.gameManager.players[0];
@@ -598,11 +653,14 @@ export class HUD {
           const fkLvl = player.upgrades.footKnightUpgrade || 0;
           const hcLvl = player.upgrades.heavyCavalryUpgrade || 0;
 
+          let qSqui = 0, qArs = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_swordsmanUpgrade') qS++;
             if (item === 'upgrade_spearmanUpgrade') qSp++;
             if (item === 'upgrade_footKnightUpgrade') qFk++;
             if (item === 'upgrade_heavyCavalryUpgrade') qHc++;
+            if (item === 'upgrade_squires') qSqui++;
+            if (item === 'upgrade_arson') qArs++;
           }
 
           nextSLvl = sLvl + qS;
@@ -630,6 +688,18 @@ export class HUD {
           const fkName = fkLvl === 0 ? 'Champion Foot Knight' : 'Elite Foot Knight';
           const hcName = hcLvl === 0 ? 'Cataphract' : 'Elite Heavy Cav';
 
+          const hasSqui = (player.upgrades.squires || 0) + qSqui > 0;
+          const hasArs = (player.upgrades.arson || 0) + qArs > 0;
+          const currentAge = player.age;
+
+          let barracksTechButtons = "";
+          if (!hasSqui && currentAge !== 'dark' && currentAge !== 'feudal') {
+            barracksTechButtons += `<button class="action-btn" id="btn-research-squires" title="Squires (Infantry speed +10%) - Cost: 100 Food">Squires (100F)</button>`;
+          }
+          if (!hasArs && currentAge !== 'dark' && currentAge !== 'feudal') {
+            barracksTechButtons += `<button class="action-btn" id="btn-research-arson" title="Arson (Infantry +2 attack vs buildings) - Cost: 150 Food, 50 Gold">Arson (150F, 50G)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-swordsman" title="Train Swordsman (60 Food, 20 Gold)">${SVGIcons.swordsman} Swordsman (60F, 20G)</button>
             <button class="action-btn" id="btn-train-spearman" title="Train Spearman (35 Food, 25 Wood)">${SVGIcons.spearman} Spearman (35F, 25W)</button>
@@ -640,6 +710,7 @@ export class HUD {
             <button class="action-btn ${isSpDisabled}" id="btn-upgrade-spearman" ${isSpDisabled}>Upgrade to ${spName} ${spCostText}</button>
             <button class="action-btn ${isFkDisabled}" id="btn-upgrade-footknight" ${isFkDisabled}>Upgrade to ${fkName} ${fkCostText}</button>
             <button class="action-btn ${isHcDisabled}" id="btn-upgrade-heavycavalry" ${isHcDisabled}>Upgrade to ${hcName} ${hcCostText}</button>
+            ${barracksTechButtons}
           `;
         } else if (entity.type === 'stable') {
           const player = this.gameManager.players[0];
@@ -647,10 +718,13 @@ export class HUD {
           const kLvl = player.upgrades.knightUpgrade || 0;
           const cLvl = player.upgrades.camelUpgrade || 0;
 
+          let qLines = 0, qHus = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_scoutUpgrade') qSc++;
             if (item === 'upgrade_knightUpgrade') qK++;
             if (item === 'upgrade_camelUpgrade') qC++;
+            if (item === 'upgrade_bloodlines') qLines++;
+            if (item === 'upgrade_husbandry') qHus++;
           }
 
           nextScLvl = scLvl + qSc;
@@ -673,6 +747,18 @@ export class HUD {
           const kName = kLvl === 0 ? 'Cavalier' : 'Paladin';
           const cName = cLvl === 0 ? 'Heavy Camel' : 'Imperial Camel';
 
+          const hasLines = (player.upgrades.bloodlines || 0) + qLines > 0;
+          const hasHus = (player.upgrades.husbandry || 0) + qHus > 0;
+          const currentAge = player.age;
+
+          let stableTechButtons = "";
+          if (!hasLines && currentAge !== 'dark') {
+            stableTechButtons += `<button class="action-btn" id="btn-research-bloodlines" title="Bloodlines (Cavalry +20 HP) - Cost: 150 Food, 100 Gold">Bloodlines (150F, 100G)</button>`;
+          }
+          if (!hasHus && currentAge !== 'dark' && currentAge !== 'feudal') {
+            stableTechButtons += `<button class="action-btn" id="btn-research-husbandry" title="Husbandry (Cavalry speed +10%) - Cost: 150 Food">Husbandry (150F)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-scoutcavalry" title="Train Scout Cavalry (80 Food)">${SVGIcons.scoutCavalry} Scout Cav (80F)</button>
             <button class="action-btn" id="btn-train-knight" title="Train Knight (70 Food, 40 Gold)">${SVGIcons.knight} Knight (70F, 40G)</button>
@@ -681,6 +767,7 @@ export class HUD {
             <button class="action-btn ${isScDisabled}" id="btn-upgrade-scout" ${isScDisabled}>Upgrade to ${scName} ${scCostText}</button>
             <button class="action-btn ${isKDisabled}" id="btn-upgrade-knight" ${isKDisabled}>Upgrade to ${kName} ${kCostText}</button>
             <button class="action-btn ${isCDisabled}" id="btn-upgrade-camel" ${isCDisabled}>Upgrade to ${cName} ${cCostText}</button>
+            ${stableTechButtons}
           `;
         } else if (entity.type === 'archeryRange') {
           const player = this.gameManager.players[0];
@@ -688,10 +775,13 @@ export class HUD {
           const skLvl = player.upgrades.skirmisherUpgrade || 0;
           const caLvl = player.upgrades.cavalryArcherUpgrade || 0;
 
+          let qThumb = 0, qBall = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_archerUpgrade') qA++;
             if (item === 'upgrade_skirmisherUpgrade') qSk++;
             if (item === 'upgrade_cavalryArcherUpgrade') qCa++;
+            if (item === 'upgrade_thumbRing') qThumb++;
+            if (item === 'upgrade_ballistics') qBall++;
           }
 
           nextALvl = aLvl + qA;
@@ -714,6 +804,18 @@ export class HUD {
           const skName = 'Elite Skirmisher';
           const caName = 'Heavy Cavalry Archer';
 
+          const hasThumb = (player.upgrades.thumbRing || 0) + qThumb > 0;
+          const hasBall = (player.upgrades.ballistics || 0) + qBall > 0;
+          const currentAge = player.age;
+
+          let archerTechButtons = "";
+          if (!hasThumb && currentAge !== 'dark' && currentAge !== 'feudal') {
+            archerTechButtons += `<button class="action-btn" id="btn-research-thumbring" title="Thumb Ring (Archers fire 10% faster) - Cost: 300 Food, 250 Wood">Thumb Ring (300F, 250W)</button>`;
+          }
+          if (!hasBall && currentAge !== 'dark' && currentAge !== 'feudal') {
+            archerTechButtons += `<button class="action-btn" id="btn-research-ballistics" title="Ballistics (Ranged units hit moving targets) - Cost: 400 Wood, 175 Gold">Ballistics (400W, 175G)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-archer" title="Train Archer (40 Food, 25 Wood)">${SVGIcons.archer} Archer (40F, 25W)</button>
             <button class="action-btn" id="btn-train-skirmisher" title="Train Skirmisher (25 Food, 35 Wood)">${SVGIcons.skirmisher} Skirmisher (25F, 35W)</button>
@@ -722,6 +824,7 @@ export class HUD {
             <button class="action-btn ${isADisabled}" id="btn-upgrade-archer" ${isADisabled}>Upgrade to ${aName} ${aCostText}</button>
             <button class="action-btn ${isSkDisabled}" id="btn-upgrade-skirmisher" ${isSkDisabled}>Upgrade to ${skName} ${skCostText}</button>
             <button class="action-btn ${isCaDisabled}" id="btn-upgrade-cavalryarcher" ${isCaDisabled}>Upgrade to ${caName} ${caCostText}</button>
+            ${archerTechButtons}
           `;
         } else if (entity.type === 'monastery') {
           const player = this.gameManager.players[0];
@@ -733,6 +836,7 @@ export class HUD {
           const blockPrinting = player.upgrades.blockPrinting || 0;
           const theocracy = player.upgrades.theocracy || 0;
 
+          let qHer = 0, qFai = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_sanctity') qSan++;
             if (item === 'upgrade_fervor') qFer++;
@@ -741,6 +845,8 @@ export class HUD {
             if (item === 'upgrade_illumination') qIll++;
             if (item === 'upgrade_blockPrinting') qBlo++;
             if (item === 'upgrade_theocracy') qThe++;
+            if (item === 'upgrade_heresy') qHer++;
+            if (item === 'upgrade_faith') qFai++;
           }
 
           nextSan = sanctity + qSan;
@@ -758,6 +864,8 @@ export class HUD {
           const illCost = nextIll < 1 ? this.gameManager.getUpgradeCost('illumination', nextIll) : null;
           const bloCost = nextBlo < 1 ? this.gameManager.getUpgradeCost('blockPrinting', nextBlo) : null;
           const theCost = nextThe < 1 ? this.gameManager.getUpgradeCost('theocracy', nextThe) : null;
+          const hasHer = (player.upgrades.heresy || 0) + qHer > 0;
+          const hasFai = (player.upgrades.faith || 0) + qFai > 0;
 
           const sanCostText = sanCost ? `(${sanCost.gold}G)` : 'MAX';
           const ferCostText = ferCost ? `(${ferCost.gold}G)` : 'MAX';
@@ -766,6 +874,8 @@ export class HUD {
           const illCostText = illCost ? `(${illCost.gold}G)` : 'MAX';
           const bloCostText = bloCost ? `(${bloCost.gold}G)` : 'MAX';
           const theCostText = theCost ? `(${theCost.gold}G)` : 'MAX';
+          const herCostText = !hasHer ? `(${this.gameManager.getUpgradeCost('heresy', 0).gold}G)` : 'MAX';
+          const faiCostText = !hasFai ? `(${this.gameManager.getUpgradeCost('faith', 0).gold}G)` : 'MAX';
 
           const isSanDisabled = nextSan >= 1 ? 'disabled' : '';
           const isFerDisabled = nextFer >= 1 ? 'disabled' : '';
@@ -774,6 +884,17 @@ export class HUD {
           const isIllDisabled = nextIll >= 1 ? 'disabled' : '';
           const isBloDisabled = nextBlo >= 1 ? 'disabled' : '';
           const isTheDisabled = nextThe >= 1 ? 'disabled' : '';
+          const isHerDisabled = hasHer ? 'disabled' : '';
+          const isFaiDisabled = hasFai ? 'disabled' : '';
+          const currentAge = player.age;
+
+          let monasteryTechButtons = "";
+          if (!hasHer && currentAge !== 'dark' && currentAge !== 'feudal') {
+            monasteryTechButtons += `<button class="action-btn ${isHerDisabled}" id="btn-upgrade-heresy" ${isHerDisabled}>Heresy ${herCostText}</button>`;
+          }
+          if (!hasFai && currentAge !== 'dark' && currentAge !== 'feudal') {
+            monasteryTechButtons += `<button class="action-btn ${isFaiDisabled}" id="btn-upgrade-faith" ${isFaiDisabled}>Faith ${faiCostText}</button>`;
+          }
 
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-monk" title="Train Monk (100 Gold)">${SVGIcons.monk} Train Monk (100G)</button>
@@ -785,6 +906,7 @@ export class HUD {
             <button class="action-btn ${isIllDisabled}" id="btn-upgrade-illumination" ${isIllDisabled}>Illumination ${illCostText}</button>
             <button class="action-btn ${isBloDisabled}" id="btn-upgrade-blockprinting" ${isBloDisabled}>Block Printing ${bloCostText}</button>
             <button class="action-btn ${isTheDisabled}" id="btn-upgrade-theocracy" ${isTheDisabled}>Theocracy ${theCostText}</button>
+            ${monasteryTechButtons}
           `;
         } else if (entity.type === 'blacksmith') {
           const player = this.gameManager.players[0];
@@ -829,12 +951,47 @@ export class HUD {
             </button>
           `;
         } else if (entity.type === 'castle') {
+          const playerState = this.gameManager.players[0];
+          const civKey = playerState.civ || 'inggris';
+          const uu = CIV_UNIQUE_UNITS[civKey] || { id: 'samurai', name: 'Samurai', cost: '60F, 30G' };
+          let uuIcon = SVGIcons[uu.id] ? SVGIcons[uu.id] : SVGIcons.villager;
+          let trainUUBtn = `<button class="action-btn" id="btn-train-unique" title="Train ${uu.name} (${uu.cost})">${uuIcon} Train ${uu.name} (${uu.cost})</button>`;
+
+          let qHoard = 0, qSap = 0, qCon = 0, qSpies = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_hoardings') qHoard++;
+            if (item === 'upgrade_sapper') qSap++;
+            if (item === 'upgrade_conscription') qCon++;
+            if (item === 'upgrade_spies') qSpies++;
+          }
+          const hasHoard = (playerState.upgrades.hoardings || 0) + qHoard > 0;
+          const hasSap = (playerState.upgrades.sapper || 0) + qSap > 0;
+          const hasCon = (playerState.upgrades.conscription || 0) + qCon > 0;
+          const hasSpies = (playerState.upgrades.spies || 0) + qSpies > 0;
+          const currentAge = playerState.age;
+
+          let castleTechButtons = "";
+          if (!hasHoard && currentAge === 'imperial') {
+            castleTechButtons += `<button class="action-btn" id="btn-research-hoardings" title="Hoardings (+21% Castle HP) - Cost: 400 Food, 400 Wood">Hoardings (400F, 400W)</button>`;
+          }
+          if (!hasSap && currentAge === 'imperial') {
+            castleTechButtons += `<button class="action-btn" id="btn-research-sapper" title="Sappers (Villagers +15 attack vs buildings) - Cost: 400 Food, 200 Gold">Sappers (400F, 200G)</button>`;
+          }
+          if (!hasCon && currentAge === 'imperial') {
+            castleTechButtons += `<button class="action-btn" id="btn-research-conscription" title="Conscription (Train military units 33% faster) - Cost: 150 Food, 150 Gold">Conscription (150F, 150G)</button>`;
+          }
+          if (!hasSpies && currentAge === 'imperial') {
+            castleTechButtons += `<button class="action-btn" id="btn-research-spies" title="Spies (Reveal enemy locations) - Cost: 1000 Gold">Spies (1000G)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-trebuchet" title="Train Trebuchet (200 Wood, 200 Gold)">${SVGIcons.trebuchet} Trebuchet (200W, 200G)</button>
             <button class="action-btn" id="btn-train-petard" title="Train Petard (65 Food, 20 Gold)">${SVGIcons.petard} Petard (65F, 20G)</button>
+            ${trainUUBtn}
             ${garrisonedCount > 0 ? `
               <button class="action-btn" id="btn-ungarrison-all" title="Ungarrison all units">Ungarrison All</button>
             ` : ''}
+            ${castleTechButtons}
           `;
         } else if (entity.type === 'university') {
           const player = this.gameManager.players[0];
@@ -845,10 +1002,17 @@ export class HUD {
           let queuedPalisade = 0;
           let queuedStone = 0;
           let queuedTower = 0;
+          let qChem = 0, qSiege = 0, qMurder = 0, qArrow = 0, qMason = 0, qArch = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_palisadeWallUpgrade') queuedPalisade++;
             if (item === 'upgrade_stoneWallUpgrade') queuedStone++;
             if (item === 'upgrade_watchTowerUpgrade') queuedTower++;
+            if (item === 'upgrade_chemistry') qChem++;
+            if (item === 'upgrade_siegeEngineers') qSiege++;
+            if (item === 'upgrade_murderHoles') qMurder++;
+            if (item === 'upgrade_arrowslits') qArrow++;
+            if (item === 'upgrade_masonry') qMason++;
+            if (item === 'upgrade_architecture') qArch++;
           }
 
           nextPalisadeLvl = palisadeLvl + queuedPalisade;
@@ -867,10 +1031,38 @@ export class HUD {
           const isStoneDisabled = nextStoneLvl >= 2 ? 'disabled' : '';
           const isTowerDisabled = nextTowerLvl >= 2 ? 'disabled' : '';
 
+          const hasChem = (player.upgrades.chemistry || 0) + qChem > 0;
+          const hasSiege = (player.upgrades.siegeEngineers || 0) + qSiege > 0;
+          const hasMurder = (player.upgrades.murderHoles || 0) + qMurder > 0;
+          const hasArrow = (player.upgrades.arrowslits || 0) + qArrow > 0;
+          const hasMason = (player.upgrades.masonry || 0) + qMason > 0;
+          const hasArch = (player.upgrades.architecture || 0) + qArch > 0;
+          const currentAge = player.age;
+
+          let uniTechButtons = "";
+          if (!hasChem && currentAge === 'imperial') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-chemistry" title="Chemistry (+1 ranged attack, unlocks gunpowder) - Cost: 300 Food, 200 Gold">Chemistry (300F, 200G)</button>`;
+          }
+          if (!hasSiege && currentAge === 'imperial') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-siegeengineers" title="Siege Engineers (+1 siege range, +20% attack vs buildings) - Cost: 500 Food, 600 Wood">Siege Engineers (500F, 600W)</button>`;
+          }
+          if (!hasMurder && currentAge !== 'dark' && currentAge !== 'feudal') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-murderholes" title="Murder Holes (Eliminate minimum range) - Cost: 200 Food, 200 Stone">Murder Holes (200F, 200S)</button>`;
+          }
+          if (!hasArrow && currentAge !== 'dark' && currentAge !== 'feudal') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-arrowslits" title="Arrowslits (+2 Tower Attack) - Cost: 250 Food, 250 Wood">Arrowslits (250F, 250W)</button>`;
+          }
+          if (!hasMason && currentAge !== 'dark' && currentAge !== 'feudal') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-masonry" title="Masonry (+10% building HP & armor) - Cost: 150 Food, 175 Wood">Masonry (150F, 175W)</button>`;
+          } else if (hasMason && !hasArch && currentAge === 'imperial') {
+            uniTechButtons += `<button class="action-btn" id="btn-research-architecture" title="Architecture (+10% building HP & armor) - Cost: 200 Food, 300 Wood, 100 Gold">Architecture (200F, 300W, 100G)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn ${isPalisadeDisabled}" id="btn-upgrade-palisade" ${isPalisadeDisabled}>Palisade Lvl ${palisadeLvl} -> ${palisadeLvl + 1} ${palisadeCostText}</button>
             <button class="action-btn ${isStoneDisabled}" id="btn-upgrade-stone" ${isStoneDisabled}>Stone Lvl ${stoneLvl} -> ${stoneLvl + 1} ${stoneCostText}</button>
             <button class="action-btn ${isTowerDisabled}" id="btn-upgrade-tower" ${isTowerDisabled}>Tower Lvl ${towerLvl} -> ${towerLvl + 1} ${towerCostText}</button>
+            ${uniTechButtons}
           `;
         } else if (entity.type === 'siegeWorkshop') {
           const player = this.gameManager.players[0];
@@ -924,17 +1116,46 @@ export class HUD {
             <button class="action-btn" id="btn-train-priest" title="Train Priest (100 Gold)">${SVGIcons.priest} Train Priest (100G)</button>
           `;
         } else if (entity.type === 'market') {
+          const playerState = this.gameManager.players[0];
+          const currentAge = playerState.age;
+          let qCoin = 0, qBank = 0, qGuild = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_coinage') qCoin++;
+            if (item === 'upgrade_banking') qBank++;
+            if (item === 'upgrade_guilds') qGuild++;
+          }
+          const hasCoin = (playerState.upgrades.coinage || 0) + qCoin > 0;
+          const hasBank = (playerState.upgrades.banking || 0) + qBank > 0;
+          const hasGuild = (playerState.upgrades.guilds || 0) + qGuild > 0;
+
+          let techButtons = "";
+          if (!hasCoin && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-coinage" title="Coinage (Reduce tribute fee) - Cost: 200 Food, 100 Gold">Coinage (200F, 100G)</button>`;
+          }
+          if (hasCoin && !hasBank && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-banking" title="Banking (Reduce tribute fee to 0) - Cost: 300 Food, 200 Gold">Banking (300F, 200G)</button>`;
+          }
+          if (!hasGuild && currentAge === 'imperial') {
+            techButtons += `<button class="action-btn" id="btn-research-guilds" title="Guilds (Reduce transaction fee) - Cost: 200 Food, 300 Gold">Guilds (200F, 300G)</button>`;
+          }
+
           actionButtonsHtml = `
-            <button class="action-btn" id="btn-train-trader" title="Train Trader (60 Wood, 60 Gold)">${SVGIcons.trader} Train Trader (60W, 60G)</button>
+            <button class="action-btn" id="btn-train-trader" title="Train Trader (60 Wood, 60 Gold)">${SVGIcons.trader} Trader (60W, 60G)</button>
+            ${techButtons}
           `;
         } else if (entity.type === 'dock') {
           const player = this.gameManager.players[0];
           const galleyLvl = player.upgrades.galleyUpgrade || 0;
           const fireLvl = player.upgrades.fireShipUpgrade || 0;
 
+          let qCare = 0, qDry = 0, qWright = 0, qGill = 0;
           for (const item of entity.queue) {
             if (item === 'upgrade_galleyUpgrade') qG++;
             if (item === 'upgrade_fireShipUpgrade') qF++;
+            if (item === 'upgrade_careening') qCare++;
+            if (item === 'upgrade_dryDock') qDry++;
+            if (item === 'upgrade_shipwright') qWright++;
+            if (item === 'upgrade_gillnets') qGill++;
           }
 
           const nextGLvl = galleyLvl + qG;
@@ -952,6 +1173,26 @@ export class HUD {
           const gName = galleyLvl === 0 ? 'War Galley' : 'Galleon';
           const fName = 'Fast Fire Ship';
 
+          const hasCare = (player.upgrades.careening || 0) + qCare > 0;
+          const hasDry = (player.upgrades.dryDock || 0) + qDry > 0;
+          const hasWright = (player.upgrades.shipwright || 0) + qWright > 0;
+          const hasGill = (player.upgrades.gillnets || 0) + qGill > 0;
+          const currentAge = player.age;
+
+          let dockTechButtons = "";
+          if (!hasCare && currentAge !== 'dark' && currentAge !== 'feudal') {
+            dockTechButtons += `<button class="action-btn" id="btn-research-careening" title="Careening (+0/+1 armor for ships, +5 transport cap) - Cost: 250 Food, 150 Gold">Careening (250F, 150G)</button>`;
+          }
+          if (hasCare && !hasDry && currentAge === 'imperial') {
+            dockTechButtons += `<button class="action-btn" id="btn-research-drydock" title="Dry Dock (+15% ship speed, +10 transport cap) - Cost: 600 Food, 400 Gold">Dry Dock (600F, 400G)</button>`;
+          }
+          if (!hasWright && currentAge === 'imperial') {
+            dockTechButtons += `<button class="action-btn" id="btn-research-shipwright" title="Shipwright (Reduce ship wood cost by 20%, train speed +25%) - Cost: 1000 Food, 800 Gold">Shipwright (1000F, 800G)</button>`;
+          }
+          if (!hasGill && currentAge !== 'dark' && currentAge !== 'feudal') {
+            dockTechButtons += `<button class="action-btn" id="btn-research-gillnets" title="Gillnets (Fishing Ships work +25% faster) - Cost: 150 Food, 200 Gold">Gillnets (150F, 200G)</button>`;
+          }
+
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-fishingShip" title="Train Fishing Ship (75 Wood)">${SVGIcons.fishingShip} Fishing Ship (75W)</button>
             <button class="action-btn" id="btn-train-transportShip" title="Train Transport Ship (125 Wood)">${SVGIcons.transportShip} Transport Ship (125W)</button>
@@ -962,6 +1203,7 @@ export class HUD {
             
             <button class="action-btn ${isGDisabled}" id="btn-upgrade-galley" ${isGDisabled}>Upgrade to ${gName} ${galleyCostText}</button>
             <button class="action-btn ${isFDisabled}" id="btn-upgrade-fireship" ${isFDisabled}>Upgrade to ${fName} ${fireCostText}</button>
+            ${dockTechButtons}
           `;
         } else if (entity.type === 'farm') {
           if (!entity.isCompleted) {
@@ -971,6 +1213,91 @@ export class HUD {
           } else {
             actionButtonsHtml = `<div style="font-size:0.8rem; padding:8px; opacity:0.8;">Working Farm. Food remaining: ${entity.amount}</div>`;
           }
+        } else if (entity.type === 'mill') {
+          const playerState = this.gameManager.players[0];
+          const currentAge = playerState.age;
+          let qHorse = 0, qPlow = 0, qRot = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_horseCollar') qHorse++;
+            if (item === 'upgrade_heavyPlow') qPlow++;
+            if (item === 'upgrade_cropRotation') qRot++;
+          }
+          const hasHorse = (playerState.upgrades.horseCollar || 0) + qHorse > 0;
+          const hasPlow = (playerState.upgrades.heavyPlow || 0) + qPlow > 0;
+          const hasRot = (playerState.upgrades.cropRotation || 0) + qRot > 0;
+
+          let techButtons = "";
+          if (!hasHorse && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-horsecollar" title="Horse Collar (Farms +75 Food) - Cost: 75 Food, 75 Wood">Horse Collar (75F, 75W)</button>`;
+          } else if (hasHorse && !hasPlow && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-heavyplow" title="Heavy Plow (Farms +125 Food) - Cost: 125 Food, 125 Wood">Heavy Plow (125F, 125W)</button>`;
+          } else if (hasPlow && !hasRot && currentAge === 'imperial') {
+            techButtons += `<button class="action-btn" id="btn-research-croprotation" title="Crop Rotation (Farms +250 Food) - Cost: 250 Food, 250 Wood">Crop Rotation (250F, 250W)</button>`;
+          }
+          actionButtonsHtml = techButtons;
+        } else if (entity.type === 'lumberCamp') {
+          const playerState = this.gameManager.players[0];
+          const currentAge = playerState.age;
+          let qAxe = 0, qSaw = 0, qTwo = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_doubleBitAxe') qAxe++;
+            if (item === 'upgrade_bowSaw') qSaw++;
+            if (item === 'upgrade_twoManSaw') qTwo++;
+          }
+          const hasAxe = (playerState.upgrades.doubleBitAxe || 0) + qAxe > 0;
+          const hasSaw = (playerState.upgrades.bowSaw || 0) + qSaw > 0;
+          const hasTwo = (playerState.upgrades.twoManSaw || 0) + qTwo > 0;
+
+          let techButtons = "";
+          if (!hasAxe && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-doublebitaxe" title="Double-Bit Axe (Wood Chopping +20%) - Cost: 100 Food, 50 Wood">Double-Bit Axe (100F, 50W)</button>`;
+          } else if (hasAxe && !hasSaw && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-bowsaw" title="Bow Saw (Wood Chopping +20%) - Cost: 150 Food, 100 Wood">Bow Saw (150F, 100W)</button>`;
+          } else if (hasSaw && !hasTwo && currentAge === 'imperial') {
+            techButtons += `<button class="action-btn" id="btn-research-twomansaw" title="Two-Man Saw (Wood Chopping +10%) - Cost: 300 Food, 200 Wood">Two-Man Saw (300F, 200W)</button>`;
+          }
+          actionButtonsHtml = techButtons;
+        } else if (entity.type === 'miningCamp') {
+          const playerState = this.gameManager.players[0];
+          const currentAge = playerState.age;
+          let qGM = 0, qGSM = 0, qSM = 0, qSSM = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_goldMining') qGM++;
+            if (item === 'upgrade_goldShaftMining') qGSM++;
+            if (item === 'upgrade_stoneMining') qSM++;
+            if (item === 'upgrade_stoneShaftMining') qSSM++;
+          }
+          const hasGM = (playerState.upgrades.goldMining || 0) + qGM > 0;
+          const hasGSM = (playerState.upgrades.goldShaftMining || 0) + qGSM > 0;
+          const hasSM = (playerState.upgrades.stoneMining || 0) + qSM > 0;
+          const hasSSM = (playerState.upgrades.stoneShaftMining || 0) + qSSM > 0;
+
+          let techButtons = "";
+          if (!hasGM && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-goldmining" title="Gold Mining (+15% speed) - Cost: 100 Food, 75 Wood">Gold Mining (100F, 75W)</button>`;
+          } else if (hasGM && !hasGSM && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-goldshaftmining" title="Gold Shaft Mining (+15% speed) - Cost: 200 Food, 150 Wood">Gold Shaft Mining (200F, 150W)</button>`;
+          }
+          if (!hasSM && currentAge !== 'dark') {
+            techButtons += `<button class="action-btn" id="btn-research-stonemining" title="Stone Mining (+15% speed) - Cost: 100 Food, 75 Wood">Stone Mining (100F, 75W)</button>`;
+          } else if (hasSM && !hasSSM && currentAge !== 'dark' && currentAge !== 'feudal') {
+            techButtons += `<button class="action-btn" id="btn-research-stoneshaftmining" title="Stone Shaft Mining (+15% speed) - Cost: 200 Food, 150 Wood">Stone Shaft Mining (200F, 150W)</button>`;
+          }
+          actionButtonsHtml = techButtons;
+        } else if (entity.type === 'watchTower') {
+          const playerState = this.gameManager.players[0];
+          const currentAge = playerState.age;
+          let qHeat = 0;
+          for (const item of entity.queue) {
+            if (item === 'upgrade_heatedShot') qHeat++;
+          }
+          const hasHeat = (playerState.upgrades.heatedShot || 0) + qHeat > 0;
+          
+          let towerTechButtons = "";
+          if (!hasHeat && currentAge !== 'dark' && currentAge !== 'feudal') {
+            towerTechButtons += `<button class="action-btn" id="btn-research-heatedshot" title="Heated Shot (+125% attack vs ships) - Cost: 350 Food, 100 Gold">Heated Shot (350F, 100G)</button>`;
+          }
+          actionButtonsHtml = towerTechButtons;
         }
 
         commandPanel.innerHTML = `
@@ -1011,6 +1338,20 @@ export class HUD {
                 setTimeout(() => this.updateSelectionUI(), 100);
               });
             }
+            const ringBellBtn = document.getElementById('btn-ring-bell');
+            if (ringBellBtn) ringBellBtn.addEventListener('click', () => { entity.ringBell(); this.updateSelectionUI(); });
+            const ungarrBtn = document.getElementById('btn-ungarrison-all');
+            if (ungarrBtn) ungarrBtn.addEventListener('click', () => { entity.ungarrisonAll(); this.updateSelectionUI(); });
+            const btnLoom = document.getElementById('btn-research-loom');
+            if (btnLoom) btnLoom.addEventListener('click', () => entity.queueUpgrade('loom'));
+            const btnWatch = document.getElementById('btn-research-townwatch');
+            if (btnWatch) btnWatch.addEventListener('click', () => entity.queueUpgrade('townWatch'));
+            const btnPatrol = document.getElementById('btn-research-townpatrol');
+            if (btnPatrol) btnPatrol.addEventListener('click', () => entity.queueUpgrade('townPatrol'));
+            const btnWheel = document.getElementById('btn-research-wheelbarrow');
+            if (btnWheel) btnWheel.addEventListener('click', () => entity.queueUpgrade('wheelbarrow'));
+            const btnCart = document.getElementById('btn-research-handcart');
+            if (btnCart) btnCart.addEventListener('click', () => entity.queueUpgrade('handCart'));
           } else if (entity.type === 'barracks') {
             document.getElementById('btn-train-swordsman').addEventListener('click', () => entity.queueUnit('swordsman'));
             document.getElementById('btn-train-spearman').addEventListener('click', () => entity.queueUnit('spearman'));
@@ -1029,6 +1370,10 @@ export class HUD {
             if (nextHcLvl < 2) {
               document.getElementById('btn-upgrade-heavycavalry').addEventListener('click', () => entity.queueUpgrade('heavyCavalryUpgrade'));
             }
+            const btnSqui = document.getElementById('btn-research-squires');
+            if (btnSqui) btnSqui.addEventListener('click', () => entity.queueUpgrade('squires'));
+            const btnArs = document.getElementById('btn-research-arson');
+            if (btnArs) btnArs.addEventListener('click', () => entity.queueUpgrade('arson'));
           } else if (entity.type === 'stable') {
             document.getElementById('btn-train-scoutcavalry').addEventListener('click', () => entity.queueUnit('scoutCavalry'));
             document.getElementById('btn-train-knight').addEventListener('click', () => entity.queueUnit('knight'));
@@ -1042,6 +1387,10 @@ export class HUD {
             if (nextCLvl < 2) {
               document.getElementById('btn-upgrade-camel').addEventListener('click', () => entity.queueUpgrade('camelUpgrade'));
             }
+            const btnLines = document.getElementById('btn-research-bloodlines');
+            if (btnLines) btnLines.addEventListener('click', () => entity.queueUpgrade('bloodlines'));
+            const btnHus = document.getElementById('btn-research-husbandry');
+            if (btnHus) btnHus.addEventListener('click', () => entity.queueUpgrade('husbandry'));
           } else if (entity.type === 'archeryRange') {
             document.getElementById('btn-train-archer').addEventListener('click', () => entity.queueUnit('archer'));
             document.getElementById('btn-train-skirmisher').addEventListener('click', () => entity.queueUnit('skirmisher'));
@@ -1055,6 +1404,10 @@ export class HUD {
             if (nextCaLvl < 1) {
               document.getElementById('btn-upgrade-cavalryarcher').addEventListener('click', () => entity.queueUpgrade('cavalryArcherUpgrade'));
             }
+            const btnThumb = document.getElementById('btn-research-thumbring');
+            if (btnThumb) btnThumb.addEventListener('click', () => entity.queueUpgrade('thumbRing'));
+            const btnBall = document.getElementById('btn-research-ballistics');
+            if (btnBall) btnBall.addEventListener('click', () => entity.queueUpgrade('ballistics'));
           } else if (entity.type === 'monastery') {
             document.getElementById('btn-train-monk').addEventListener('click', () => entity.queueUnit('monk'));
             if (nextSan < 1) {
@@ -1078,6 +1431,10 @@ export class HUD {
             if (nextThe < 1) {
               document.getElementById('btn-upgrade-theocracy').addEventListener('click', () => entity.queueUpgrade('theocracy'));
             }
+            const btnHer = document.getElementById('btn-upgrade-heresy');
+            if (btnHer) btnHer.addEventListener('click', () => entity.queueUpgrade('heresy'));
+            const btnFai = document.getElementById('btn-upgrade-faith');
+            if (btnFai) btnFai.addEventListener('click', () => entity.queueUpgrade('faith'));
           } else if (entity.type === 'blacksmith') {
             if (nextAttackLvl < 3) {
               document.getElementById('btn-upgrade-attack').addEventListener('click', () => entity.queueUpgrade('attack'));
@@ -1091,10 +1448,23 @@ export class HUD {
           } else if (entity.type === 'castle') {
             document.getElementById('btn-train-trebuchet').addEventListener('click', () => entity.queueUnit('trebuchet'));
             document.getElementById('btn-train-petard').addEventListener('click', () => entity.queueUnit('petard'));
+            const playerState = this.gameManager.players[0];
+            const civKey = playerState.civ || 'inggris';
+            const uu = CIV_UNIQUE_UNITS[civKey] || { id: 'samurai' };
+            const uuBtn = document.getElementById('btn-train-unique');
+            if (uuBtn) uuBtn.addEventListener('click', () => entity.queueUnit(uu.id));
             const ungarrBtn = document.getElementById('btn-ungarrison-all');
             if (ungarrBtn) {
               ungarrBtn.addEventListener('click', () => entity.ungarrisonAll());
             }
+            const btnHoard = document.getElementById('btn-research-hoardings');
+            if (btnHoard) btnHoard.addEventListener('click', () => entity.queueUpgrade('hoardings'));
+            const btnSap = document.getElementById('btn-research-sapper');
+            if (btnSap) btnSap.addEventListener('click', () => entity.queueUpgrade('sapper'));
+            const btnCon = document.getElementById('btn-research-conscription');
+            if (btnCon) btnCon.addEventListener('click', () => entity.queueUpgrade('conscription'));
+            const btnSpies = document.getElementById('btn-research-spies');
+            if (btnSpies) btnSpies.addEventListener('click', () => entity.queueUpgrade('spies'));
           } else if (entity.type === 'university') {
             if (nextPalisadeLvl < 2) {
               document.getElementById('btn-upgrade-palisade').addEventListener('click', () => entity.queueUpgrade('palisadeWallUpgrade'));
@@ -1105,6 +1475,18 @@ export class HUD {
             if (nextTowerLvl < 2) {
               document.getElementById('btn-upgrade-tower').addEventListener('click', () => entity.queueUpgrade('watchTowerUpgrade'));
             }
+            const btnChem = document.getElementById('btn-research-chemistry');
+            if (btnChem) btnChem.addEventListener('click', () => entity.queueUpgrade('chemistry'));
+            const btnSiege = document.getElementById('btn-research-siegeengineers');
+            if (btnSiege) btnSiege.addEventListener('click', () => entity.queueUpgrade('siegeEngineers'));
+            const btnMurder = document.getElementById('btn-research-murderholes');
+            if (btnMurder) btnMurder.addEventListener('click', () => entity.queueUpgrade('murderHoles'));
+            const btnArrow = document.getElementById('btn-research-arrowslits');
+            if (btnArrow) btnArrow.addEventListener('click', () => entity.queueUpgrade('arrowslits'));
+            const btnMason = document.getElementById('btn-research-masonry');
+            if (btnMason) btnMason.addEventListener('click', () => entity.queueUpgrade('masonry'));
+            const btnArch = document.getElementById('btn-research-architecture');
+            if (btnArch) btnArch.addEventListener('click', () => entity.queueUpgrade('architecture'));
           } else if (entity.type === 'siegeWorkshop') {
             document.getElementById('btn-train-ram').addEventListener('click', () => entity.queueUnit('batteringRam'));
             document.getElementById('btn-train-mangonel').addEventListener('click', () => entity.queueUnit('mangonel'));
@@ -1128,6 +1510,12 @@ export class HUD {
             document.getElementById('btn-train-priest').addEventListener('click', () => entity.queueUnit('priest'));
           } else if (entity.type === 'market') {
             document.getElementById('btn-train-trader').addEventListener('click', () => entity.queueUnit('trader'));
+            const btnCoin = document.getElementById('btn-research-coinage');
+            if (btnCoin) btnCoin.addEventListener('click', () => entity.queueUpgrade('coinage'));
+            const btnBank = document.getElementById('btn-research-banking');
+            if (btnBank) btnBank.addEventListener('click', () => entity.queueUpgrade('banking'));
+            const btnGuild = document.getElementById('btn-research-guilds');
+            if (btnGuild) btnGuild.addEventListener('click', () => entity.queueUpgrade('guilds'));
           } else if (entity.type === 'dock') {
             document.getElementById('btn-train-fishingShip').addEventListener('click', () => entity.queueUnit('fishingShip'));
             document.getElementById('btn-train-transportShip').addEventListener('click', () => entity.queueUnit('transportShip'));
@@ -1141,6 +1529,40 @@ export class HUD {
             if (nextFLvl < 1) {
               document.getElementById('btn-upgrade-fireship').addEventListener('click', () => entity.queueUpgrade('fireShipUpgrade'));
             }
+            const btnCare = document.getElementById('btn-research-careening');
+            if (btnCare) btnCare.addEventListener('click', () => entity.queueUpgrade('careening'));
+            const btnDry = document.getElementById('btn-research-drydock');
+            if (btnDry) btnDry.addEventListener('click', () => entity.queueUpgrade('dryDock'));
+            const btnWright = document.getElementById('btn-research-shipwright');
+            if (btnWright) btnWright.addEventListener('click', () => entity.queueUpgrade('shipwright'));
+            const btnGill = document.getElementById('btn-research-gillnets');
+            if (btnGill) btnGill.addEventListener('click', () => entity.queueUpgrade('gillnets'));
+          } else if (entity.type === 'mill') {
+            const btnHorse = document.getElementById('btn-research-horsecollar');
+            if (btnHorse) btnHorse.addEventListener('click', () => entity.queueUpgrade('horseCollar'));
+            const btnPlow = document.getElementById('btn-research-heavyplow');
+            if (btnPlow) btnPlow.addEventListener('click', () => entity.queueUpgrade('heavyPlow'));
+            const btnRot = document.getElementById('btn-research-croprotation');
+            if (btnRot) btnRot.addEventListener('click', () => entity.queueUpgrade('cropRotation'));
+          } else if (entity.type === 'lumberCamp') {
+            const btnAxe = document.getElementById('btn-research-doublebitaxe');
+            if (btnAxe) btnAxe.addEventListener('click', () => entity.queueUpgrade('doubleBitAxe'));
+            const btnSaw = document.getElementById('btn-research-bowsaw');
+            if (btnSaw) btnSaw.addEventListener('click', () => entity.queueUpgrade('bowSaw'));
+            const btnTwo = document.getElementById('btn-research-twomansaw');
+            if (btnTwo) btnTwo.addEventListener('click', () => entity.queueUpgrade('twoManSaw'));
+          } else if (entity.type === 'miningCamp') {
+            const btnGM = document.getElementById('btn-research-goldmining');
+            if (btnGM) btnGM.addEventListener('click', () => entity.queueUpgrade('goldMining'));
+            const btnGSM = document.getElementById('btn-research-goldshaftmining');
+            if (btnGSM) btnGSM.addEventListener('click', () => entity.queueUpgrade('goldShaftMining'));
+            const btnSM = document.getElementById('btn-research-stonemining');
+            if (btnSM) btnSM.addEventListener('click', () => entity.queueUpgrade('stoneMining'));
+            const btnSSM = document.getElementById('btn-research-stoneshaftmining');
+            if (btnSSM) btnSSM.addEventListener('click', () => entity.queueUpgrade('stoneShaftMining'));
+          } else if (entity.type === 'watchTower') {
+            const btnHeat = document.getElementById('btn-research-heatedshot');
+            if (btnHeat) btnHeat.addEventListener('click', () => entity.queueUpgrade('heatedShot'));
           }
         } else {
           // depleted farm manually reseed
@@ -1188,6 +1610,7 @@ export class HUD {
             <button class="action-btn" id="btn-build-lumbercamp" title="Build Lumber Camp (100 Wood) - Drops off wood">${SVGIcons.lumberCamp} Lumber Camp (100W)</button>
             <button class="action-btn" id="btn-build-miningcamp" title="Build Mining Camp (100 Wood) - Drops off stone & gold">${SVGIcons.miningCamp} Mining Camp (100W)</button>
             <button class="action-btn" id="btn-build-palisadewall" title="Build Palisade Wall (5 Wood) - Basic Defense">${SVGIcons.palisadeWall} Palisade Wall (5W)</button>
+            <button class="action-btn" id="btn-build-outpost" title="Build Outpost (25 Wood, 5 Stone) - High Line of Sight">${SVGIcons.outpost} Outpost (25W, 5S)</button>
           `;
 
           if (currentAge !== 'dark') {
@@ -1213,6 +1636,7 @@ export class HUD {
           if (currentAge === 'imperial') {
             buildButtonsHtml += `
               <button class="action-btn" id="btn-build-bombardtower" title="Build Bombard Tower (250 Stone, 100 Gold) - Fires cannonballs">${SVGIcons.bombardTower} Bombard Tower (250S, 100G)</button>
+              <button class="action-btn" id="btn-build-wonder" title="Build Wonder (1000 Wood, 1000 Stone, 1000 Gold) - Starts victory countdown">${SVGIcons.wonder} Wonder (1000W, 1000S, 1000G)</button>
             `;
           }
           
@@ -1242,7 +1666,8 @@ export class HUD {
             { id: 'btn-build-mill', type: 'mill', text: 'place Mill' },
             { id: 'btn-build-lumbercamp', type: 'lumberCamp', text: 'place Lumber Camp' },
             { id: 'btn-build-miningcamp', type: 'miningCamp', text: 'place Mining Camp' },
-            { id: 'btn-build-palisadewall', type: 'palisadeWall', text: 'place Palisade Wall' }
+            { id: 'btn-build-palisadewall', type: 'palisadeWall', text: 'place Palisade Wall' },
+            { id: 'btn-build-outpost', type: 'outpost', text: 'place Outpost' }
           ];
 
           if (currentAge !== 'dark') {
@@ -1267,18 +1692,12 @@ export class HUD {
 
           if (currentAge === 'imperial') {
             binds.push(
-              { id: 'btn-build-bombardtower', type: 'bombardTower', text: 'place Bombard Tower' }
+              { id: 'btn-build-bombardtower', type: 'bombardTower', text: 'place Bombard Tower' },
+              { id: 'btn-build-wonder', type: 'wonder', text: 'place Wonder' }
             );
           }
 
           if (!isGoth && currentAge !== 'dark') {
-            binds.push(
-              { id: 'btn-build-stonewall', type: 'stoneWall', text: 'place Stone Wall' },
-              { id: 'btn-build-stonegate', type: 'stoneGate', text: 'place Stone Gate' }
-            );
-          }
-
-          if (!isGoth) {
             binds.push(
               { id: 'btn-build-stonewall', type: 'stoneWall', text: 'place Stone Wall' },
               { id: 'btn-build-stonegate', type: 'stoneGate', text: 'place Stone Gate' }
@@ -1305,9 +1724,9 @@ export class HUD {
           // Combat unit / Priest / Trader / Fishing Ship
           const isMilitary = ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher', 'batteringRam', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower', 'trebuchet', 'petard', 'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'monk', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(entity.type);
           
-          let militaryButtons = '';
+          let extraButtons = '';
           if (isMilitary) {
-            militaryButtons = `
+            extraButtons = `
               <div class="formation-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
                 <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">▣ Box</button>
                 <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">═ Line</button>
@@ -1317,6 +1736,14 @@ export class HUD {
               </div>
               <div style="font-size:0.65rem; color:#888; margin-top:4px;">Formation: ${this.gameManager.getFormationName(this.gameManager.currentFormation)} (Press F to cycle)</div>
             `;
+          } else if (entity.type === 'fishingShip') {
+            extraButtons = `
+              <div class="fishing-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                <button class="action-btn" id="btn-build-fishtrap" title="Build Fish Trap (100 Wood)">
+                  ${SVGIcons.fishTrap || SVGIcons.fishtrap} Build Fish Trap (100W)
+                </button>
+              </div>
+            `;
           }
 
           commandPanel.innerHTML = `
@@ -1325,7 +1752,7 @@ export class HUD {
               <div style="display:flex; gap:6px;">
                 <button class="action-btn warning-btn" id="btn-cmd-stop" style="flex-grow:1; max-width: 100px;">Stop</button>
               </div>
-              ${militaryButtons}
+              ${extraButtons}
             </div>
           `;
 
@@ -1346,6 +1773,14 @@ export class HUD {
                 });
               }
             });
+          } else if (entity.type === 'fishingShip') {
+            const btn = document.getElementById('btn-build-fishtrap');
+            if (btn) {
+              btn.addEventListener('click', () => {
+                this.gameManager.input.startBuildPlacement('fishTrap');
+                this.showNotification(`Left-click on the water to place a Fish Trap. Right-click to cancel.`);
+              });
+            }
           }
         }
       }
@@ -1587,6 +2022,26 @@ export class HUD {
       if (scoreEl) {
         const score = this.gameManager.calculatePlayerScore(0);
         scoreEl.textContent = `⭐ Score: ${score}`;
+      }
+
+      // Update Wonder Countdown
+      const wonderEl = document.getElementById('wonder-countdown-display');
+      if (wonderEl) {
+        if (this.gameManager.wonderCountdown !== null && this.gameManager.wonderCountdown !== undefined) {
+          const w = Math.ceil(this.gameManager.wonderCountdown);
+          const owner = this.gameManager.wonderOwnerId === 0 ? "Sekutu/Anda" : "Musuh";
+          wonderEl.textContent = `🏛️ Wonder (${owner}): ${w}s`;
+          wonderEl.style.display = 'block';
+          if (w < 60) {
+            wonderEl.style.color = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ffedd5';
+            wonderEl.style.borderColor = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ea580c';
+          } else {
+            wonderEl.style.color = '#ffedd5';
+            wonderEl.style.borderColor = '#ea580c';
+          }
+        } else {
+          wonderEl.style.display = 'none';
+        }
       }
       
       // Update Age & Civ Info
