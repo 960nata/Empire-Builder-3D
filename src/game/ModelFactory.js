@@ -1,5 +1,84 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// --- GLOBAL THREE.JS GEOMETRY CACHING SYSTEM (FOR MAXIMUM PERFORMANCE) ---
+const cachedGeometries = new Set();
+const mutatedGeometries = new Set();
+const geomCache = {};
+
+const geomClasses = [
+  'BoxGeometry',
+  'CylinderGeometry',
+  'SphereGeometry',
+  'ConeGeometry',
+  'DodecahedronGeometry',
+  'OctahedronGeometry',
+  'PlaneGeometry',
+  'TorusGeometry',
+  'RingGeometry',
+  'CircleGeometry'
+];
+
+geomClasses.forEach(className => {
+  if (!THREE[className]) return;
+  const OriginalClass = THREE[className];
+  
+  THREE[className] = class extends OriginalClass {
+    constructor(...args) {
+      const key = `${className}_${args.join('_')}`;
+      if (!geomCache[key]) {
+        const instance = new OriginalClass(...args);
+        cachedGeometries.add(instance);
+        geomCache[key] = instance;
+      }
+      return geomCache[key];
+    }
+  };
+});
+
+// Safe mutation wrapper: if a cached geometry is modified in-place, clone it
+const mutatingMethods = ['translate', 'scale', 'rotateX', 'rotateY', 'rotateZ', 'center'];
+mutatingMethods.forEach(methodName => {
+  if (!THREE.BufferGeometry.prototype[methodName]) return;
+  const originalMethod = THREE.BufferGeometry.prototype[methodName];
+  
+  THREE.BufferGeometry.prototype[methodName] = function(...args) {
+    if (cachedGeometries.has(this) && !mutatedGeometries.has(this)) {
+      const clone = this.clone();
+      originalMethod.apply(clone, args);
+      this.copy(clone);
+      mutatedGeometries.add(this);
+      cachedGeometries.delete(this);
+      for (const k in geomCache) {
+        if (geomCache[k] === this) {
+          delete geomCache[k];
+        }
+      }
+      return this;
+    }
+    return originalMethod.apply(this, args);
+  };
+});
+
+// Bypass dispose() call on shared cached geometries to prevent visual glitches
+const originalGeomDispose = THREE.BufferGeometry.prototype.dispose;
+THREE.BufferGeometry.prototype.dispose = function() {
+  if (cachedGeometries.has(this)) {
+    return; // Safe NO-OP
+  }
+  originalGeomDispose.call(this);
+};
+
+// Bypass dispose() call on shared cached materials
+const cachedMaterials = new Set();
+const originalMatDispose = THREE.Material.prototype.dispose;
+THREE.Material.prototype.dispose = function() {
+  if (cachedMaterials.has(this)) {
+    return; // Safe NO-OP
+  }
+  originalMatDispose.call(this);
+};
+
 export const CIVILIZATIONS = {
   inggris: {
     name: 'Inggris',
@@ -133,6 +212,13 @@ export class ModelFactory {
   constructor() {
     this.materials = {};
     this.initSharedMaterials();
+    
+    // Add all shared materials to the cachedMaterials set to protect them from disposal
+    for (const key in this.materials) {
+      if (this.materials[key] && this.materials[key].isMaterial) {
+        cachedMaterials.add(this.materials[key]);
+      }
+    }
     
     // External Asset Loading Infrastructure
     this.gltfLoader = new GLTFLoader();
@@ -581,6 +667,13 @@ export class ModelFactory {
     this.materials.featherRed = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.65, metalness: 0.0 });
     this.materials.featherGreen = new THREE.MeshStandardMaterial({ color: 0x22aa44, roughness: 0.65, metalness: 0.0 });
     this.materials.chainmailDark = new THREE.MeshStandardMaterial({ color: 0x555566, roughness: 0.3, metalness: 0.8 });
+
+    // Sheep and Fish resource materials
+    this.materials.woolMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.95 });
+    this.materials.fishOrange = new THREE.MeshStandardMaterial({ color: 0xff6a00, metalness: 0.8, roughness: 0.2, emissive: 0xff6a00, emissiveIntensity: 0.25 });
+    this.materials.fishYellow = new THREE.MeshStandardMaterial({ color: 0xffdf00, metalness: 0.8, roughness: 0.2, emissive: 0xffdf00, emissiveIntensity: 0.25 });
+    this.materials.fishBlue = new THREE.MeshStandardMaterial({ color: 0x00dfff, metalness: 0.8, roughness: 0.2, emissive: 0x00dfff, emissiveIntensity: 0.25 });
+    this.materials.fishPink = new THREE.MeshStandardMaterial({ color: 0xff3366, metalness: 0.8, roughness: 0.2, emissive: 0xff3366, emissiveIntensity: 0.25 });
 
     // Cache shared geometries for efficiency
     this._cachedGeoms = {
@@ -1584,7 +1677,7 @@ export class ModelFactory {
     else if (type === 'sheep') {
       // Slain/dead sheep carcass lying flat on ground
       const bodyGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.75, 6);
-      const woolMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.95 });
+      const woolMat = this.materials.woolMat;
       const body = new THREE.Mesh(bodyGeom, woolMat);
       body.position.set(0, 0.15, 0);
       body.rotation.z = Math.PI / 2; // lie flat
@@ -1613,13 +1706,9 @@ export class ModelFactory {
       ];
       offsets.forEach((cfg, idx) => {
         const fishColor = fishColors[idx % fishColors.length];
-        const fishMat = new THREE.MeshStandardMaterial({ 
-          color: fishColor, 
-          metalness: 0.8, 
-          roughness: 0.2,
-          emissive: fishColor,
-          emissiveIntensity: 0.25 // slight glow underwater
-        });
+        const fishMat = fishColor === 0xff6a00 ? this.materials.fishOrange :
+                        (fishColor === 0xffdf00 ? this.materials.fishYellow :
+                        (fishColor === 0x00dfff ? this.materials.fishBlue : this.materials.fishPink));
         const fish = new THREE.Mesh(fishGeom, fishMat);
         fish.position.set(...cfg.pos);
         fish.rotation.set(...cfg.rot);

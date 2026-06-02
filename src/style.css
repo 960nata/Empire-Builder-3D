@@ -2233,4 +2233,50 @@ canvas {
   transform: scale(0.95);
 }
 
+/* Custom SVG Icons Layout and Aesthetics */
+.age-civ-emblem svg {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  vertical-align: middle;
+  stroke: var(--accent-yellow);
+}
 
+.inline-svg-icon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.inline-svg-icon svg {
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.btn-icon-res {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-res svg {
+  width: 13px;
+  height: 13px;
+  vertical-align: middle;
+}
+
+.formation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.formation-btn svg {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
+  color: inherit;
+}

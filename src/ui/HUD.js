@@ -117,10 +117,10 @@ export class HUD {
                 <button class="diplomacy-stance-btn" id="btn-dip-enemy-ally">Sekutu</button>
               </div>
               <div class="diplomacy-tribute-group">
-                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-food">🌾 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-wood">🪵 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-gold">🪙 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-stone">🪨 +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-food"><span class="btn-icon-res">${SVGIcons.food}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-wood"><span class="btn-icon-res">${SVGIcons.wood}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-gold"><span class="btn-icon-res">${SVGIcons.gold}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-enemy-stone"><span class="btn-icon-res">${SVGIcons.stone}</span> +100</button>
               </div>
             </div>
             
@@ -136,10 +136,10 @@ export class HUD {
                 <button class="diplomacy-stance-btn active stance-ally" id="btn-dip-ally-ally">Sekutu</button>
               </div>
               <div class="diplomacy-tribute-group">
-                <button class="diplomacy-tribute-btn" id="btn-trib-ally-food">🌾 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-ally-wood">🪵 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-ally-gold">🪙 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-ally-stone">🪨 +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-ally-food"><span class="btn-icon-res">${SVGIcons.food}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-ally-wood"><span class="btn-icon-res">${SVGIcons.wood}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-ally-gold"><span class="btn-icon-res">${SVGIcons.gold}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-ally-stone"><span class="btn-icon-res">${SVGIcons.stone}</span> +100</button>
               </div>
             </div>
 
@@ -155,10 +155,10 @@ export class HUD {
                 <button class="diplomacy-stance-btn" id="btn-dip-neut-ally">Sekutu</button>
               </div>
               <div class="diplomacy-tribute-group">
-                <button class="diplomacy-tribute-btn" id="btn-trib-neut-food">🌾 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-neut-wood">🪵 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-neut-gold">🪙 +100</button>
-                <button class="diplomacy-tribute-btn" id="btn-trib-neut-stone">🪨 +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-neut-food"><span class="btn-icon-res">${SVGIcons.food}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-neut-wood"><span class="btn-icon-res">${SVGIcons.wood}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-neut-gold"><span class="btn-icon-res">${SVGIcons.gold}</span> +100</button>
+                <button class="diplomacy-tribute-btn" id="btn-trib-neut-stone"><span class="btn-icon-res">${SVGIcons.stone}</span> +100</button>
               </div>
             </div>
           </div>
@@ -1728,11 +1728,11 @@ export class HUD {
           if (isMilitary) {
             extraButtons = `
               <div class="formation-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">▣ Box</button>
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">═ Line</button>
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'column' ? 'glow-btn-active' : ''}" id="btn-formation-column" title="Column Formation">║ Column</button>
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'flank' ? 'glow-btn-active' : ''}" id="btn-formation-flank" title="Flank Formation">⇄ Flank</button>
-                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'deathball' ? 'glow-btn-active' : ''}" id="btn-formation-deathball" title="Deathball Formation">● Deathball</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">${SVGIcons.formationBox} Box</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">${SVGIcons.formationLine} Line</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'column' ? 'glow-btn-active' : ''}" id="btn-formation-column" title="Column Formation">${SVGIcons.formationColumn} Column</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'flank' ? 'glow-btn-active' : ''}" id="btn-formation-flank" title="Flank Formation">${SVGIcons.formationFlank} Flank</button>
+                <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'deathball' ? 'glow-btn-active' : ''}" id="btn-formation-deathball" title="Deathball Formation">${SVGIcons.formationDeathball} Deathball</button>
               </div>
               <div style="font-size:0.65rem; color:#888; margin-top:4px;">Formation: ${this.gameManager.getFormationName(this.gameManager.currentFormation)} (Press F to cycle)</div>
             `;
@@ -1866,10 +1866,10 @@ export class HUD {
           
           <div style="margin-top:auto;">
             <div class="formation-controls" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
-              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">▣ Box</button>
-              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">═ Line</button>
-              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'column' ? 'glow-btn-active' : ''}" id="btn-formation-column" title="Column Formation">║ Column</button>
-              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'spread' ? 'glow-btn-active' : ''}" id="btn-formation-spread" title="Spread Formation">◇ Spread</button>
+              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'box' ? 'glow-btn-active' : ''}" id="btn-formation-box" title="Box Formation">${SVGIcons.formationBox} Box</button>
+              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'line' ? 'glow-btn-active' : ''}" id="btn-formation-line" title="Line Formation">${SVGIcons.formationLine} Line</button>
+              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'column' ? 'glow-btn-active' : ''}" id="btn-formation-column" title="Column Formation">${SVGIcons.formationColumn} Column</button>
+              <button class="action-btn formation-btn ${this.gameManager.currentFormation === 'spread' ? 'glow-btn-active' : ''}" id="btn-formation-spread" title="Spread Formation">${SVGIcons.formationSpread} Spread</button>
               <button class="action-btn warning-btn" id="btn-cmd-stop" style="max-width: 80px;">Stop</button>
             </div>
             <div style="font-size:0.65rem; color:#888;">Formation: ${currentFormation} (Press F to cycle)</div>
@@ -1941,7 +1941,16 @@ export class HUD {
     const textEl = document.createElement('div');
     textEl.className = 'floating-text';
     textEl.style.color = '#' + colorHex.toString(16).padStart(6, '0');
-    textEl.textContent = text;
+    
+    // Parse emojis to beautiful vector SVGs
+    let formattedText = text;
+    formattedText = formattedText.replace(/🪵/g, `<span class="inline-svg-icon">${SVGIcons.wood}</span>`);
+    formattedText = formattedText.replace(/🪙/g, `<span class="inline-svg-icon">${SVGIcons.gold}</span>`);
+    formattedText = formattedText.replace(/🌾/g, `<span class="inline-svg-icon">${SVGIcons.food}</span>`);
+    formattedText = formattedText.replace(/🪨/g, `<span class="inline-svg-icon">${SVGIcons.stone}</span>`);
+    formattedText = formattedText.replace(/📦/g, `<span class="inline-svg-icon">${SVGIcons.population}</span>`);
+    
+    textEl.innerHTML = formattedText;
     document.body.appendChild(textEl);
     
     const floatingObj = {
@@ -2054,7 +2063,10 @@ export class HUD {
         const civ = CIVILIZATIONS[playerState.civ] || { name: 'Inggris', icon: '🏰' };
         ageTitleEl.textContent = ageMap[playerState.age] || 'Zaman Gelap';
         ageSubtitleEl.textContent = civ.name;
-        ageEmblemEl.textContent = civ.icon;
+        
+        // Render custom vector SVG instead of emoji
+        const civSvg = SVGIcons[playerState.civ] || SVGIcons.inggris;
+        ageEmblemEl.innerHTML = civSvg;
       }
     }
     
