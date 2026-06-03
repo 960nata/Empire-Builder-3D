@@ -1,5 +1,8 @@
-import * as THREE from 'three';
+import * as OriginalTHREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// Create a local mutable copy of the THREE namespace to allow overrides
+const THREE = { ...OriginalTHREE };
 
 // --- GLOBAL THREE.JS GEOMETRY CACHING SYSTEM (FOR MAXIMUM PERFORMANCE) ---
 const cachedGeometries = new Set();
