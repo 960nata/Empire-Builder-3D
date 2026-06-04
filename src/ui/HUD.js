@@ -2120,28 +2120,49 @@ export class HUD {
     const ctx = this.minimapCtx;
     const mapSize = this.gameManager.terrain.mapSize;
     
-    // Clear and draw background grass
-    ctx.fillStyle = '#2d5a27'; // Dark green grass
-    ctx.fillRect(0, 0, size, size);
-    
     // Coordinate scaler function (world bounds [-mapSize/2, mapSize/2] -> [0, size])
     const scale = (val) => {
       const offset = val + mapSize / 2;
       return (offset / mapSize) * size;
     };
-    
-    // Draw resources
+
+    // Lazy initialize offscreen canvas for caching static resources (trees, mines)
+    if (!this.staticMinimapCanvas) {
+      this.staticMinimapCanvas = document.createElement('canvas');
+      this.staticMinimapCanvas.width = size;
+      this.staticMinimapCanvas.height = size;
+      this.staticMinimapCtx = this.staticMinimapCanvas.getContext('2d');
+      this.minimapResourcesDirty = true;
+      this.lastResourcesCount = 0;
+    }
+
     const resources = this.gameManager.entityManager.resources;
-    resources.forEach(node => {
-      const rx = scale(node.position.x);
-      const rz = scale(node.position.z);
+    if (this.lastResourcesCount !== resources.length) {
+      this.minimapResourcesDirty = true;
+      this.lastResourcesCount = resources.length;
+    }
+
+    // Redraw static resources onto the cache canvas only when resources are harvested/created
+    if (this.minimapResourcesDirty) {
+      const sCtx = this.staticMinimapCtx;
+      sCtx.fillStyle = '#2d5a27'; // Dark green grass
+      sCtx.fillRect(0, 0, size, size);
       
-      if (node.type === 'wood') ctx.fillStyle = '#1e3c15';
-      else if (node.type === 'gold') ctx.fillStyle = '#ffd700';
-      else ctx.fillStyle = '#656565';
-      
-      ctx.fillRect(rx - 1, rz - 1, 2, 2);
-    });
+      resources.forEach(node => {
+        const rx = scale(node.position.x);
+        const rz = scale(node.position.z);
+        
+        if (node.type === 'wood') sCtx.fillStyle = '#1e3c15';
+        else if (node.type === 'gold') sCtx.fillStyle = '#ffd700';
+        else sCtx.fillStyle = '#656565';
+        
+        sCtx.fillRect(rx - 1, rz - 1, 2, 2);
+      });
+      this.minimapResourcesDirty = false;
+    }
+
+    // Draw the cached static background image onto the active minimap
+    ctx.drawImage(this.staticMinimapCanvas, 0, 0);
 
     // Draw buildings
     const buildings = this.gameManager.entityManager.buildings;
@@ -2150,7 +2171,7 @@ export class HUD {
       const bz = scale(b.position.z);
       const bSize = Math.max(3, b.gridSize * 1.5);
       
-      ctx.fillStyle = b.playerId === 0 ? '#1a5fb4' : '#c01c28';
+      ctx.fillStyle = b.playerId === 0 ? '#1a5fb4' : (b.playerId === 2 ? '#10b981' : '#c01c28');
       ctx.fillRect(bx - bSize / 2, bz - bSize / 2, bSize, bSize);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 0.5;
@@ -2165,7 +2186,7 @@ export class HUD {
       
       ctx.beginPath();
       ctx.arc(ux, uz, ['swordsman', 'archer', 'knight', 'footKnight', 'heavyCavalry', 'horseArcher'].includes(u.type) ? 2 : 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = u.playerId === 0 ? '#4fa3ff' : '#ff4f4f';
+      ctx.fillStyle = u.playerId === 0 ? '#4fa3ff' : (u.playerId === 2 ? '#10b981' : '#ff4f4f');
       ctx.fill();
     });
 

@@ -2142,8 +2142,13 @@ export class GameManager {
     // Update camera controls (independent of game speed)
     this.renderer.update(baseDeltaTime);
     
-    // Update Fog of War visibility
-    this.updateFogOfWar(deltaTime);
+    // Update Fog of War visibility (throttled to 150ms for major performance boost)
+    if (this.fowTimer === undefined) this.fowTimer = 0;
+    this.fowTimer += baseDeltaTime;
+    if (this.fowTimer >= 0.15) {
+      this.fowTimer = 0;
+      this.updateFogOfWar(deltaTime);
+    }
     
     // Update water shader waves
     if (this.terrain) {
