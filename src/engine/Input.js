@@ -300,7 +300,7 @@ export class Input {
             this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
           }
           
-          if (delay < 300) {
+          if (delay < 250) {
             if (this.tapTimeout) {
               clearTimeout(this.tapTimeout);
               this.tapTimeout = null;
@@ -317,7 +317,7 @@ export class Input {
                 this.performSingleSelection();
               }
               this.tapTimeout = null;
-            }, 180);
+            }, 250);
           }
         }
       }, { passive: true });
