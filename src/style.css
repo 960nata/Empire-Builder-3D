@@ -1641,12 +1641,24 @@ canvas {
 .chat-send-btn {
   background: var(--accent-blue);
   border: none;
-  color: #fff;
-  padding: 0 12px;
-  font-size: 0.8rem;
+  color: #1c140a;
+  padding: 0 16px;
   border-radius: 0 0 10px 0;
   cursor: pointer;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.chat-send-btn:hover {
+  background: #ffe89e;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+}
+
+.chat-send-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .chat-msg {
@@ -2292,6 +2304,42 @@ canvas {
   color: inherit;
 }
 
+/* --- HUD Header Dropdown Menu --- */
+.top-controls-dropdown-container {
+  position: relative;
+  display: inline-block;
+  pointer-events: auto;
+}
+
+#btn-menu-toggle {
+  display: none !important; /* Hidden on desktop */
+}
+
+.top-controls-dropdown-content {
+  display: flex;
+  gap: 10px;
+}
+
+.diplomacy-close-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+/* --- Text Overflow Ellipsis Utilities --- */
+.lobby-select, 
+.tab-btn, 
+.entity-name, 
+.slot-civ-badge, 
+.action-btn,
+.timer-item,
+.score-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 /* ==========================================================================
    MOBILE & TABLET RESPONSIVE LOBBY
    ========================================================================== */
@@ -2431,6 +2479,87 @@ canvas {
   .lobby-chat-container {
     height: 60px !important;
     padding: 6px 10px !important;
+  }
+
+  /* Show menu toggle and absolute dropdown position on mobile */
+  #btn-menu-toggle {
+    display: flex !important;
+  }
+
+  .top-controls-dropdown-content {
+    display: none !important;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(212, 175, 55, 0.1);
+    border-radius: 12px;
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+    pointer-events: auto;
+    min-width: 140px;
+  }
+
+  .top-controls-dropdown-content.show {
+    display: flex !important;
+  }
+
+  .top-controls-dropdown-content .hud-btn {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 8px 12px !important;
+  }
+
+  .top-controls-dropdown-content .btn-text {
+    display: inline !important;
+  }
+
+  /* Make diplomacy modal responsive to avoid overflow */
+  .diplomacy-container {
+    padding: 16px !important;
+    max-width: 95vw !important;
+  }
+  .diplomacy-title {
+    font-size: 1.10rem !important;
+  }
+  .diplomacy-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+  .diplomacy-faction {
+    font-size: 0.85rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 4px;
+  }
+  .diplomacy-stance-group {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .diplomacy-stance-btn {
+    flex: 1 !important;
+    padding: 4px 6px !important;
+    font-size: 0.65rem !important;
+    text-align: center !important;
+  }
+  .diplomacy-tribute-group {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .diplomacy-tribute-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 4px 2px !important;
+    font-size: 0.6rem !important;
   }
 }
 

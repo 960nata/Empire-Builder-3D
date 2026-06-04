@@ -95,10 +95,18 @@ export class HUD {
               <span id="wonder-countdown-value">Wonder: 300s</span>
             </div>
           </div>
-          <div class="top-controls">
-            <button id="btn-diplomacy" class="hud-btn small-btn" style="background:#5b21b6; border-color:#7c3aed; display: flex; align-items: center; gap: 4px;" title="Diplomacy & Tributes">${SVGIcons.diplomacy} Diplomasi</button>
-            <button id="btn-mute" class="hud-btn small-btn" style="display: flex; align-items: center; gap: 4px;" title="Toggle Sound">${SVGIcons.soundOn} Sound</button>
-            <button id="btn-restart" class="hud-btn small-btn warning-btn">Restart</button>
+          <div class="top-controls-dropdown-container">
+            <button id="btn-menu-toggle" class="hud-btn small-btn" style="display: none; align-items: center; gap: 4px;" title="Menu">
+              <span class="icon" style="display: flex; align-items: center;">
+                <svg viewBox="0 0 24 24" class="svg-icon" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </span>
+              <span class="menu-btn-text">Menu</span>
+            </button>
+            <div id="top-controls-dropdown" class="top-controls-dropdown-content">
+              <button id="btn-diplomacy" class="hud-btn small-btn" style="background:#5b21b6; border-color:#7c3aed; display: flex; align-items: center; gap: 4px;" title="Diplomacy & Tributes">${SVGIcons.diplomacy} <span class="btn-text">Diplomasi</span></button>
+              <button id="btn-mute" class="hud-btn small-btn" style="display: flex; align-items: center; gap: 4px;" title="Toggle Sound">${SVGIcons.soundOn} <span class="btn-text">Sound</span></button>
+              <button id="btn-restart" class="hud-btn small-btn warning-btn" style="display: flex; align-items: center; gap: 4px;">${SVGIcons.restart} <span class="btn-text">Restart</span></button>
+            </div>
           </div>
         </div>
       </div>
@@ -111,7 +119,7 @@ export class HUD {
         <div class="diplomacy-container glassmorphism">
           <div class="diplomacy-header">
             <div class="diplomacy-title">DIPLOMASI & UPETI</div>
-            <button class="diplomacy-close-btn" id="btn-diplomacy-close">&times;</button>
+            <button class="diplomacy-close-btn" id="btn-diplomacy-close" title="Close" style="display: flex; align-items: center; justify-content: center;">${SVGIcons.close}</button>
           </div>
           <div class="diplomacy-grid">
             <!-- Row for Enemy -->
@@ -181,7 +189,7 @@ export class HUD {
         </div>
         <div class="chat-input-wrapper">
           <input type="text" class="chat-input-field" id="chat-input-field" placeholder="Ketik pesan / cheat..." />
-          <button class="chat-send-btn" id="chat-send-btn">Kirim</button>
+          <button class="chat-send-btn" id="chat-send-btn" title="Kirim" style="display: flex; align-items: center; justify-content: center; padding: 6px 10px;">${SVGIcons.send}</button>
         </div>
       </div>
 
@@ -228,7 +236,7 @@ export class HUD {
         <div class="gameover-box glassmorphism">
           <h1 id="gameover-title">VICTORY!</h1>
           <p id="gameover-desc">You have successfully destroyed the enemy base.</p>
-          <button id="btn-play-again" class="hud-btn large-btn">Play Again</button>
+          <button id="btn-play-again" class="hud-btn large-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">${SVGIcons.restart} Play Again</button>
         </div>
       </div>
     `;
@@ -243,7 +251,7 @@ export class HUD {
       const isSoundOn = this.gameManager.soundManager.toggleSound();
       const muteBtn = document.getElementById('btn-mute');
       if (muteBtn) {
-        muteBtn.innerHTML = isSoundOn ? `${SVGIcons.soundOn} Sound` : `${SVGIcons.soundOff} Mute`;
+        muteBtn.innerHTML = isSoundOn ? `${SVGIcons.soundOn} <span class="btn-text">Sound</span>` : `${SVGIcons.soundOff} <span class="btn-text">Mute</span>`;
         muteBtn.classList.toggle('muted', !isSoundOn);
       }
     });
@@ -259,6 +267,21 @@ export class HUD {
     document.getElementById('btn-play-again').addEventListener('click', () => {
       this.gameManager.restartGame();
     });
+
+    // Toggle menu dropdown
+    const menuToggle = document.getElementById('btn-menu-toggle');
+    const dropdownContent = document.getElementById('top-controls-dropdown');
+    if (menuToggle && dropdownContent) {
+      menuToggle.addEventListener('click', (e) => {
+        dropdownContent.classList.toggle('show');
+        e.stopPropagation();
+        this.gameManager.soundManager.playClickSound('select');
+      });
+      // Close dropdown if user clicks outside
+      window.addEventListener('click', () => {
+        dropdownContent.classList.remove('show');
+      });
+    }
 
     // In-game Chat listeners
     const chatInput = document.getElementById('chat-input-field');
