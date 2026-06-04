@@ -11,6 +11,7 @@ import { AllyAI } from './AllyAI';
 import { NeutralAI } from './NeutralAI';
 import { HUD } from '../ui/HUD';
 import { ResourceNode } from './ResourceNode';
+import { Supabase } from '../ui/SupabaseClient';
 
 export class GameManager {
   constructor() {
@@ -232,7 +233,262 @@ export class GameManager {
         this.launchGame();
       });
     }
+
+    // Initialize Supabase Tab & Matchmaking listeners
+    this.initSupabaseUI();
   }
+
+  initSupabaseUI() {
+    const urlInput = document.getElementById('supabase-url-input');
+    const keyInput = document.getElementById('supabase-key-input');
+    const btnSaveCreds = document.getElementById('btn-save-supabase-creds');
+    const statusBanner = document.getElementById('supabase-status-banner');
+    
+    const emailInput = document.getElementById('auth-email');
+    const usernameInput = document.getElementById('auth-username');
+    const passwordInput = document.getElementById('auth-password');
+    const btnAuthSubmit = document.getElementById('btn-auth-submit');
+    const btnAuthToggle = document.getElementById('btn-auth-toggle');
+    const authTitle = document.getElementById('auth-title');
+    const groupUsername = document.getElementById('group-username');
+    
+    const authSection = document.getElementById('supabase-auth-section');
+    const profileSection = document.getElementById('supabase-profile-section');
+    const matchmakingSection = document.getElementById('supabase-matchmaking-section');
+    
+    const profileUsername = document.getElementById('profile-username');
+    const profileRank = document.getElementById('profile-rank');
+    const profileWins = document.getElementById('profile-wins');
+    const profileLosses = document.getElementById('profile-losses');
+    const btnLogout = document.getElementById('btn-supabase-logout');
+    
+    const matchmakingMode = document.getElementById('matchmaking-mode');
+    const btnStartMatchmaking = document.getElementById('btn-start-matchmaking');
+    const matchmakingOverlay = document.getElementById('matchmaking-overlay');
+    const matchmakingStatus = document.getElementById('matchmaking-status-text');
+    const matchmakingSlots = document.getElementById('matchmaking-slots-container');
+    const btnCancelMatchmaking = document.getElementById('btn-cancel-matchmaking');
+
+    let authMode = 'login'; // 'login' or 'register'
+    let activeUnsubscribe = null;
+    
+    // Save Civ choice to LocalStorage for matchmaking sync
+    const selectCiv = document.getElementById('select-civ');
+    if (selectCiv) {
+      localStorage.setItem('selected_civ', selectCiv.value);
+      selectCiv.addEventListener('change', (e) => {
+        localStorage.setItem('selected_civ', e.target.value);
+      });
+    }
+
+    const updateUIState = async () => {
+      // Update connection banner
+      if (statusBanner) {
+        if (Supabase.useMock) {
+          statusBanner.style.background = 'rgba(220, 38, 38, 0.15)';
+          statusBanner.style.border = '1px solid rgba(220, 38, 38, 0.3)';
+          statusBanner.style.color = '#f87171';
+          statusBanner.innerHTML = `<span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444; display: inline-block;"></span> Mode Offline (Mock LocalStorage)`;
+        } else {
+          statusBanner.style.background = 'rgba(16, 185, 129, 0.15)';
+          statusBanner.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          statusBanner.style.color = '#34d399';
+          statusBanner.innerHTML = `<span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; display: inline-block;"></span> Connected to Supabase Cloud!`;
+        }
+      }
+      
+      // Check current user profile
+      const user = await Supabase.getCurrentUser();
+      if (user) {
+        if (authSection) authSection.style.display = 'none';
+        if (profileSection) profileSection.style.display = 'flex';
+        if (matchmakingSection) matchmakingSection.style.display = 'flex';
+        
+        if (profileUsername) profileUsername.textContent = user.profile?.username || user.email;
+        if (profileRank) profileRank.textContent = `MMR: ${user.profile?.rank || 1000}`;
+        if (profileWins) profileWins.textContent = user.profile?.wins || 0;
+        if (profileLosses) profileLosses.textContent = user.profile?.losses || 0;
+      } else {
+        if (authSection) authSection.style.display = 'flex';
+        if (profileSection) profileSection.style.display = 'none';
+        if (matchmakingSection) matchmakingSection.style.display = 'none';
+      }
+    };
+
+    // Load credentials from LocalStorage
+    if (urlInput) urlInput.value = Supabase.url;
+    if (keyInput) keyInput.value = Supabase.anonKey;
+
+    if (btnSaveCreds) {
+      btnSaveCreds.addEventListener('click', () => {
+        const url = urlInput.value.trim();
+        const key = keyInput.value.trim();
+        const success = Supabase.setCredentials(url, key);
+        if (success) {
+          alert("Kredensial disimpan! Menghubungkan ke Supabase...");
+        } else {
+          alert("Gagal menginisialisasi client Supabase dengan kredensial ini.");
+        }
+        updateUIState();
+      });
+    }
+
+    if (btnAuthToggle) {
+      btnAuthToggle.addEventListener('click', () => {
+        if (authMode === 'login') {
+          authMode = 'register';
+          authTitle.textContent = 'Registrasi Akun Baru';
+          btnAuthSubmit.textContent = 'Daftar & Masuk';
+          btnAuthToggle.textContent = 'Kembali ke Login';
+          groupUsername.style.display = 'flex';
+        } else {
+          authMode = 'login';
+          authTitle.textContent = 'Masuk Ke Akun';
+          btnAuthSubmit.textContent = 'Log In';
+          btnAuthToggle.textContent = 'Buat Akun Baru';
+          groupUsername.style.display = 'none';
+        }
+      });
+    }
+
+    if (btnAuthSubmit) {
+      btnAuthSubmit.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const username = usernameInput.value.trim() || email.split('@')[0];
+        
+        if (!email || !password) {
+          alert("Email dan password harus diisi!");
+          return;
+        }
+        
+        btnAuthSubmit.disabled = true;
+        btnAuthSubmit.textContent = "Processing...";
+        
+        try {
+          if (authMode === 'register') {
+            await Supabase.signUp(email, password, username);
+            alert("Pendaftaran berhasil! Akun Anda aktif.");
+          } else {
+            await Supabase.signIn(email, password);
+          }
+          emailInput.value = '';
+          passwordInput.value = '';
+          usernameInput.value = '';
+          updateUIState();
+        } catch (e) {
+          alert("Error: " + e.message);
+        } finally {
+          btnAuthSubmit.disabled = false;
+          btnAuthSubmit.textContent = authMode === 'login' ? 'Log In' : 'Daftar & Masuk';
+        }
+      });
+    }
+
+    if (btnLogout) {
+      btnLogout.addEventListener('click', async () => {
+        await Supabase.signOut();
+        updateUIState();
+      });
+    }
+
+    if (btnStartMatchmaking) {
+      btnStartMatchmaking.addEventListener('click', async () => {
+        const user = await Supabase.getCurrentUser();
+        if (!user) {
+          alert("Anda harus masuk (login) terlebih dahulu!");
+          return;
+        }
+        
+        const mode = matchmakingMode ? matchmakingMode.value : '3v3';
+        const selfCiv = localStorage.getItem('selected_civ') || 'inggris';
+        const playerProfile = {
+          username: user.profile?.username || user.email,
+          civ: selfCiv,
+          team: 1,
+          rank: user.profile?.rank || 1000
+        };
+        
+        if (matchmakingOverlay) matchmakingOverlay.style.display = 'flex';
+        if (matchmakingStatus) matchmakingStatus.textContent = 'Menghubungkan ke antrean...';
+        if (matchmakingSlots) matchmakingSlots.innerHTML = '';
+        
+        try {
+          const lobby = await Supabase.joinQueue(mode, playerProfile);
+          
+          if (matchmakingStatus) matchmakingStatus.textContent = 'Menunggu pemain lain bergabung...';
+          
+          // Poll lobby status
+          activeUnsubscribe = Supabase.pollLobby(lobby.id, (updatedLobby) => {
+            // Draw players in slots
+            if (matchmakingSlots) {
+              matchmakingSlots.innerHTML = updatedLobby.players.map(p => {
+                const isSelf = p.name === playerProfile.username;
+                const dotColor = p.team === 1 ? '#3b82f6' : (p.team === 2 ? '#ef4444' : '#8b5cf6');
+                return `
+                  <div style="background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; border: 1px solid ${isSelf ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.05)'};">
+                    <span style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: ${isSelf ? 'bold' : 'normal'};">
+                      <span style="width: 8px; height: 8px; border-radius: 50%; background: ${dotColor}; display: inline-block;"></span>
+                      ${p.name}
+                    </span>
+                    <span style="font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 3px; color: #ffd54f;">${CIVILIZATIONS[p.civ]?.name || p.civ}</span>
+                  </div>
+                `;
+              }).join('');
+            }
+            
+            const maxPlayers = mode === '1v1' ? 2 : 6;
+            if (matchmakingStatus) {
+              matchmakingStatus.textContent = `Menunggu pemain... (${updatedLobby.players.length}/${maxPlayers})`;
+            }
+            
+            if (updatedLobby.status === 'filled') {
+              if (activeUnsubscribe) activeUnsubscribe();
+              activeUnsubscribe = null;
+              
+              if (matchmakingStatus) matchmakingStatus.innerHTML = '<span style="color: #4ade80; font-weight: bold;">LOBI PENUH! Memulai pertempuran...</span>';
+              
+              // Countdown 5s then launch
+              let countdown = 5;
+              const countdownInterval = setInterval(() => {
+                countdown--;
+                if (matchmakingStatus) matchmakingStatus.innerHTML = `<span style="color: #4ade80; font-weight: bold;">PERTARUNGAN DISETUJUI! Memulai dalam ${countdown} detik...</span>`;
+                
+                if (countdown <= 0) {
+                  clearInterval(countdownInterval);
+                  if (matchmakingOverlay) matchmakingOverlay.style.display = 'none';
+                  
+                  // Launch game with this lobby configurations
+                  this.currentMatchLobby = updatedLobby;
+                  this.launchGame();
+                }
+              }, 1000);
+            }
+          }, (err) => {
+            console.error("Matchmaking error:", err);
+            if (matchmakingStatus) matchmakingStatus.textContent = "Error: " + err.message;
+          });
+        } catch (e) {
+          alert("Gagal masuk antrean: " + e.message);
+          if (matchmakingOverlay) matchmakingOverlay.style.display = 'none';
+        }
+      });
+    }
+
+    if (btnCancelMatchmaking) {
+      btnCancelMatchmaking.addEventListener('click', () => {
+        if (activeUnsubscribe) {
+          activeUnsubscribe();
+          activeUnsubscribe = null;
+        }
+        if (matchmakingOverlay) matchmakingOverlay.style.display = 'none';
+      });
+    }
+
+    // Run initial state update
+    updateUIState();
+  }
+
 
   updateCivDetails(civKey) {
     const detailsEl = document.getElementById('civ-details');
@@ -452,14 +708,57 @@ export class GameManager {
     const selectAllies = document.getElementById('select-allies');
     const selectEnemies = document.getElementById('select-enemies');
 
-    this.selectedCiv = selectCiv ? selectCiv.value : 'inggris';
     this.selectedMap = selectMap ? selectMap.value : 'river';
     this.gameMode = selectMode ? selectMode.value : 'multi';
     this.graphicsQuality = selectGraphics ? selectGraphics.value : 'high';
 
-    // Dynamic allies and enemies count
-    this.alliesCount = selectAllies ? parseInt(selectAllies.value, 10) : 1;
-    this.enemiesCount = selectEnemies ? parseInt(selectEnemies.value, 10) : 1;
+    // Parse matchmaking configurations if launching from matchmaking
+    this.matchMode = 'multi';
+    if (this.currentMatchLobby) {
+      this.matchMode = this.currentMatchLobby.mode;
+      const players = this.currentMatchLobby.players;
+      
+      const selfPlayer = players[0]; // first one is self
+      if (selfPlayer) {
+        this.selectedCiv = selfPlayer.civ;
+      }
+      
+      if (this.matchMode === '1v1') {
+        this.alliesCount = 0;
+        this.enemiesCount = 1;
+        
+        const enemy1 = players.find(p => p.team === 2);
+        if (enemy1) this.players[1].civ = enemy1.civ;
+      } else if (this.matchMode === '3v3') {
+        this.alliesCount = 1;
+        this.enemiesCount = 2;
+        
+        const selfName = selfPlayer ? selfPlayer.name : '';
+        const ally = players.find(p => p.team === 1 && p.name !== selfName);
+        if (ally) this.players[2].civ = ally.civ;
+        
+        const enemies = players.filter(p => p.team === 2);
+        if (enemies[0]) this.players[1].civ = enemies[0].civ;
+        if (enemies[1]) this.players[3].civ = enemies[1].civ;
+      } else if (this.matchMode === '2v2v2') {
+        this.alliesCount = 1;
+        this.enemiesCount = 2;
+        
+        const selfName = selfPlayer ? selfPlayer.name : '';
+        const ally = players.find(p => p.team === 1 && p.name !== selfName);
+        if (ally) this.players[2].civ = ally.civ;
+        
+        const enemy1 = players.find(p => p.team === 2);
+        if (enemy1) this.players[1].civ = enemy1.civ;
+        
+        const enemy2 = players.find(p => p.team === 3);
+        if (enemy2) this.players[3].civ = enemy2.civ;
+      }
+    } else {
+      this.selectedCiv = selectCiv ? selectCiv.value : 'inggris';
+      this.alliesCount = selectAllies ? parseInt(selectAllies.value, 10) : 1;
+      this.enemiesCount = selectEnemies ? parseInt(selectEnemies.value, 10) : 1;
+    }
 
     // Advanced configs
     this.startingResourcesOption = selectResources ? selectResources.value : 'standard';
@@ -502,6 +801,12 @@ export class GameManager {
         2: (this.enemiesCount >= 2 && this.alliesCount >= 1) ? 'enemy' : 'neutral' 
       }
     };
+
+    // If 2v2v2 matchmaking, Faction 1 (team 2) and Faction 3 (team 3) are hostile to each other
+    if (this.matchMode === '2v2v2') {
+      this.relations[1][3] = 'enemy';
+      this.relations[3][1] = 'enemy';
+    }
 
     for (let pId in this.players) {
       this.players[pId].kills = 0;

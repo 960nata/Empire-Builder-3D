@@ -596,6 +596,9 @@ export class ModelFactory {
     this.materials.enemyRed = new THREE.MeshStandardMaterial({ color: 0xc01c28, roughness: 0.45, metalness: 0.1 });
     this.materials.allyGreen = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.45, metalness: 0.1 });
     this.materials.neutralGrey = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.55, metalness: 0.05 });
+    this.materials.playerYellow = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.45, metalness: 0.1 });
+    this.materials.playerTeal = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.45, metalness: 0.1 });
+    this.materials.playerPurple = new THREE.MeshStandardMaterial({ color: 0x8b5cf6, roughness: 0.45, metalness: 0.1 });
     
     // Unit skin/leather/cloth with warm tones
     this.materials.skin = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.6, metalness: 0.0 });
@@ -1396,7 +1399,10 @@ export class ModelFactory {
     if (playerId === 0) return this.materials.playerBlue;
     if (playerId === 1) return this.materials.enemyRed;
     if (playerId === 2) return this.materials.allyGreen;
-    return this.materials.neutralGrey;
+    if (playerId === 3) return this.materials.neutralGrey;
+    if (playerId === 4) return this.materials.playerYellow;
+    if (playerId === 5) return this.materials.playerTeal;
+    return this.materials.playerPurple;
   }
 
   // -------------------------------------------------------------
