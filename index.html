@@ -117,6 +117,18 @@
                     <option value="single">Single Player vs AI</option>
                     <option value="multi" selected>Multiplayer Room (Simulated Match)</option>
                   </select>
+
+                  <label for="select-allies" class="setup-label">Jumlah Sekutu (Allies)</label>
+                  <select id="select-allies" class="lobby-select">
+                    <option value="0">Tanpa Sekutu (0)</option>
+                    <option value="1" selected>1 Sekutu (Green AI)</option>
+                  </select>
+                  
+                  <label for="select-enemies" class="setup-label">Jumlah Musuh (Enemies)</label>
+                  <select id="select-enemies" class="lobby-select">
+                    <option value="1" selected>1 Musuh (Red AI)</option>
+                    <option value="2">2 Musuh (Red & Grey AI)</option>
+                  </select>
                   
                   <label for="select-graphics" class="setup-label">Kualitas Grafis Rendering</label>
                   <select id="select-graphics" class="lobby-select">
@@ -129,7 +141,7 @@
               <!-- SIMULATED MULTIPLAYER LOBBY PANEL -->
               <div id="lobby-multiplayer-panel" class="multi-lobby-panel">
                 <h3>Active Room: <span class="room-tag">#AsiaPacific_Room4</span></h3>
-                <div class="player-slots-grid">
+                <div class="player-slots-grid" id="lobby-player-slots">
                   <div class="slot self">
                     <span class="dot blue"></span> 
                     <span>You (Player 1)</span> 

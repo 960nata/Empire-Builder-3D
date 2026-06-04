@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
 export class EnemyAI {
-  constructor(gameManager) {
+  constructor(gameManager, playerId = 1) {
+    this.playerId = playerId;
     this.gameManager = gameManager;
     
     // Find starting Town Center spawned by GameManager
-    const tc = this.gameManager.entityManager.buildings.find(b => b.playerId === 1 && b.type === 'townCenter');
+    const tc = this.gameManager.entityManager.buildings.find(b => b.playerId === this.playerId && b.type === 'townCenter');
     this.baseX = tc ? tc.position.x : 48;
     this.baseZ = tc ? tc.position.z : 48;
     
@@ -43,12 +44,12 @@ export class EnemyAI {
     const em = this.gameManager.entityManager;
     
     // Create Enemy Barracks near their Town Center
-    this.enemyBaseBarracks = em.createBuilding('barracks', 1, this.baseX - 6, this.baseZ - 2, true);
+    this.enemyBaseBarracks = em.createBuilding('barracks', this.playerId, this.baseX - 6, this.baseZ - 2, true);
     this.gameManager.gridAddBuilding(this.enemyBaseBarracks);
     
     // Patrol starting guards around their base
-    const guard1 = em.createUnit('swordsman', 1, this.baseX - 2, this.baseZ + 3);
-    const guard2 = em.createUnit('swordsman', 1, this.baseX + 3, this.baseZ - 2);
+    const guard1 = em.createUnit('swordsman', this.playerId, this.baseX - 2, this.baseZ + 3);
+    const guard2 = em.createUnit('swordsman', this.playerId, this.baseX + 3, this.baseZ - 2);
     
     guard1.commandMove(new THREE.Vector3(this.baseX - 3, 0, this.baseZ + 2));
     guard2.commandMove(new THREE.Vector3(this.baseX + 2, 0, this.baseZ - 3));
@@ -59,7 +60,7 @@ export class EnemyAI {
     
     // 1. Coordinated Age Progression (scaled by AI Difficulty)
     this.ageTimer += deltaTime;
-    const enemyState = this.gameManager.players[1];
+    const enemyState = this.gameManager.players[this.playerId];
     
     const difficulty = this.gameManager.aiDifficulty || 'normal';
     let feudalTime = 80.0;
@@ -94,18 +95,18 @@ export class EnemyAI {
     
     if (enemyState.age === 'dark' && this.ageTimer >= feudalTime) {
       enemyState.age = 'feudal';
-      this.gameManager.upgradePlayerAge(1);
-      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", "Faksi merah telah naik ke Zaman Feodal! Bersiaplah!", 'enemy');
+      this.gameManager.upgradePlayerAge(this.playerId);
+      this.gameManager.hud.addChatMessage(this.playerId === 1 ? "Lord_Kahn_Enemy" : "Kaiser_Karl", `${this.playerId === 1 ? "Faksi merah" : "Faksi ungu"} telah naik ke Zaman Feodal! Bersiaplah!`, 'enemy');
     } 
     else if (enemyState.age === 'feudal' && this.ageTimer >= castleTime) {
       enemyState.age = 'castle';
-      this.gameManager.upgradePlayerAge(1);
-      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", "Faksi merah telah naik ke Zaman Kastil! Baju zirah baja diaktifkan.", 'enemy');
+      this.gameManager.upgradePlayerAge(this.playerId);
+      this.gameManager.hud.addChatMessage(this.playerId === 1 ? "Lord_Kahn_Enemy" : "Kaiser_Karl", `${this.playerId === 1 ? "Faksi merah" : "Faksi ungu"} telah naik ke Zaman Kastil! Baju zirah baja diaktifkan.`, 'enemy');
     } 
     else if (enemyState.age === 'castle' && this.ageTimer >= imperialTime) {
       enemyState.age = 'imperial';
-      this.gameManager.upgradePlayerAge(1);
-      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", "Faksi merah telah mencapai Zaman Imperial! Senjata emas kami akan membumihanguskan kalian!", 'enemy');
+      this.gameManager.upgradePlayerAge(this.playerId);
+      this.gameManager.hud.addChatMessage(this.playerId === 1 ? "Lord_Kahn_Enemy" : "Kaiser_Karl", `${this.playerId === 1 ? "Faksi merah" : "Faksi ungu"} telah mencapai Zaman Imperial! Senjata emas kami akan membumihanguskan kalian!`, 'enemy');
     }
 
     // 2. Coordinated AI Economy loop every 3 seconds
@@ -121,14 +122,14 @@ export class EnemyAI {
       if (this.underAttackTimer === undefined) this.underAttackTimer = 0;
       
       const enemiesNearBase = this.gameManager.entityManager.units.some(u => 
-        u.hp > 0 && u.state !== 'DEAD' && this.gameManager.isEnemy(1, u.playerId) && 
+        u.hp > 0 && u.state !== 'DEAD' && this.gameManager.isEnemy(this.playerId, u.playerId) && 
         u.position.distanceTo(this.enemyBaseTC.position) < 18.0
       );
       
       if (enemiesNearBase) {
         this.underAttackTimer = 10.0;
         const villagers = this.gameManager.entityManager.units.filter(u => 
-          u.playerId === 1 && u.type === 'villager' && u.state !== 'DEAD' && u.state !== 'GARRISONED' &&
+          u.playerId === this.playerId && u.type === 'villager' && u.state !== 'DEAD' && u.state !== 'GARRISONED' &&
           u.position.distanceTo(this.enemyBaseTC.position) < 20.0
         );
         villagers.forEach(v => {
@@ -154,7 +155,7 @@ export class EnemyAI {
 
   manageEconomy() {
     const em = this.gameManager.entityManager;
-    const enemyState = this.gameManager.players[1];
+    const enemyState = this.gameManager.players[this.playerId];
     const difficulty = this.gameManager.aiDifficulty || 'normal';
     const resources = enemyState.resources;
 
@@ -166,7 +167,7 @@ export class EnemyAI {
       if (resources.stone < 300) resources.stone = 1000;
     }
 
-    const villagers = em.units.filter(u => u.playerId === 1 && u.type === 'villager' && u.state !== 'DEAD');
+    const villagers = em.units.filter(u => u.playerId === this.playerId && u.type === 'villager' && u.state !== 'DEAD');
     const villagerCount = villagers.length;
     const pop = enemyState.population;
     const limit = enemyState.populationLimit;
@@ -175,14 +176,14 @@ export class EnemyAI {
     // A0. Dock and Navy Builder on water maps (moderate/hard/hardest/extreme)
     const isWaterMap = ['river', 'islands', 'coastal'].includes(this.gameManager.terrain.mapType);
     if (isWaterMap && difficulty !== 'easy' && difficulty !== 'normal') {
-      const hasDock = em.buildings.some(b => b.playerId === 1 && b.type === 'dock' && b.hp > 0);
+      const hasDock = em.buildings.some(b => b.playerId === this.playerId && b.type === 'dock' && b.hp > 0);
       if (!hasDock && resources.wood >= 150) {
         const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
         if (builder) {
           const spot = this.findDockBuildSpot();
           if (spot) {
             resources.wood -= 150;
-            const dk = em.createBuilding('dock', 1, spot.x, spot.z, false);
+            const dk = em.createBuilding('dock', this.playerId, spot.x, spot.z, false);
             this.gameManager.gridAddBuilding(dk);
             builder.commandBuild(dk);
           }
@@ -190,9 +191,9 @@ export class EnemyAI {
       }
       
       // Train fishing ships and warships at the dock
-      const dock = em.buildings.find(b => b.playerId === 1 && b.type === 'dock' && b.isCompleted);
+      const dock = em.buildings.find(b => b.playerId === this.playerId && b.type === 'dock' && b.isCompleted);
       if (dock && dock.queue.length < 2) {
-        const fishingShipsCount = em.units.filter(u => u.playerId === 1 && u.type === 'fishingShip' && u.state !== 'DEAD').length;
+        const fishingShipsCount = em.units.filter(u => u.playerId === this.playerId && u.type === 'fishingShip' && u.state !== 'DEAD').length;
         let shipToTrain = null;
         if (fishingShipsCount < 3 && resources.wood >= 75) {
           shipToTrain = 'fishingShip';
@@ -211,7 +212,7 @@ export class EnemyAI {
         
         if (shipToTrain) {
           const cost = this.gameManager.getUnitCost(shipToTrain);
-          if (this.gameManager.hasResources(1, cost) && pop < limit) {
+          if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
             dock.queueUnit(shipToTrain);
           }
         }
@@ -219,7 +220,7 @@ export class EnemyAI {
     }
 
     // A. Rebuild Barracks if destroyed
-    const hasBarracks = em.buildings.some(b => b.playerId === 1 && b.type === 'barracks' && b.hp > 0);
+    const hasBarracks = em.buildings.some(b => b.playerId === this.playerId && b.type === 'barracks' && b.hp > 0);
     if (!hasBarracks && resources.wood >= 120 && resources.stone >= 50) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -227,7 +228,7 @@ export class EnemyAI {
         if (spot) {
           resources.wood -= 120;
           resources.stone -= 50;
-          const b = em.createBuilding('barracks', 1, spot.x, spot.z, false);
+          const b = em.createBuilding('barracks', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(b);
           builder.commandBuild(b);
           this.enemyBaseBarracks = b;
@@ -288,18 +289,18 @@ export class EnemyAI {
         }
         
         if (campType) {
-          const nearestDropoff = this.gameManager.findNearestDropoff(v.targetEntity.position, 1, resGroup);
+          const nearestDropoff = this.gameManager.findNearestDropoff(v.targetEntity.position, this.playerId, resGroup);
           const dist = nearestDropoff ? v.targetEntity.position.distanceTo(nearestDropoff.position) : Infinity;
           
           if (dist > 16) {
-            const camps = em.buildings.filter(b => b.playerId === 1 && b.type === campType);
+            const camps = em.buildings.filter(b => b.playerId === this.playerId && b.type === campType);
             const hasCampNearby = camps.some(c => c.position.distanceTo(v.targetEntity.position) < 12);
             
             if (!hasCampNearby) {
               const spot = this.findClearBuildSpot(v.targetEntity.position.x, v.targetEntity.position.z, campType);
               if (spot) {
                 resources.wood -= 100;
-                const camp = em.createBuilding(campType, 1, spot.x, spot.z, false);
+                const camp = em.createBuilding(campType, this.playerId, spot.x, spot.z, false);
                 this.gameManager.gridAddBuilding(camp);
                 v.commandBuild(camp);
                 break; // only place one camp per cycle
@@ -317,16 +318,16 @@ export class EnemyAI {
         const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'house');
         if (spot) {
           resources.wood -= 50;
-          const h = em.createBuilding('house', 1, spot.x, spot.z, false);
+          const h = em.createBuilding('house', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(h);
           builder.commandBuild(h);
-          this.gameManager.addPopulationLimit(1, 5);
+          this.gameManager.addPopulationLimit(this.playerId, 5);
         }
       }
     }
 
     // C2. Build Watchtower for Defense
-    const towerCount = em.buildings.filter(b => b.playerId === 1 && b.type === 'watchTower').length;
+    const towerCount = em.buildings.filter(b => b.playerId === this.playerId && b.type === 'watchTower').length;
     if (towerCount < 3 && enemyState.age !== 'dark' && resources.wood >= 150 && resources.stone >= 150) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -336,7 +337,7 @@ export class EnemyAI {
         if (spot) {
           resources.wood -= 100;
           resources.stone -= 125;
-          const wt = em.createBuilding('watchTower', 1, spot.x, spot.z, false);
+          const wt = em.createBuilding('watchTower', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(wt);
           builder.commandBuild(wt);
         }
@@ -344,14 +345,14 @@ export class EnemyAI {
     }
 
     // D2. Build Blacksmith
-    const hasBlacksmith = em.buildings.some(b => b.playerId === 1 && b.type === 'blacksmith' && b.hp > 0);
+    const hasBlacksmith = em.buildings.some(b => b.playerId === this.playerId && b.type === 'blacksmith' && b.hp > 0);
     if (!hasBlacksmith && enemyState.age !== 'dark' && resources.wood >= 150) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
         const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'blacksmith');
         if (spot) {
           resources.wood -= 150;
-          const bs = em.createBuilding('blacksmith', 1, spot.x, spot.z, false);
+          const bs = em.createBuilding('blacksmith', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(bs);
           builder.commandBuild(bs);
         }
@@ -359,14 +360,14 @@ export class EnemyAI {
     }
 
     // D2a. Build Stable
-    const hasStable = em.buildings.some(b => b.playerId === 1 && b.type === 'stable' && b.hp > 0);
+    const hasStable = em.buildings.some(b => b.playerId === this.playerId && b.type === 'stable' && b.hp > 0);
     if (!hasStable && enemyState.age !== 'dark' && resources.wood >= 175) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
         const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'stable');
         if (spot) {
           resources.wood -= 175;
-          const b = em.createBuilding('stable', 1, spot.x, spot.z, false);
+          const b = em.createBuilding('stable', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(b);
           builder.commandBuild(b);
         }
@@ -374,14 +375,14 @@ export class EnemyAI {
     }
 
     // D2b. Build Archery Range
-    const hasArcheryRange = em.buildings.some(b => b.playerId === 1 && b.type === 'archeryRange' && b.hp > 0);
+    const hasArcheryRange = em.buildings.some(b => b.playerId === this.playerId && b.type === 'archeryRange' && b.hp > 0);
     if (!hasArcheryRange && enemyState.age !== 'dark' && resources.wood >= 175) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
         const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'archeryRange');
         if (spot) {
           resources.wood -= 175;
-          const b = em.createBuilding('archeryRange', 1, spot.x, spot.z, false);
+          const b = em.createBuilding('archeryRange', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(b);
           builder.commandBuild(b);
         }
@@ -389,7 +390,7 @@ export class EnemyAI {
     }
 
     // D3. Build University
-    const hasUniversity = em.buildings.some(b => b.playerId === 1 && b.type === 'university' && b.hp > 0);
+    const hasUniversity = em.buildings.some(b => b.playerId === this.playerId && b.type === 'university' && b.hp > 0);
     if (!hasUniversity && enemyState.age !== 'dark' && resources.wood >= 200 && resources.gold >= 100) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -397,7 +398,7 @@ export class EnemyAI {
         if (spot) {
           resources.wood -= 200;
           resources.gold -= 100;
-          const univ = em.createBuilding('university', 1, spot.x, spot.z, false);
+          const univ = em.createBuilding('university', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(univ);
           builder.commandBuild(univ);
         }
@@ -405,14 +406,14 @@ export class EnemyAI {
     }
 
     // D3a. Build Monastery
-    const hasMonastery = em.buildings.some(b => b.playerId === 1 && b.type === 'monastery' && b.hp > 0);
+    const hasMonastery = em.buildings.some(b => b.playerId === this.playerId && b.type === 'monastery' && b.hp > 0);
     if (!hasMonastery && (enemyState.age === 'castle' || enemyState.age === 'imperial') && resources.wood >= 175) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
         const spot = this.findClearBuildSpot(this.baseX, this.baseZ, 'monastery');
         if (spot) {
           resources.wood -= 175;
-          const b = em.createBuilding('monastery', 1, spot.x, spot.z, false);
+          const b = em.createBuilding('monastery', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(b);
           builder.commandBuild(b);
         }
@@ -420,7 +421,7 @@ export class EnemyAI {
     }
 
     // D3b. Build Bombard Tower for Defense in Imperial Age
-    const bombardTowerCount = em.buildings.filter(b => b.playerId === 1 && b.type === 'bombardTower').length;
+    const bombardTowerCount = em.buildings.filter(b => b.playerId === this.playerId && b.type === 'bombardTower').length;
     if (bombardTowerCount < 2 && enemyState.age === 'imperial' && resources.stone >= 250 && resources.gold >= 100) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -430,7 +431,7 @@ export class EnemyAI {
         if (spot) {
           resources.stone -= 250;
           resources.gold -= 100;
-          const bt = em.createBuilding('bombardTower', 1, spot.x, spot.z, false);
+          const bt = em.createBuilding('bombardTower', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(bt);
           builder.commandBuild(bt);
         }
@@ -438,7 +439,7 @@ export class EnemyAI {
     }
 
     // D4. Build Siege Workshop
-    const hasWorkshop = em.buildings.some(b => b.playerId === 1 && b.type === 'siegeWorkshop' && b.hp > 0);
+    const hasWorkshop = em.buildings.some(b => b.playerId === this.playerId && b.type === 'siegeWorkshop' && b.hp > 0);
     if (!hasWorkshop && enemyState.age !== 'dark' && resources.wood >= 200 && resources.gold >= 100) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -446,7 +447,7 @@ export class EnemyAI {
         if (spot) {
           resources.wood -= 200;
           resources.gold -= 100;
-          const ws = em.createBuilding('siegeWorkshop', 1, spot.x, spot.z, false);
+          const ws = em.createBuilding('siegeWorkshop', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(ws);
           builder.commandBuild(ws);
         }
@@ -454,7 +455,7 @@ export class EnemyAI {
     }
 
     // D5. Build Castle
-    const hasCastle = em.buildings.some(b => b.playerId === 1 && b.type === 'castle' && b.hp > 0);
+    const hasCastle = em.buildings.some(b => b.playerId === this.playerId && b.type === 'castle' && b.hp > 0);
     if (!hasCastle && (enemyState.age === 'castle' || enemyState.age === 'imperial') && resources.wood >= 200 && resources.stone >= 650) {
       const builder = villagers.find(v => v.state === 'IDLE' || v.state === 'HARVESTING');
       if (builder) {
@@ -462,7 +463,7 @@ export class EnemyAI {
         if (spot) {
           resources.wood -= 200;
           resources.stone -= 650;
-          const castle = em.createBuilding('castle', 1, spot.x, spot.z, false);
+          const castle = em.createBuilding('castle', this.playerId, spot.x, spot.z, false);
           this.gameManager.gridAddBuilding(castle);
           builder.commandBuild(castle);
         }
@@ -470,7 +471,7 @@ export class EnemyAI {
     }
 
     // D6. AI Research Upgrades
-    const myBuildings = em.buildings.filter(b => b.playerId === 1 && b.isCompleted);
+    const myBuildings = em.buildings.filter(b => b.playerId === this.playerId && b.isCompleted);
     myBuildings.forEach(b => {
       if (b.queue.length > 0) return; // Busy
       
@@ -494,7 +495,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -520,7 +521,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -550,7 +551,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -572,7 +573,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -598,7 +599,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -624,7 +625,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, currentLvl);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -645,7 +646,7 @@ export class EnemyAI {
         
         if (typeToUpgrade) {
           const cost = this.gameManager.getUpgradeCost(typeToUpgrade, 0);
-          if (this.gameManager.hasResources(1, cost)) {
+          if (this.gameManager.hasResources(this.playerId, cost)) {
             b.queueUpgrade(typeToUpgrade);
           }
         }
@@ -653,7 +654,7 @@ export class EnemyAI {
     });
 
     // D7. Train Siege Units at Siege Workshop
-    const workshop = em.buildings.find(b => b.playerId === 1 && b.type === 'siegeWorkshop' && b.isCompleted);
+    const workshop = em.buildings.find(b => b.playerId === this.playerId && b.type === 'siegeWorkshop' && b.isCompleted);
     if (workshop && workshop.queue.length < 2) {
       let unitToTrain = null;
       const rand = Math.random();
@@ -670,17 +671,17 @@ export class EnemyAI {
       }
       
       const cost = this.gameManager.getUnitCost(unitToTrain);
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         workshop.queueUnit(unitToTrain);
       }
     }
 
     // D8. Train Trebuchet / Petard at Castle
-    const cstl = em.buildings.find(b => b.playerId === 1 && b.type === 'castle' && b.isCompleted);
+    const cstl = em.buildings.find(b => b.playerId === this.playerId && b.type === 'castle' && b.isCompleted);
     if (cstl && cstl.queue.length < 2) {
       const unitToTrain = Math.random() < 0.5 ? 'trebuchet' : 'petard';
       const cost = this.gameManager.getUnitCost(unitToTrain);
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         cstl.queueUnit(unitToTrain);
       }
     }
@@ -696,13 +697,13 @@ export class EnemyAI {
 
     if (villagerCount < maxVillagers && this.enemyBaseTC && this.enemyBaseTC.queue.length === 0) {
       const cost = this.gameManager.getUnitCost('villager');
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         this.enemyBaseTC.queueUnit('villager');
       }
     }
 
     // E1. Train Soldiers at Barracks (Infantry)
-    const barracks = em.buildings.find(b => b.playerId === 1 && b.type === 'barracks' && b.isCompleted);
+    const barracks = em.buildings.find(b => b.playerId === this.playerId && b.type === 'barracks' && b.isCompleted);
     if (barracks && barracks.queue.length < 2) {
       const enemyAge = enemyState.age;
       let unitToTrain = 'swordsman';
@@ -717,13 +718,13 @@ export class EnemyAI {
         }
       }
       const cost = this.gameManager.getUnitCost(unitToTrain);
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         barracks.queueUnit(unitToTrain);
       }
     }
 
     // E2. Train Soldiers at Stable (Cavalry)
-    const stable = em.buildings.find(b => b.playerId === 1 && b.type === 'stable' && b.isCompleted);
+    const stable = em.buildings.find(b => b.playerId === this.playerId && b.type === 'stable' && b.isCompleted);
     if (stable && stable.queue.length < 2) {
       const enemyAge = enemyState.age;
       let unitToTrain = 'scoutCavalry';
@@ -734,13 +735,13 @@ export class EnemyAI {
         else unitToTrain = 'scoutCavalry';
       }
       const cost = this.gameManager.getUnitCost(unitToTrain);
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         stable.queueUnit(unitToTrain);
       }
     }
 
     // E3. Train Soldiers at Archery Range (Archers)
-    const archeryRange = em.buildings.find(b => b.playerId === 1 && b.type === 'archeryRange' && b.isCompleted);
+    const archeryRange = em.buildings.find(b => b.playerId === this.playerId && b.type === 'archeryRange' && b.isCompleted);
     if (archeryRange && archeryRange.queue.length < 2) {
       const enemyAge = enemyState.age;
       let unitToTrain = 'archer';
@@ -753,18 +754,18 @@ export class EnemyAI {
         unitToTrain = Math.random() < 0.5 ? 'archer' : 'skirmisher';
       }
       const cost = this.gameManager.getUnitCost(unitToTrain);
-      if (this.gameManager.hasResources(1, cost) && pop < limit) {
+      if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
         archeryRange.queueUnit(unitToTrain);
       }
     }
 
     // E4. Train Monks at Monastery
-    const monastery = em.buildings.find(b => b.playerId === 1 && b.type === 'monastery' && b.isCompleted);
+    const monastery = em.buildings.find(b => b.playerId === this.playerId && b.type === 'monastery' && b.isCompleted);
     if (monastery && monastery.queue.length < 1) {
-      const monkCount = em.units.filter(u => u.playerId === 1 && u.type === 'monk' && u.state !== 'DEAD').length;
+      const monkCount = em.units.filter(u => u.playerId === this.playerId && u.type === 'monk' && u.state !== 'DEAD').length;
       if (monkCount < 2) {
         const cost = this.gameManager.getUnitCost('monk');
-        if (this.gameManager.hasResources(1, cost) && pop < limit) {
+        if (this.gameManager.hasResources(this.playerId, cost) && pop < limit) {
           monastery.queueUnit('monk');
         }
       }
@@ -844,7 +845,7 @@ export class EnemyAI {
       'batteringRam', 'mangonel', 'scorpion', 'bombardCannon', 'siegeTower', 'trebuchet', 'petard',
       'spearman', 'skirmisher', 'scoutCavalry', 'camelRider', 'cavalryArcher', 'monk'
     ];
-    let army = em.units.filter(u => u.playerId === 1 && militaryTypes.includes(u.type) && u.state !== 'DEAD');
+    let army = em.units.filter(u => u.playerId === this.playerId && militaryTypes.includes(u.type) && u.state !== 'DEAD');
     
     // Scale target wave size by AI difficulty
     let count = Math.min(8, 1 + Math.floor(this.waveCount * 1.2));
@@ -871,9 +872,9 @@ export class EnemyAI {
     if (army.length === 0) {
       const spawnX = this.enemyBaseBarracks ? this.enemyBaseBarracks.position.x : this.baseX;
       const spawnZ = this.enemyBaseBarracks ? this.enemyBaseBarracks.position.z - 2 : this.baseZ;
-      const e1 = em.createUnit('swordsman', 1, spawnX, spawnZ);
-      const e2 = em.createUnit('swordsman', 1, spawnX + 1, spawnZ + 1);
-      this.gameManager.players[1].population += 2;
+      const e1 = em.createUnit('swordsman', this.playerId, spawnX, spawnZ);
+      const e2 = em.createUnit('swordsman', this.playerId, spawnX + 1, spawnZ + 1);
+      this.gameManager.players[this.playerId].population += 2;
       army.push(e1, e2);
     }
     
@@ -909,7 +910,7 @@ export class EnemyAI {
         hardest: `Taktik multi-arah diaktifkan! Kepung base ${targetPlayerId === 0 ? 'biru' : 'hijau'}!`,
         extreme: `MAMPUKAH KALIAN MENAHAN TSUNAMI PASUKAN KAMI DENGAN TAKTIK ${selectedFormation.toUpperCase()}?!`
       };
-      this.gameManager.hud.addChatMessage("Lord_Kahn_Enemy", chatMsgs[difficulty] || chatMsgs.normal, 'enemy');
+      this.gameManager.hud.addChatMessage(this.playerId === 1 ? "Lord_Kahn_Enemy" : "Kaiser_Karl", chatMsgs[difficulty] || chatMsgs.normal, 'enemy');
     }
 
     // Naval Assault handling (spawns supporting warships near player TC)
@@ -921,8 +922,8 @@ export class EnemyAI {
       const wz = targetPoint.z + (Math.random() - 0.5) * 15;
       const height = this.gameManager.terrain.getGroundHeight(wx, wz);
       if (height < -0.5) {
-        em.createUnit(shipType, 1, wx, wz);
-        this.gameManager.players[1].population++;
+        em.createUnit(shipType, this.playerId, wx, wz);
+        this.gameManager.players[this.playerId].population++;
       }
     }
 
@@ -960,7 +961,7 @@ export class EnemyAI {
       
     } else {
       // Standard target selection (direct Town Center siege or Feudal rush)
-      const isFeudalRush = (this.gameManager.players[1].age === 'feudal' && this.waveCount <= 2 && (difficulty === 'hard' || difficulty === 'hardest' || difficulty === 'extreme'));
+      const isFeudalRush = (this.gameManager.players[this.playerId].age === 'feudal' && this.waveCount <= 2 && (difficulty === 'hard' || difficulty === 'hardest' || difficulty === 'extreme'));
       
       let finalTarget = targetTC || { position: targetPoint };
       if (isFeudalRush) {

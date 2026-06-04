@@ -144,11 +144,7 @@ export class GameManager {
     if (selectCiv) {
       selectCiv.addEventListener('change', (e) => {
         this.updateCivDetails(e.target.value);
-        // Sync badge
-        const badge = document.getElementById('slot-self-civ');
-        if (badge) {
-          badge.textContent = CIVILIZATIONS[e.target.value].name;
-        }
+        this.renderLobbySlots();
         // Update encyclopedia
         this.updateEncyclopedia(e.target.value);
       });
@@ -218,6 +214,19 @@ export class GameManager {
     // Run simulated multiplayer connection steps
     this.runSimulatedMatchmaking();
 
+    const selectAllies = document.getElementById('select-allies');
+    const selectEnemies = document.getElementById('select-enemies');
+
+    if (selectAllies) {
+      selectAllies.addEventListener('change', () => this.renderLobbySlots());
+    }
+    if (selectEnemies) {
+      selectEnemies.addEventListener('change', () => this.renderLobbySlots());
+    }
+
+    // Initial render of matchmaking slots
+    this.renderLobbySlots();
+
     if (btnLaunch) {
       btnLaunch.addEventListener('click', () => {
         this.launchGame();
@@ -241,6 +250,71 @@ export class GameManager {
     html += `</ul>`;
     
     detailsEl.innerHTML = html;
+  }
+
+  renderLobbySlots() {
+    const slotsGrid = document.getElementById('lobby-player-slots');
+    if (!slotsGrid) return;
+
+    const selectCiv = document.getElementById('select-civ');
+    const playerCivName = selectCiv ? CIVILIZATIONS[selectCiv.value].name : 'Inggris';
+
+    const selectAllies = document.getElementById('select-allies');
+    const selectEnemies = document.getElementById('select-enemies');
+
+    const alliesCount = selectAllies ? parseInt(selectAllies.value, 10) : 1;
+    const enemiesCount = selectEnemies ? parseInt(selectEnemies.value, 10) : 1;
+
+    let html = `
+      <div class="slot self">
+        <span class="dot blue"></span> 
+        <span>You (Player 1)</span> 
+        <span class="slot-civ-badge" id="slot-self-civ">${playerCivName}</span> 
+        <span class="ready-badge">Ready</span>
+      </div>
+    `;
+
+    if (alliesCount >= 1) {
+      html += `
+        <div class="slot">
+          <span class="dot green"></span> 
+          <span>GajahMada_35 (Ally)</span> 
+          <span class="slot-civ-badge">Jepang</span> 
+          <span id="slot-ally-status" class="ready-badge waiting">Connecting...</span>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="slot">
+        <span class="dot red"></span> 
+        <span>Lord_Kahn_Enemy (Enemy 1)</span> 
+        <span class="slot-civ-badge">Mongol</span> 
+        <span class="ready-badge">Ready</span>
+      </div>
+    `;
+
+    if (enemiesCount >= 2) {
+      html += `
+        <div class="slot">
+          <span class="dot grey" style="background:#8b5cf6;"></span> 
+          <span>Kaiser_Karl (Enemy 2)</span> 
+          <span class="slot-civ-badge">Teuton</span> 
+          <span class="ready-badge">Ready</span>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="slot">
+          <span class="dot grey"></span> 
+          <span style="color:#aaa;">Nomad_Grey (Neutral)</span> 
+          <span class="slot-civ-badge">Bizantium</span> 
+          <span class="ready-badge">Ready</span>
+        </div>
+      `;
+    }
+
+    slotsGrid.innerHTML = html;
   }
 
   updateEncyclopedia(civKey) {
@@ -375,11 +449,17 @@ export class GameManager {
     const selectAIDifficulty = document.getElementById('select-ai-difficulty');
     const selectGameSpeed = document.getElementById('select-game-speed');
     const selectMapSize = document.getElementById('select-map-size');
+    const selectAllies = document.getElementById('select-allies');
+    const selectEnemies = document.getElementById('select-enemies');
 
     this.selectedCiv = selectCiv ? selectCiv.value : 'inggris';
     this.selectedMap = selectMap ? selectMap.value : 'river';
     this.gameMode = selectMode ? selectMode.value : 'multi';
     this.graphicsQuality = selectGraphics ? selectGraphics.value : 'high';
+
+    // Dynamic allies and enemies count
+    this.alliesCount = selectAllies ? parseInt(selectAllies.value, 10) : 1;
+    this.enemiesCount = selectEnemies ? parseInt(selectEnemies.value, 10) : 1;
 
     // Advanced configs
     this.startingResourcesOption = selectResources ? selectResources.value : 'standard';
@@ -398,12 +478,31 @@ export class GameManager {
     this.gameTime = 0;
     this.fowGrid = null;
     this.controlGroups = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [] };
+    
+    // Dynamically build relations matrix
     this.relations = {
-      0: { 1: 'enemy', 2: 'ally', 3: 'neutral' },
-      1: { 0: 'enemy', 2: 'enemy', 3: 'neutral' },
-      2: { 0: 'ally', 1: 'enemy', 3: 'neutral' },
-      3: { 0: 'neutral', 1: 'neutral', 2: 'neutral' }
+      0: { 
+        1: 'enemy', 
+        2: this.alliesCount >= 1 ? 'ally' : 'neutral', 
+        3: this.enemiesCount >= 2 ? 'enemy' : 'neutral' 
+      },
+      1: { 
+        0: 'enemy', 
+        2: this.alliesCount >= 1 ? 'enemy' : 'neutral', 
+        3: this.enemiesCount >= 2 ? 'ally' : 'neutral' 
+      },
+      2: { 
+        0: this.alliesCount >= 1 ? 'ally' : 'neutral', 
+        1: 'enemy', 
+        3: this.enemiesCount >= 2 ? 'enemy' : 'neutral' 
+      },
+      3: { 
+        0: this.enemiesCount >= 2 ? 'enemy' : 'neutral', 
+        1: this.enemiesCount >= 2 ? 'ally' : 'neutral', 
+        2: (this.enemiesCount >= 2 && this.alliesCount >= 1) ? 'enemy' : 'neutral' 
+      }
     };
+
     for (let pId in this.players) {
       this.players[pId].kills = 0;
     }
@@ -440,7 +539,7 @@ export class GameManager {
     this.players[1].resources.stone = baseResources.stone * 1.5;
 
     // Apply starting resources to Ally (2)
-    if (this.gameMode === 'multi') {
+    if (this.alliesCount === 1) {
       const allyCivModifiers = CIVILIZATIONS[this.players[2].civ]?.modifiers || {};
       this.players[2].resources.wood = baseResources.wood + (allyCivModifiers.startWood || 0);
       this.players[2].resources.food = baseResources.food + (allyCivModifiers.startFood || 0);
@@ -448,11 +547,21 @@ export class GameManager {
       this.players[2].resources.stone = baseResources.stone;
     }
 
-    // Apply starting resources to Neutral (3)
-    this.players[3].resources.wood = baseResources.wood;
-    this.players[3].resources.food = baseResources.food;
-    this.players[3].resources.gold = baseResources.gold;
-    this.players[3].resources.stone = baseResources.stone;
+    // Apply starting resources to Player 3 (Neutral or Enemy 2)
+    if (this.enemiesCount === 2) {
+      const enemyCiv2Modifiers = CIVILIZATIONS['teuton']?.modifiers || {};
+      this.players[3].civ = 'teuton';
+      this.players[3].resources.wood = baseResources.wood * 1.5 + (enemyCiv2Modifiers.startWood || 0);
+      this.players[3].resources.food = baseResources.food * 1.5 + (enemyCiv2Modifiers.startFood || 0);
+      this.players[3].resources.gold = baseResources.gold * 1.5;
+      this.players[3].resources.stone = baseResources.stone * 1.5;
+    } else {
+      this.players[3].civ = 'bizantium';
+      this.players[3].resources.wood = baseResources.wood;
+      this.players[3].resources.food = baseResources.food;
+      this.players[3].resources.gold = baseResources.gold;
+      this.players[3].resources.stone = baseResources.stone;
+    }
 
     // Setup ThreeJS Engine
     this.renderer = new Renderer('game-canvas-container');
@@ -486,12 +595,21 @@ export class GameManager {
     this.spawnInitialAssets();
 
     // Setup AI factions
-    this.enemyAI = new EnemyAI(this);
+    this.enemyAI = new EnemyAI(this, 1);
+    this.enemyAI2 = null;
     
-    if (this.gameMode === 'multi') {
-      this.allyAI = new AllyAI(this);
+    if (this.enemiesCount === 2) {
+      this.enemyAI2 = new EnemyAI(this, 3);
+      this.neutralAI = null;
+    } else {
+      this.neutralAI = new NeutralAI(this);
     }
-    this.neutralAI = new NeutralAI(this);
+    
+    if (this.alliesCount === 1) {
+      this.allyAI = new AllyAI(this);
+    } else {
+      this.allyAI = null;
+    }
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock
@@ -530,7 +648,7 @@ export class GameManager {
     this.spawnStarterResources(ex, ez);
 
     // Ally spawn (Top-Left: -x, +z)
-    if (this.gameMode === 'multi') {
+    if (this.alliesCount === 1) {
       const ax = -spawnDist;
       const az = spawnDist;
       const tc2 = this.entityManager.createBuilding('townCenter', 2, ax, az, true);
@@ -542,14 +660,21 @@ export class GameManager {
       this.spawnStarterResources(ax, az);
     }
 
-    // Neutral spawn (Bottom-Right: +x, -z)
+    // Neutral / Enemy 2 spawn (Bottom-Right: +x, -z)
     const nx = spawnDist;
     const nz = -spawnDist;
     const tc3 = this.entityManager.createBuilding('townCenter', 3, nx, nz, true);
     this.gridAddBuilding(tc3);
-    this.players[3].population = 2;
-    this.entityManager.createUnit('villager', 3, nx - 4, nz + 3);
-    this.entityManager.createUnit('villager', 3, nx - 3, nz + 4);
+    if (this.enemiesCount === 2) {
+      this.players[3].population = 3;
+      this.entityManager.createUnit('villager', 3, nx - 4, nz + 3);
+      this.entityManager.createUnit('villager', 3, nx - 3, nz + 6);
+      this.entityManager.createUnit('villager', 3, nx + 3, nz + 4);
+    } else {
+      this.players[3].population = 2;
+      this.entityManager.createUnit('villager', 3, nx - 4, nz + 3);
+      this.entityManager.createUnit('villager', 3, nx - 3, nz + 4);
+    }
     this.spawnStarterResources(nx, nz);
   }
 
@@ -1749,6 +1874,9 @@ export class GameManager {
     // Update AI factions
     if (this.enemyAI) {
       this.enemyAI.update(deltaTime);
+    }
+    if (this.enemyAI2) {
+      this.enemyAI2.update(deltaTime);
     }
     if (this.allyAI) {
       this.allyAI.update(deltaTime);

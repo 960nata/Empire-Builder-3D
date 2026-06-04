@@ -239,15 +239,19 @@ export class Input {
     this.longPressTimeout = null;
     
     if (canvasContainer) {
+      this.touchStartPos = { x: 0, y: 0 };
+      this.touchHasMoved = false;
+
       canvasContainer.addEventListener('touchstart', (e) => {
         // Ignore if tapping on UI elements or using joystick
         if (this.blueprintBuilding || e.target.closest('.joystick-base') || e.target.closest('.mobile-action-buttons')) return;
         // Ignore two-finger gestures (handled by Renderer)
         if (e.touches.length > 1) return;
         
-        const now = performance.now();
-        const delay = now - this.lastTapTime;
         const touch = e.touches[0];
+        this.touchStartPos.x = touch.clientX;
+        this.touchStartPos.y = touch.clientY;
+        this.touchHasMoved = false;
         
         // Translate client position to NDC coordinates for raycasting
         this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
@@ -256,39 +260,65 @@ export class Input {
         // Long press detection (for context menu / alternate actions)
         if (this.longPressTimeout) clearTimeout(this.longPressTimeout);
         this.longPressTimeout = setTimeout(() => {
-          // Long press triggers command (like right-click)
-          this.performRightClickCommand();
+          if (!this.touchHasMoved) {
+            this.performRightClickCommand();
+            this.longPressTimeout = null;
+          }
         }, 500);
-        
-        if (delay < 320) {
-          if (this.tapTimeout) clearTimeout(this.tapTimeout);
-          if (this.longPressTimeout) clearTimeout(this.longPressTimeout);
-          // Double tap = command (right-click equivalent)
-          this.performRightClickCommand();
-        } else {
-          this.tapTimeout = setTimeout(() => {
-            if (this.mobileMultiselect) {
-              this.performSingleSelectionToggle();
-            } else {
-              this.performSingleSelection();
+      }, { passive: true });
+      
+      canvasContainer.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+          const touch = e.touches[0];
+          const dist = Math.hypot(touch.clientX - this.touchStartPos.x, touch.clientY - this.touchStartPos.y);
+          if (dist > 8) {
+            this.touchHasMoved = true;
+            if (this.longPressTimeout) {
+              clearTimeout(this.longPressTimeout);
+              this.longPressTimeout = null;
             }
-          }, 180);
+            if (this.tapTimeout) {
+              clearTimeout(this.tapTimeout);
+              this.tapTimeout = null;
+            }
+          }
         }
-        this.lastTapTime = now;
       }, { passive: true });
       
-      // Cancel long press if finger moves
-      canvasContainer.addEventListener('touchmove', () => {
+      canvasContainer.addEventListener('touchend', (e) => {
         if (this.longPressTimeout) {
           clearTimeout(this.longPressTimeout);
           this.longPressTimeout = null;
         }
-      }, { passive: true });
-      
-      canvasContainer.addEventListener('touchend', () => {
-        if (this.longPressTimeout) {
-          clearTimeout(this.longPressTimeout);
-          this.longPressTimeout = null;
+        
+        if (!this.touchHasMoved) {
+          const now = performance.now();
+          const delay = now - this.lastTapTime;
+          const touch = e.changedTouches[0];
+          if (touch) {
+            this.mouse.x = (touch.clientX / window.innerWidth) * 2 - 1;
+            this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+          }
+          
+          if (delay < 300) {
+            if (this.tapTimeout) {
+              clearTimeout(this.tapTimeout);
+              this.tapTimeout = null;
+            }
+            // Double tap = command (right-click equivalent)
+            this.performRightClickCommand();
+            this.lastTapTime = 0;
+          } else {
+            this.lastTapTime = now;
+            this.tapTimeout = setTimeout(() => {
+              if (this.mobileMultiselect) {
+                this.performSingleSelectionToggle();
+              } else {
+                this.performSingleSelection();
+              }
+              this.tapTimeout = null;
+            }, 180);
+          }
         }
       }, { passive: true });
     }

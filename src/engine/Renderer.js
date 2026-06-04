@@ -279,7 +279,7 @@ export class Renderer {
         // Single finger — track for potential panning on terrain
         this.touchState.panStart.x = e.touches[0].clientX;
         this.touchState.panStart.y = e.touches[0].clientY;
-        this.touchState.isPanning = false;
+        this.touchState.isPanning = true;
       }
     }, { passive: true });
 
@@ -309,12 +309,39 @@ export class Renderer {
         
         this.updateCameraPosition();
       }
+      else if (e.touches.length === 1 && this.touchState.isPanning) {
+        const touch = e.touches[0];
+        const dx = touch.clientX - this.touchState.panStart.x;
+        const dy = touch.clientY - this.touchState.panStart.y;
+        
+        // Convert screen drag delta to 3D camera pan vector
+        // Panning speed scales proportionally with zoom distance
+        const factor = this.cameraDistance * 0.0018;
+        const forward = new THREE.Vector3(-Math.sin(this.cameraRotation), 0, -Math.cos(this.cameraRotation)).normalize();
+        const right = new THREE.Vector3(Math.cos(this.cameraRotation), 0, -Math.sin(this.cameraRotation)).normalize();
+        
+        const moveVector = right.clone().multiplyScalar(-dx * factor).add(forward.clone().multiplyScalar(dy * factor));
+        
+        this.cameraTarget.add(moveVector);
+        
+        // Clamp camera target to map boundaries
+        const halfMap = (this.gameManager && this.gameManager.terrain) ? this.gameManager.terrain.mapSize / 2 : 175;
+        const limit = Math.max(10, halfMap - 10);
+        this.cameraTarget.x = Math.max(-limit, Math.min(limit, this.cameraTarget.x));
+        this.cameraTarget.z = Math.max(-limit, Math.min(limit, this.cameraTarget.z));
+        
+        this.updateCameraPosition();
+        
+        this.touchState.panStart.x = touch.clientX;
+        this.touchState.panStart.y = touch.clientY;
+      }
     }, { passive: true });
 
     container.addEventListener('touchend', (e) => {
       if (e.touches.length < 2) {
         this.touchState.active = false;
       }
+      this.touchState.isPanning = false;
     }, { passive: true });
   }
 
