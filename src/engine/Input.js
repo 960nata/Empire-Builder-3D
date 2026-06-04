@@ -35,6 +35,7 @@ export class Input {
     // Control group double press tracking
     this.lastGroupPressed = null;
     this.lastGroupPressTime = 0;
+    this.lastTouchTime = 0;
     
     this.setupListeners();
   }
@@ -131,6 +132,7 @@ export class Input {
     
     if (joystickBase && joystickHandle) {
       joystickBase.addEventListener('touchstart', (e) => {
+        this.lastTouchTime = performance.now();
         const touch = e.touches[0];
         const rect = joystickBase.getBoundingClientRect();
         this.joystickCenter.x = rect.left + rect.width / 2;
@@ -140,6 +142,7 @@ export class Input {
       }, { passive: false });
       
       window.addEventListener('touchmove', (e) => {
+        this.lastTouchTime = performance.now();
         if (!this.joystickActive) return;
         const touch = e.touches[0];
         
@@ -165,6 +168,7 @@ export class Input {
       }, { passive: true });
       
       window.addEventListener('touchend', (e) => {
+        this.lastTouchTime = performance.now();
         if (this.joystickActive) {
           this.joystickActive = false;
           joystickHandle.style.transform = 'translate(0px, 0px)';
@@ -243,6 +247,7 @@ export class Input {
       this.touchHasMoved = false;
 
       canvasContainer.addEventListener('touchstart', (e) => {
+        this.lastTouchTime = performance.now();
         // Ignore if tapping on UI elements or using joystick
         if (this.blueprintBuilding || e.target.closest('.joystick-base') || e.target.closest('.mobile-action-buttons')) return;
         // Ignore two-finger gestures (handled by Renderer)
@@ -268,6 +273,7 @@ export class Input {
       }, { passive: true });
       
       canvasContainer.addEventListener('touchmove', (e) => {
+        this.lastTouchTime = performance.now();
         if (e.touches.length === 1) {
           const touch = e.touches[0];
           const dist = Math.hypot(touch.clientX - this.touchStartPos.x, touch.clientY - this.touchStartPos.y);
@@ -286,6 +292,7 @@ export class Input {
       }, { passive: true });
       
       canvasContainer.addEventListener('touchend', (e) => {
+        this.lastTouchTime = performance.now();
         if (this.longPressTimeout) {
           clearTimeout(this.longPressTimeout);
           this.longPressTimeout = null;
@@ -300,7 +307,7 @@ export class Input {
             this.mouse.y = -(touch.clientY / window.innerHeight) * 2 + 1;
           }
           
-          if (delay < 250) {
+          if (delay < 300) {
             if (this.tapTimeout) {
               clearTimeout(this.tapTimeout);
               this.tapTimeout = null;
@@ -317,7 +324,7 @@ export class Input {
                 this.performSingleSelection();
               }
               this.tapTimeout = null;
-            }, 250);
+            }, 300);
           }
         }
       }, { passive: true });
@@ -354,6 +361,9 @@ export class Input {
   }
 
   onMouseDown(e) {
+    if (e.sourceCapabilities?.firesTouchEvents || (performance.now() - this.lastTouchTime < 1000)) {
+      return;
+    }
     // Ignore if clicked on UI
     if (e.target.closest('#hud') || e.target.closest('.ui-element')) {
       return;
@@ -385,6 +395,9 @@ export class Input {
   }
 
   onMouseMove(e) {
+    if (e.sourceCapabilities?.firesTouchEvents || (performance.now() - this.lastTouchTime < 1000)) {
+      return;
+    }
     // Update mouse coords for raycasting
     this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
     this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -472,6 +485,9 @@ export class Input {
   }
 
   onMouseUp(e) {
+    if (e.sourceCapabilities?.firesTouchEvents || (performance.now() - this.lastTouchTime < 1000)) {
+      return;
+    }
     if (e.button === 0 && !e.ctrlKey && this.isSelecting) {
       this.isSelecting = false;
       this.selectionBoxEl.style.display = 'none';

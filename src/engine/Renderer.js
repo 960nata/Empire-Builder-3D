@@ -276,6 +276,11 @@ export class Renderer {
         this.touchState.lastPinchAngle = this.touchState.startAngle;
       }
       else if (e.touches.length === 1) {
+        // Ignore if touch starts on UI element or mobile buttons
+        if (e.target.closest('#hud') || e.target.closest('.mobile-action-buttons') || e.target.closest('.ui-element')) {
+          this.touchState.isPanning = false;
+          return;
+        }
         // Single finger — track for potential panning on terrain
         this.touchState.panStart.x = e.touches[0].clientX;
         this.touchState.panStart.y = e.touches[0].clientY;
@@ -320,7 +325,7 @@ export class Renderer {
         const forward = new THREE.Vector3(-Math.sin(this.cameraRotation), 0, -Math.cos(this.cameraRotation)).normalize();
         const right = new THREE.Vector3(Math.cos(this.cameraRotation), 0, -Math.sin(this.cameraRotation)).normalize();
         
-        const moveVector = right.clone().multiplyScalar(-dx * factor).add(forward.clone().multiplyScalar(dy * factor));
+        const moveVector = right.clone().multiplyScalar(-dx * factor).add(forward.clone().multiplyScalar(-dy * factor));
         
         this.cameraTarget.add(moveVector);
         
