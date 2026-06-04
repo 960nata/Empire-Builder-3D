@@ -817,6 +817,9 @@ canvas {
   background-repeat: no-repeat;
   background-position: right 15px center;
   padding-right: 40px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .lobby-select:focus, .lobby-select:hover {
@@ -1017,6 +1020,12 @@ canvas {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px;
   margin-bottom: 15px;
+}
+
+.matchmaking-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .slot {
@@ -2409,6 +2418,9 @@ canvas {
     padding: 8px 12px !important;
     font-size: 0.78rem !important;
     margin-bottom: 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   .civ-info-box {
@@ -2485,6 +2497,11 @@ canvas {
   }
   
   .player-slots-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  
+  .matchmaking-slots {
     grid-template-columns: 1fr !important;
     gap: 6px !important;
   }
