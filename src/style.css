@@ -67,7 +67,7 @@ canvas {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 18px;
+  padding: 0;
 }
 
 /* UI ELEMENTS (react to clicks) */
@@ -90,17 +90,21 @@ canvas {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: calc(100% - 36px);
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 10px 20px;
-  background: rgba(18, 25, 35, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 12px var(--glass-glow);
-  border-radius: 14px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 10px 24px;
+  background: rgba(18, 25, 35, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1.5px solid var(--glass-border);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 0;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .top-controls-wrapper {
@@ -115,6 +119,7 @@ canvas {
   letter-spacing: 2px;
   background: linear-gradient(45deg, var(--text-primary), var(--accent-blue));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 2px 10px rgba(0, 162, 255, 0.2);
 }
@@ -238,7 +243,8 @@ canvas {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  width: 100%;
+  width: calc(100% - 36px);
+  margin: 0 auto 18px auto;
   gap: 14px;
 }
 
@@ -1230,7 +1236,8 @@ canvas {
     grid-template-columns: 1fr auto !important;
     grid-template-rows: auto auto !important;
     gap: 8px !important;
-    width: 100% !important;
+    width: calc(100% - 16px) !important;
+    margin: 0 auto 8px auto !important;
     align-items: end !important;
   }
 
@@ -1378,7 +1385,8 @@ canvas {
     justify-content: space-between !important;
     align-items: flex-end !important;
     gap: 8px !important;
-    width: 100% !important;
+    width: calc(100% - 16px) !important;
+    margin: 0 auto 6px auto !important;
   }
 
   .unit-info-panel {
@@ -1940,6 +1948,9 @@ canvas {
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   color: #ffd700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Clickable attacked alert styling */
@@ -2279,4 +2290,180 @@ canvas {
   height: 12px;
   vertical-align: middle;
   color: inherit;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE LOBBY
+   ========================================================================== */
+@media (max-width: 768px) {
+  .lobby-overlay {
+    padding: 8px !important;
+    align-items: flex-start !important;
+  }
+  
+  .lobby-box {
+    padding: 16px 14px !important;
+    max-width: 100% !important;
+    border-radius: 12px !important;
+    margin-top: 10px !important;
+  }
+  
+  .lobby-title {
+    font-size: 1.6rem !important;
+    letter-spacing: 3px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .lobby-subtitle {
+    font-size: 0.65rem !important;
+    letter-spacing: 2px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .lobby-tabs {
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    margin-bottom: 16px !important;
+    padding-bottom: 6px !important;
+    border-bottom-width: 1px !important;
+  }
+  
+  .tab-btn {
+    font-size: 0.72rem !important;
+    padding: 6px 10px !important;
+  }
+  
+  .setup-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  .lobby-select {
+    padding: 8px 12px !important;
+    font-size: 0.78rem !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .civ-info-box {
+    min-height: 80px !important;
+    padding: 8px 12px !important;
+    font-size: 0.72rem !important;
+  }
+  
+  .launch-btn {
+    padding: 10px 18px !important;
+    font-size: 0.85rem !important;
+    margin-top: 10px !important;
+  }
+  
+  .academy-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .academy-section h4 {
+    font-size: 0.82rem !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .academy-table {
+    font-size: 0.72rem !important;
+  }
+  
+  .academy-table th, .academy-table td {
+    padding: 6px 8px !important;
+  }
+  
+  .academy-list {
+    font-size: 0.72rem !important;
+  }
+  
+  .encyclopedia-container {
+    padding: 12px 16px !important;
+  }
+  
+  #encyclopedia-title {
+    font-size: 1.1rem !important;
+  }
+  
+  #encyclopedia-description {
+    font-size: 0.78rem !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .encyclopedia-stats {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  
+  .stat-card {
+    padding: 8px !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    text-align: left !important;
+  }
+  
+  .stat-icon {
+    font-size: 1.3rem !important;
+    margin-bottom: 0 !important;
+  }
+  
+  .stat-name {
+    font-size: 0.62rem !important;
+  }
+  
+  .stat-value {
+    font-size: 0.75rem !important;
+  }
+  
+  .player-slots-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  
+  .slot {
+    padding: 6px 10px !important;
+    font-size: 0.72rem !important;
+  }
+  
+  .lobby-chat-container {
+    height: 60px !important;
+    padding: 6px 10px !important;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .lobby-overlay {
+    align-items: flex-start !important;
+    padding: 10px !important;
+  }
+  
+  .lobby-box {
+    padding: 16px 20px !important;
+    margin-top: 10px !important;
+    max-width: 100% !important;
+  }
+  
+  .lobby-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .lobby-subtitle {
+    margin-bottom: 8px !important;
+  }
+  
+  .lobby-tabs {
+    margin-bottom: 10px !important;
+  }
+  
+  .setup-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .civ-info-box {
+    min-height: 60px !important;
+  }
 }

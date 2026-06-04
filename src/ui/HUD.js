@@ -72,7 +72,7 @@ export class HUD {
         
         <!-- CENTER: AGE & CIV PANEL -->
         <div class="hud-age-civ" id="hud-age-civ">
-          <span class="age-civ-emblem" id="age-civ-emblem">🏰</span>
+          <span class="age-civ-emblem" id="age-civ-emblem">${SVGIcons.inggris}</span>
           <div class="age-civ-text">
             <span class="age-civ-title" id="age-civ-title">Zaman Gelap</span>
             <span class="age-civ-subtitle" id="age-civ-subtitle">Inggris</span>
@@ -82,13 +82,22 @@ export class HUD {
         <!-- RIGHT: TIMER, SCORE & CONTROLS -->
         <div class="top-controls-wrapper">
           <div class="timer-score-group">
-            <div class="timer-item" id="timer-display" title="Game Time">⏳ 00:00</div>
-            <div class="score-item" id="score-display" title="Player Score">⭐ Score: 0</div>
-            <div class="wonder-item" id="wonder-countdown-display" style="display: none; background: #9a3412; color: #ffedd5; border: 1px solid #ea580c; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.8rem; margin-left: 6px;" title="Wonder Victory Countdown">🏛️ Wonder: 300s</div>
+            <div class="timer-item" id="timer-display" title="Game Time" style="display: flex; align-items: center; gap: 6px;">
+              <span class="icon" style="display: flex; align-items: center;">${SVGIcons.timer}</span>
+              <span id="timer-value">00:00</span>
+            </div>
+            <div class="score-item" id="score-display" title="Player Score" style="display: flex; align-items: center; gap: 6px;">
+              <span class="icon" style="display: flex; align-items: center;">${SVGIcons.score}</span>
+              <span id="score-value">Score: 0</span>
+            </div>
+            <div class="wonder-item" id="wonder-countdown-display" style="display: none; background: #9a3412; color: #ffedd5; border: 1px solid #ea580c; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.8rem; margin-left: 6px; align-items: center; gap: 6px;" title="Wonder Victory Countdown">
+              <span class="icon" style="display: flex; align-items: center;">${SVGIcons.wonder}</span>
+              <span id="wonder-countdown-value">Wonder: 300s</span>
+            </div>
           </div>
           <div class="top-controls">
-            <button id="btn-diplomacy" class="hud-btn small-btn" style="background:#5b21b6; border-color:#7c3aed;" title="Diplomacy & Tributes">🤝 Diplomasi</button>
-            <button id="btn-mute" class="hud-btn small-btn" title="Toggle Sound">🔊 Sound</button>
+            <button id="btn-diplomacy" class="hud-btn small-btn" style="background:#5b21b6; border-color:#7c3aed; display: flex; align-items: center; gap: 4px;" title="Diplomacy & Tributes">${SVGIcons.diplomacy} Diplomasi</button>
+            <button id="btn-mute" class="hud-btn small-btn" style="display: flex; align-items: center; gap: 4px;" title="Toggle Sound">${SVGIcons.soundOn} Sound</button>
             <button id="btn-restart" class="hud-btn small-btn warning-btn">Restart</button>
           </div>
         </div>
@@ -232,8 +241,11 @@ export class HUD {
     // Mute button
     document.getElementById('btn-mute').addEventListener('click', (e) => {
       const isSoundOn = this.gameManager.soundManager.toggleSound();
-      e.target.textContent = isSoundOn ? '🔊 Sound' : '🔇 Mute';
-      e.target.classList.toggle('muted', !isSoundOn);
+      const muteBtn = document.getElementById('btn-mute');
+      if (muteBtn) {
+        muteBtn.innerHTML = isSoundOn ? `${SVGIcons.soundOn} Sound` : `${SVGIcons.soundOff} Mute`;
+        muteBtn.classList.toggle('muted', !isSoundOn);
+      }
     });
 
     // Restart button
@@ -507,25 +519,25 @@ export class HUD {
       if (entity.attackPower !== undefined) {
         infoHtml += `
           <div class="entity-stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:0.75rem; margin-top:4px; opacity:0.9;">
-            <div>⚔️ Attack: ${entity.attackPower}</div>
-            <div>🛡️ Armor: ${entity.armor}</div>
-            <div>🎯 Range: ${entity.attackRange}</div>
-            <div>⚡ Speed: ${(entity.speed || 0).toFixed(1)}</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.sword}</span> Attack: ${entity.attackPower}</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.shield}</span> Armor: ${entity.armor}</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.range}</span> Range: ${entity.attackRange}</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.speed}</span> Speed: ${(entity.speed || 0).toFixed(1)}</div>
           </div>
         `;
       } else if (entity.type === 'siegeTower') {
         infoHtml += `
           <div class="entity-stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:0.75rem; margin-top:4px; opacity:0.9;">
-            <div>🛡️ Armor: ${entity.armor || 0}</div>
-            <div>⚡ Speed: ${(entity.speed || 0).toFixed(1)}</div>
-            <div style="grid-column: span 2; color:#ffd700;">✨ Aura: +3 Armor to nearby infantry</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.shield}</span> Armor: ${entity.armor || 0}</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.speed}</span> Speed: ${(entity.speed || 0).toFixed(1)}</div>
+            <div style="grid-column: span 2; color:#ffd700; display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.aura}</span> Aura: +3 Armor to nearby infantry</div>
           </div>
         `;
       } else if (entity.type === 'watchTower' && entity.isCompleted) {
         infoHtml += `
           <div class="entity-stats-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:0.75rem; margin-top:4px; opacity:0.9;">
-            <div>⚔️ Attack: 10</div>
-            <div>🎯 Range: 18</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.sword}</span> Attack: 10</div>
+            <div style="display: flex; align-items: center; gap: 4px;"><span class="btn-icon-res">${SVGIcons.range}</span> Range: 18</div>
           </div>
         `;
       }
@@ -641,7 +653,7 @@ export class HUD {
 
           actionButtonsHtml = `
             <button class="action-btn" id="btn-train-villager" title="Train Villager (50 Food)">${SVGIcons.villager} Train Villager (50F)</button>
-            <button class="action-btn" id="btn-ring-bell" title="Ring Town Bell to Garrison Villagers">🔔 Town Bell</button>
+            <button class="action-btn" id="btn-ring-bell" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;" title="Ring Town Bell to Garrison Villagers"><span class="btn-icon-res">${SVGIcons.bell}</span> Town Bell</button>
             ${garrisonedCount > 0 ? `<button class="action-btn" id="btn-ungarrison-all" title="Ungarrison all units">Ungarrison All</button>` : ''}
             ${ageUpBtnHtml}
             ${techButtons}
@@ -2018,38 +2030,39 @@ export class HUD {
       this.updateFloatingTexts(delta);
       
       // Update Timer
-      const timerEl = document.getElementById('timer-display');
+      const timerEl = document.getElementById('timer-value');
       if (timerEl) {
         const t = Math.floor(this.gameManager.gameTime || 0);
         const m = Math.floor(t / 60).toString().padStart(2, '0');
         const s = (t % 60).toString().padStart(2, '0');
-        timerEl.textContent = `⏳ ${m}:${s}`;
+        timerEl.textContent = `${m}:${s}`;
       }
       
       // Update Score
-      const scoreEl = document.getElementById('score-display');
+      const scoreEl = document.getElementById('score-value');
       if (scoreEl) {
         const score = this.gameManager.calculatePlayerScore(0);
-        scoreEl.textContent = `⭐ Score: ${score}`;
+        scoreEl.textContent = `Score: ${score}`;
       }
 
       // Update Wonder Countdown
-      const wonderEl = document.getElementById('wonder-countdown-display');
-      if (wonderEl) {
+      const wonderDisplayEl = document.getElementById('wonder-countdown-display');
+      const wonderEl = document.getElementById('wonder-countdown-value');
+      if (wonderDisplayEl && wonderEl) {
         if (this.gameManager.wonderCountdown !== null && this.gameManager.wonderCountdown !== undefined) {
           const w = Math.ceil(this.gameManager.wonderCountdown);
           const owner = this.gameManager.wonderOwnerId === 0 ? "Sekutu/Anda" : "Musuh";
-          wonderEl.textContent = `🏛️ Wonder (${owner}): ${w}s`;
-          wonderEl.style.display = 'block';
+          wonderEl.textContent = `Wonder (${owner}): ${w}s`;
+          wonderDisplayEl.style.display = 'flex';
           if (w < 60) {
-            wonderEl.style.color = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ffedd5';
-            wonderEl.style.borderColor = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ea580c';
+            wonderDisplayEl.style.color = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ffedd5';
+            wonderDisplayEl.style.borderColor = (Math.floor(Date.now() / 500) % 2 === 0) ? '#ef4444' : '#ea580c';
           } else {
-            wonderEl.style.color = '#ffedd5';
-            wonderEl.style.borderColor = '#ea580c';
+            wonderDisplayEl.style.color = '#ffedd5';
+            wonderDisplayEl.style.borderColor = '#ea580c';
           }
         } else {
-          wonderEl.style.display = 'none';
+          wonderDisplayEl.style.display = 'none';
         }
       }
       
