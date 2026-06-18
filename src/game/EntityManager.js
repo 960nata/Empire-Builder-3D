@@ -96,17 +96,20 @@ export class EntityManager {
   }
 
   updateSpatialGrid() {
-    this.spatialGrid = {};
+    // Clear existing keys in-place to avoid allocating a new object every frame
+    const grid = this.spatialGrid;
+    for (const key in grid) {
+      grid[key].length = 0;
+    }
     for (let i = 0; i < this.units.length; i++) {
       const u = this.units[i];
       if (!u.mesh) continue;
-      const gx = Math.floor(u.position.x / this.cellSize);
-      const gz = Math.floor(u.position.z / this.cellSize);
-      const key = `${gx},${gz}`;
-      if (!this.spatialGrid[key]) {
-        this.spatialGrid[key] = [];
+      const key = `${Math.floor(u.position.x / this.cellSize)},${Math.floor(u.position.z / this.cellSize)}`;
+      if (grid[key]) {
+        grid[key].push(u);
+      } else {
+        grid[key] = [u];
       }
-      this.spatialGrid[key].push(u);
     }
   }
 

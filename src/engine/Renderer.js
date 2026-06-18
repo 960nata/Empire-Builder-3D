@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export class Renderer {
   constructor(containerId) {
@@ -51,128 +55,151 @@ export class Renderer {
   init() {
     // Create Scene
     this.scene = new THREE.Scene();
-    
-    // Deep slate-black void background and linear fog fading to black at map edges
-    this.scene.background = new THREE.Color(0x05070a);
-    this.scene.fog = new THREE.Fog(0x05070a, 70, 150);
+
+    // Rich deep-sky atmosphere — exponential fog gives natural depth falloff
+    this.scene.background = new THREE.Color(0x0a0e16);
+    this.scene.fog = new THREE.FogExp2(0x0a0e16, 0.0028);
 
     // Create Camera
     this.camera = new THREE.PerspectiveCamera(
       45,
       window.innerWidth / window.innerHeight,
-      1,
-      1000
+      0.5,
+      1200
     );
     this.updateCameraPosition();
 
-    // Create Renderer with enhanced quality
-    this.webGLRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    // Renderer — HDR-ready, high pixel ratio for crisp retina output
+    this.webGLRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     this.webGLRenderer.setSize(window.innerWidth, window.innerHeight);
-    this.webGLRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.webGLRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
     this.webGLRenderer.shadowMap.enabled = true;
     this.webGLRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.webGLRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.webGLRenderer.toneMappingExposure = 1.05;
-    
+    this.webGLRenderer.toneMappingExposure = 1.18;
+    this.webGLRenderer.outputColorSpace = THREE.SRGBColorSpace;
+
     this.container.appendChild(this.webGLRenderer.domElement);
+
+    // ─── Post-processing: Bloom ───────────────────────────────────────
+    this.composer = new EffectComposer(this.webGLRenderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.55,  // strength — punchy glow without washing out
+      0.45,  // radius  — tight bloom keeps details sharp
+      0.78   // threshold — fires on bright speculars & emissives
+    );
+    this.composer.addPass(this.bloomPass);
+    this.composer.addPass(new OutputPass());
   }
 
   updateFogForMapSize(mapSize) {
     if (this.scene && this.scene.fog) {
-      this.scene.fog.near = Math.max(70, mapSize * 0.25);
-      this.scene.fog.far = Math.max(150, mapSize * 0.65);
+      // FogExp2: higher density = thicker fog. Scale with map so larger maps stay clear.
+      this.scene.fog.density = Math.max(0.0012, 0.0028 - mapSize * 0.000006);
     }
   }
 
   setupLights() {
-    // Ambient light: Soft warm fill
-    const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.25);
+    // Ambient — warm candlelight base fill
+    const ambientLight = new THREE.AmbientLight(0xffe8c8, 0.30);
     this.scene.add(ambientLight);
 
-    // Sun light (Directional Light) — warm golden hour feel
-    this.sunLight = new THREE.DirectionalLight(0xfff2db, 1.65);
+    // Primary sun — rich amber-gold late-afternoon angle
+    this.sunLight = new THREE.DirectionalLight(0xffcc77, 2.1);
     this.sunLight.position.set(40, 75, 20);
     this.sunLight.castShadow = true;
-    
-    // Enhanced shadow mapping
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
-    this.sunLight.shadow.camera.near = 0.5;
-    this.sunLight.shadow.camera.far = 250;
-    
-    const d = 75; // Larger shadow shadow coverage
-    this.sunLight.shadow.camera.left = -d;
-    this.sunLight.shadow.camera.right = d;
-    this.sunLight.shadow.camera.top = d;
-    this.sunLight.shadow.camera.bottom = -d;
-    this.sunLight.shadow.bias = -0.0003;
-    this.sunLight.shadow.normalBias = 0.02;
 
+    // 4096×4096 shadow map — ultra-crisp shadows on all units and buildings
+    this.sunLight.shadow.mapSize.width  = 4096;
+    this.sunLight.shadow.mapSize.height = 4096;
+    this.sunLight.shadow.camera.near = 0.5;
+    this.sunLight.shadow.camera.far  = 280;
+    const d = 80;
+    this.sunLight.shadow.camera.left   = -d;
+    this.sunLight.shadow.camera.right  =  d;
+    this.sunLight.shadow.camera.top    =  d;
+    this.sunLight.shadow.camera.bottom = -d;
+    this.sunLight.shadow.bias       = -0.0002;
+    this.sunLight.shadow.normalBias =  0.02;
     this.scene.add(this.sunLight);
-    
-    // Hemisphere light — sky blue top, deep forest green ground for beautiful PBR fill
-    this.hemiLight = new THREE.HemisphereLight(0xdce8f5, 0x2b3826, 0.55);
-    this.hemiLight.position.set(0, 50, 0);
+
+    // Hemisphere — vivid cinematic sky gradient: deep indigo sky / rich forest floor
+    this.hemiLight = new THREE.HemisphereLight(0x90b8e8, 0x223318, 0.75);
+    this.hemiLight.position.set(0, 60, 0);
     this.scene.add(this.hemiLight);
-    
-    // Secondary backlight to bounce light and highlight unit silhouettes
-    const backLight = new THREE.DirectionalLight(0xc4d8f0, 0.45);
-    backLight.position.set(-40, 30, -40);
-    this.scene.add(backLight);
-    
-    // Rim light for extra visual pop
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
-    rimLight.position.set(0, 10, 45);
+
+    // Cool fill light — simulates skylight bounce from the side
+    const fillLight = new THREE.DirectionalLight(0xa0c8f0, 0.55);
+    fillLight.position.set(-50, 35, -30);
+    this.scene.add(fillLight);
+
+    // Warm rim/backlight — gives depth pop to unit silhouettes
+    const rimLight = new THREE.DirectionalLight(0xff9955, 0.35);
+    rimLight.position.set(0, 12, 50);
     this.scene.add(rimLight);
   }
 
   spawnClouds() {
     this.clouds = [];
-    const cloudCount = 12;
-    
-    const cloudMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.95,
+
+    // Two cloud materials — sunlit bright tops and softer grey undersides
+    const cloudMatTop = new THREE.MeshStandardMaterial({
+      color: 0xfff8f0,
+      emissive: 0xffe0a0,
+      emissiveIntensity: 0.08, // subtle warm glow — triggers bloom on highlights
+      roughness: 0.98,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.82,
+      flatShading: true
+    });
+    const cloudMatBottom = new THREE.MeshStandardMaterial({
+      color: 0xc8d4e0,
+      roughness: 1.0,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.65,
       flatShading: true
     });
 
     const halfMap = (this.gameManager && this.gameManager.terrain) ? this.gameManager.terrain.mapSize / 2 : 175;
-    
+    const cloudCount = 20;
+
     for (let i = 0; i < cloudCount; i++) {
       const cloudGroup = new THREE.Group();
-      
-      const sphereCount = 4 + Math.floor(Math.random() * 4);
+      const sphereCount = 5 + Math.floor(Math.random() * 5);
+
       for (let j = 0; j < sphereCount; j++) {
-        const radius = 2.0 + Math.random() * 2.5;
-        const sphereGeom = new THREE.SphereGeometry(radius, 7, 7);
-        const sphere = new THREE.Mesh(sphereGeom, cloudMaterial);
-        
+        const radius = 1.8 + Math.random() * 3.0;
+        const sphereGeom = new THREE.SphereGeometry(radius, 8, 6);
+        // Top spheres get bright sunlit material, bottom get grey underside
+        const mat = j < Math.ceil(sphereCount * 0.6) ? cloudMatTop : cloudMatBottom;
+        const sphere = new THREE.Mesh(sphereGeom, mat);
         sphere.position.set(
-          (Math.random() - 0.5) * 4.5,
-          (Math.random() - 0.5) * 1.5,
-          (Math.random() - 0.5) * 4.5
+          (Math.random() - 0.5) * 6.0,
+          (Math.random() - 0.5) * 2.2 + (j < Math.ceil(sphereCount * 0.6) ? 0.5 : -0.5),
+          (Math.random() - 0.5) * 6.0
         );
-        sphere.scale.set(1.2, 0.7, 1.2);
-        sphere.castShadow = true;
+        sphere.scale.set(1.3, 0.65, 1.3);
+        sphere.castShadow = false;
         cloudGroup.add(sphere);
       }
-      
-      const x = (Math.random() - 0.5) * halfMap * 1.8;
-      const y = 14 + Math.random() * 5;
-      const z = (Math.random() - 0.5) * halfMap * 1.8;
-      
+
+      const x = (Math.random() - 0.5) * halfMap * 2.0;
+      const y = 13 + Math.random() * 7;
+      const z = (Math.random() - 0.5) * halfMap * 2.0;
       cloudGroup.position.set(x, y, z);
-      
       cloudGroup.userData = {
-        speed: 0.8 + Math.random() * 1.5,
+        speed: 0.6 + Math.random() * 1.8,
         directionX: 1.0,
-        directionZ: 0.2 + (Math.random() - 0.5) * 0.4,
-        driftScale: 0.05 + Math.random() * 0.05
+        directionZ: 0.15 + (Math.random() - 0.5) * 0.5,
+        driftScale: 0.04 + Math.random() * 0.06,
+        driftOffset: Math.random() * Math.PI * 2
       };
-      
+
       this.scene.add(cloudGroup);
       this.clouds.push(cloudGroup);
     }
@@ -388,7 +415,7 @@ export class Renderer {
         
         cloud.position.x += ud.directionX * ud.speed * deltaTime;
         cloud.position.z += ud.directionZ * ud.speed * deltaTime;
-        cloud.position.y += Math.sin(performance.now() * 0.001 * ud.driftScale) * 0.002;
+        cloud.position.y += Math.sin(performance.now() * 0.0008 * ud.driftScale + ud.driftOffset) * 0.003;
         
         if (cloud.position.x > boundary) {
           cloud.position.x = -boundary;
@@ -446,12 +473,16 @@ export class Renderer {
   }
 
   render() {
-    this.webGLRenderer.render(this.scene, this.camera);
+    this.composer.render();
   }
 
   onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
-    this.webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+    this.webGLRenderer.setSize(w, h);
+    this.composer.setSize(w, h);
+    if (this.bloomPass) this.bloomPass.setSize(w, h);
   }
 }

@@ -31,7 +31,14 @@ export class HUD {
     
     this.initDOM();
     this.setupListeners();
-    
+
+    // Cache resource DOM refs so updateResourcesUI never queries the DOM
+    this._elFood = document.getElementById('res-food');
+    this._elWood = document.getElementById('res-wood');
+    this._elGold = document.getElementById('res-gold');
+    this._elStone = document.getElementById('res-stone');
+    this._elPop = document.getElementById('res-pop');
+
     // Start minimap rendering loop
     this.lastMinimapUpdate = 0;
     this.updateLoop();
@@ -487,12 +494,12 @@ export class HUD {
   // HUD UI STATE UPDATES
   // -------------------------------------------------------------
   updateResourcesUI() {
-    const playerState = this.gameManager.players[0];
-    document.getElementById('res-food').textContent = playerState.resources.food;
-    document.getElementById('res-wood').textContent = playerState.resources.wood;
-    document.getElementById('res-gold').textContent = playerState.resources.gold;
-    document.getElementById('res-stone').textContent = playerState.resources.stone;
-    document.getElementById('res-pop').textContent = `${playerState.population}/${playerState.populationLimit}`;
+    const r = this.gameManager.players[0];
+    if (this._elFood) this._elFood.textContent = r.resources.food;
+    if (this._elWood) this._elWood.textContent = r.resources.wood;
+    if (this._elGold) this._elGold.textContent = r.resources.gold;
+    if (this._elStone) this._elStone.textContent = r.resources.stone;
+    if (this._elPop) this._elPop.textContent = `${r.population}/${r.populationLimit}`;
   }
 
   updateSelectionUI() {

@@ -218,8 +218,9 @@ export class Terrain {
 
     const material = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.88,
-      metalness: 0.04,
+      roughness: 0.78,  // slightly less rough — picks up more light variation
+      metalness: 0.06,
+      envMapIntensity: 0.4,
       flatShading: false
     });
 
@@ -411,28 +412,30 @@ export class Terrain {
           float hf = clamp((vWaveHeight+0.25)*2., 0., 1.);
           waterColor += vec3(0.02,0.05,0.06)*hf*(1.-depthT);
 
-          // ── Caustics shimmer (only in shallower water) ──
-          float cVal = caustic(vWorldPos.xz * 0.06);
-          waterColor += vec3(0.03,0.08,0.10) * cVal * (1.-depthT) * 1.4;
-
-          // ── Sun specular ──
+          // ── Sun specular — tight hotspot + wide glint (both exceed threshold → bloom) ──
           vec3 halfV = normalize(uSunDir + viewDir);
           float sp = max(dot(pNormal, halfV), 0.);
-          waterColor += uSpecularColor * (pow(sp,128.)*1.3 + pow(sp,16.)*.18);
+          float spHot  = pow(sp, 192.) * 2.2;  // ultra-tight brilliant highlight
+          float spWide = pow(sp, 20.)  * 0.25; // broad shimmer across the surface
+          waterColor += uSpecularColor * (spHot + spWide);
+
+          // ── Caustics shimmer boost (brighter for bloom pickup) ──
+          float cVal = caustic(vWorldPos.xz * 0.06);
+          waterColor += vec3(0.04,0.10,0.13) * cVal * (1.-depthT) * 1.8;
 
           // ── Whitecaps ──
           float foam = smoothstep(0.26, 0.42, vWaveHeight)
                      * smoothstep(0.3, 0.6, noiseF(vWorldPos.xz*.8+uTime*.3));
-          waterColor = mix(waterColor, uFoamColor, foam*0.78);
+          waterColor = mix(waterColor, uFoamColor * 1.1, foam * 0.82);
 
           // ── Shore foam: bright frothy line at depth 0.0 → 0.6 ──
           float shoreFoam = (1.-smoothstep(0.0, 0.6, vDepth))
                           * smoothstep(0.35,0.65, noiseF(vWorldPos.xz*.45+uTime*vec2(.5,.2)));
-          waterColor = mix(waterColor, uFoamColor*0.92, shoreFoam*0.7);
+          waterColor = mix(waterColor, uFoamColor, shoreFoam * 0.78);
 
-          // ── Sky reflection ──
-          vec3 sky = mix(vec3(0.14,0.22,0.42), vec3(0.48,0.68,0.88), max(pNormal.y,0.));
-          waterColor = mix(waterColor, sky, fresnel*0.38);
+          // ── Sky reflection — richer blue sky palette ──
+          vec3 sky = mix(vec3(0.10,0.18,0.45), vec3(0.52,0.72,0.95), max(pNormal.y,0.));
+          waterColor = mix(waterColor, sky, fresnel * 0.42);
 
           // ── Alpha: opaque in deep, transparent at shore ──
           // Smooth power curve for gradual transparency near the shore edges

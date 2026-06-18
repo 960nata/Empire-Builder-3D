@@ -128,6 +128,11 @@ export class GameManager {
     this.clock = new THREE.Clock();
     this.gameTime = 0;
     this.gameActive = false; // Set to true after lobby start
+
+    // VFX pools — updated in main animate loop instead of one RAF per effect
+    this._activeParticleGroups = [];
+    this._activeProjectiles = [];
+    this._boundAnimate = null;
   }
 
   start() {
@@ -2130,9 +2135,10 @@ export class GameManager {
   // -------------------------------------------------------------
   animate() {
     if (!this.gameActive) return;
-    
-    requestAnimationFrame(this.animate.bind(this));
-    
+
+    if (!this._boundAnimate) this._boundAnimate = this.animate.bind(this);
+    requestAnimationFrame(this._boundAnimate);
+
     const baseDeltaTime = Math.min(0.1, this.clock.getDelta()); // clamp spike deltas
     const deltaTime = baseDeltaTime * this.gameSpeedMultiplier;
     
@@ -2205,6 +2211,9 @@ export class GameManager {
       }
     }
     
+    // Tick VFX (particles & projectiles) in one batch instead of per-effect RAF
+    this._updateActiveEffects(baseDeltaTime);
+
     // Render 3D Canvas
     this.renderer.render();
   }
@@ -2258,7 +2267,8 @@ export class GameManager {
 
   gameOver(isVictory) {
     this.gameActive = false;
-    
+    this._clearActiveEffects();
+
     if (isVictory) {
       this.soundManager.playVictoryTheme();
       this.hud.showGameOverScreen(true);
@@ -2294,6 +2304,7 @@ export class GameManager {
     this.wonderCountdown = null;
     this.wonderOwnerId = null;
     this.gameActive = false;
+    this._clearActiveEffects();
     this.entityManager.clearAll();
     this.gridMap = {};
     
@@ -2624,57 +2635,32 @@ export class GameManager {
 
   // -------------------------------------------------------------
   // DYNAMIC ACTION VFX & PROJECTILES
+  // All effects are registered in pools and ticked once per frame
+  // in _updateActiveEffects() — no separate RAF per effect.
   // -------------------------------------------------------------
   spawnParticles(position, color, count = 6, size = 0.12) {
     const particleGroup = new THREE.Group();
     const geom = new THREE.DodecahedronGeometry(size);
-    const mat = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.9 });
-    
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
+
     const particles = [];
     for (let i = 0; i < count; i++) {
       const p = new THREE.Mesh(geom, mat);
       p.position.copy(position);
-      // Offset slightly to chest height
       p.position.y += 0.4 + Math.random() * 0.3;
-      
       const angle = Math.random() * Math.PI * 2;
       const speed = 2.0 + Math.random() * 3.0;
-      p.userData = {
-        velocity: new THREE.Vector3(
-          Math.cos(angle) * speed * 0.5,
-          4.0 + Math.random() * 4.0, // strong upward pop
-          Math.sin(angle) * speed * 0.5
-        ),
-        gravity: -9.8
-      };
+      p.userData.velocity = new THREE.Vector3(
+        Math.cos(angle) * speed * 0.5,
+        4.0 + Math.random() * 4.0,
+        Math.sin(angle) * speed * 0.5
+      );
       particleGroup.add(p);
       particles.push(p);
     }
-    
+
     this.renderer.scene.add(particleGroup);
-    
-    const startTime = performance.now();
-    
-    const animate = () => {
-      const elapsed = (performance.now() - startTime) / 1000;
-      if (elapsed > 0.6 || !this.gameActive) {
-        this.renderer.scene.remove(particleGroup);
-        geom.dispose();
-        mat.dispose();
-        return;
-      }
-      
-      const dt = 0.016; // approx 60fps frame delta
-      particles.forEach(p => {
-        p.position.addScaledVector(p.userData.velocity, dt);
-        p.userData.velocity.y += p.userData.gravity * dt;
-        p.material.opacity = 1.0 - (elapsed / 0.6);
-        p.scale.multiplyScalar(0.96);
-      });
-      
-      requestAnimationFrame(animate);
-    };
-    animate();
+    this._activeParticleGroups.push({ group: particleGroup, geom, mat, particles, elapsed: 0 });
   }
 
   spawnArrow(fromPos, toPos) {
@@ -2682,52 +2668,19 @@ export class GameManager {
     arrowGeom.rotateX(Math.PI / 2);
     const arrowMat = new THREE.MeshBasicMaterial({ color: 0x966f33 });
     const arrow = new THREE.Mesh(arrowGeom, arrowMat);
-    
+
     const startPos = fromPos.clone();
-    startPos.y += 0.8; // archer hand level
+    startPos.y += 0.8;
     arrow.position.copy(startPos);
-    
+
     const target = toPos.clone();
-    target.y += 0.5; // hit chest area
-    
+    target.y += 0.5;
     arrow.lookAt(target.x, target.y, target.z);
     this.renderer.scene.add(arrow);
-    
-    const speed = 25.0; // units per second
-    const duration = startPos.distanceTo(target) / speed;
-    const startTime = performance.now();
-    
-    const animate = () => {
-      if (!this.gameActive) {
-        this.renderer.scene.remove(arrow);
-        arrowGeom.dispose();
-        arrowMat.dispose();
-        return;
-      }
-      
-      const elapsed = (performance.now() - startTime) / 1000;
-      const t = Math.min(1.0, elapsed / duration);
-      
-      const currentPos = new THREE.Vector3().lerpVectors(startPos, target, t);
-      const arcHeight = Math.sin(t * Math.PI) * 1.5; // parabolic path
-      currentPos.y += arcHeight;
-      
-      arrow.position.copy(currentPos);
-      
-      const nextT = Math.min(1.0, t + 0.05);
-      const nextPos = new THREE.Vector3().lerpVectors(startPos, target, nextT);
-      nextPos.y += Math.sin(nextT * Math.PI) * 1.5;
-      arrow.lookAt(nextPos);
-      
-      if (t < 1.0) {
-        requestAnimationFrame(animate);
-      } else {
-        this.renderer.scene.remove(arrow);
-        arrowGeom.dispose();
-        arrowMat.dispose();
-      }
-    };
-    animate();
+
+    const speed = 25.0;
+    const duration = Math.max(0.05, startPos.distanceTo(target) / speed);
+    this._activeProjectiles.push({ mesh: arrow, geom: arrowGeom, mat: arrowMat, startPos, target, duration, arcHeight: 1.5, elapsed: 0, onComplete: null });
   }
 
   checkSheepTakeover(deltaTime) {
@@ -2783,59 +2736,93 @@ export class GameManager {
       this.spawnArrow(fromPos, toPos);
       return;
     }
-    
+
     const projectile = new THREE.Mesh(geom, mat);
     const startPos = fromPos.clone();
     startPos.y += 0.8;
     projectile.position.copy(startPos);
-    
+
     const target = toPos.clone();
     target.y += 0.5;
-    
     projectile.lookAt(target.x, target.y, target.z);
     this.renderer.scene.add(projectile);
-    
+
     const speed = type === 'cannonball' ? 35.0 : (type === 'bolt' ? 30.0 : 20.0);
-    const duration = startPos.distanceTo(target) / speed;
-    const startTime = performance.now();
-    
-    const animate = () => {
-      if (!this.gameActive) {
-        this.renderer.scene.remove(projectile);
-        geom.dispose();
-        mat.dispose();
-        return;
+    const duration = Math.max(0.05, startPos.distanceTo(target) / speed);
+    const arcHeight = type === 'boulder' ? 3.5 : 0.4;
+
+    const onComplete = (hitPos) => {
+      let impactColor = 0x888888;
+      if (type === 'cannonball') {
+        impactColor = 0xff5500;
+        this.spawnParticles(hitPos, 0x555555, 8, 0.12);
       }
-      
-      const elapsed = (performance.now() - startTime) / 1000;
-      const t = Math.min(1.0, elapsed / duration);
-      
-      const currentPos = new THREE.Vector3().lerpVectors(startPos, target, t);
-      const arcHeight = type === 'boulder' ? Math.sin(t * Math.PI) * 3.5 : Math.sin(t * Math.PI) * 0.4;
-      currentPos.y += arcHeight;
-      
-      projectile.position.copy(currentPos);
-      
-      const nextT = Math.min(1.0, t + 0.05);
-      const nextPos = new THREE.Vector3().lerpVectors(startPos, target, nextT);
-      nextPos.y += type === 'boulder' ? Math.sin(nextT * Math.PI) * 3.5 : Math.sin(nextT * Math.PI) * 0.4;
-      projectile.lookAt(nextPos);
-      
-      if (t < 1.0) {
-        requestAnimationFrame(animate);
-      } else {
-        let impactColor = 0x888888;
-        if (type === 'cannonball') {
-          impactColor = 0xff5500;
-          this.spawnParticles(target, 0x555555, 8, 0.12);
-        }
-        this.spawnParticles(target, impactColor, 10, 0.1);
-        
-        this.renderer.scene.remove(projectile);
-        geom.dispose();
-        mat.dispose();
-      }
+      this.spawnParticles(hitPos, impactColor, 10, 0.1);
     };
-    animate();
+
+    this._activeProjectiles.push({ mesh: projectile, geom, mat, startPos, target, duration, arcHeight, elapsed: 0, onComplete });
+  }
+
+  _updateActiveEffects(dt) {
+    const _lerpV = new THREE.Vector3();
+
+    for (let i = this._activeParticleGroups.length - 1; i >= 0; i--) {
+      const pg = this._activeParticleGroups[i];
+      pg.elapsed += dt;
+      if (pg.elapsed >= 0.6) {
+        this.renderer.scene.remove(pg.group);
+        pg.geom.dispose();
+        pg.mat.dispose();
+        this._activeParticleGroups.splice(i, 1);
+        continue;
+      }
+      const opacity = 1.0 - pg.elapsed / 0.6;
+      const scale = Math.max(0.01, 1.0 - (pg.elapsed / 0.6) * 0.77);
+      for (let j = 0; j < pg.particles.length; j++) {
+        const p = pg.particles[j];
+        p.position.addScaledVector(p.userData.velocity, dt);
+        p.userData.velocity.y -= 9.8 * dt;
+        p.material.opacity = opacity;
+        p.scale.setScalar(scale);
+      }
+    }
+
+    for (let i = this._activeProjectiles.length - 1; i >= 0; i--) {
+      const proj = this._activeProjectiles[i];
+      proj.elapsed += dt;
+      const t = Math.min(1.0, proj.elapsed / proj.duration);
+
+      _lerpV.lerpVectors(proj.startPos, proj.target, t);
+      _lerpV.y += Math.sin(t * Math.PI) * proj.arcHeight;
+      proj.mesh.position.copy(_lerpV);
+
+      const nextT = Math.min(1.0, t + 0.05);
+      _lerpV.lerpVectors(proj.startPos, proj.target, nextT);
+      _lerpV.y += Math.sin(nextT * Math.PI) * proj.arcHeight;
+      proj.mesh.lookAt(_lerpV);
+
+      if (t >= 1.0) {
+        if (proj.onComplete) proj.onComplete(proj.target);
+        this.renderer.scene.remove(proj.mesh);
+        proj.geom.dispose();
+        proj.mat.dispose();
+        this._activeProjectiles.splice(i, 1);
+      }
+    }
+  }
+
+  _clearActiveEffects() {
+    for (const pg of this._activeParticleGroups) {
+      this.renderer.scene.remove(pg.group);
+      pg.geom.dispose();
+      pg.mat.dispose();
+    }
+    this._activeParticleGroups = [];
+    for (const proj of this._activeProjectiles) {
+      this.renderer.scene.remove(proj.mesh);
+      proj.geom.dispose();
+      proj.mat.dispose();
+    }
+    this._activeProjectiles = [];
   }
 }
