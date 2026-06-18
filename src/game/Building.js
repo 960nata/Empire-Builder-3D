@@ -217,6 +217,36 @@ export class Building {
     this.mesh.add(this.selectionRing);
     
     this.gameManager.renderer.scene.add(this.mesh);
+
+    // Castle: swap procedural placeholder with the real GLB the moment it finishes loading.
+    // The procedural mesh appears instantly; GLB replaces it silently in background.
+    if (this.type === 'castle') {
+      this._swapToCastleGLB();
+    }
+  }
+
+  async _swapToCastleGLB() {
+    try {
+      const glbRoot = await this.gameManager.modelFactory.loadCastleGLB();
+      if (this._destroyed || !this.mesh) return; // building was razed before GLB finished
+
+      const scene = this.gameManager.renderer.scene;
+      glbRoot.position.copy(this.mesh.position);
+      glbRoot.rotation.copy(this.mesh.rotation);
+      glbRoot.userData = { entity: this };
+
+      // Carry over selection ring to new mesh
+      if (this.selectionRing) {
+        this.mesh.remove(this.selectionRing);
+        glbRoot.add(this.selectionRing);
+      }
+
+      scene.remove(this.mesh);
+      scene.add(glbRoot);
+      this.mesh = glbRoot;
+    } catch (_) {
+      // GLB failed — procedural fallback stays, no action needed
+    }
   }
 
   setSelected(isSelected) {
@@ -863,6 +893,7 @@ export class Building {
   }
 
   destroy() {
+    this._destroyed = true;
     if (this.garrisonedUnits && this.garrisonedUnits.length > 0) {
       this.ungarrisonAll();
     }

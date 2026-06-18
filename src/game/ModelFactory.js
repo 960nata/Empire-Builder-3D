@@ -1,5 +1,6 @@
 import * as OriginalTHREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 // Create a local mutable copy of the THREE namespace to allow overrides
 const THREE = { ...OriginalTHREE };
@@ -223,40 +224,100 @@ export class ModelFactory {
       }
     }
     
-    // External Asset Loading Infrastructure
+    // External Asset Loading Infrastructure — DRACOLoader for compressed GLBs
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('/draco/'); // served from public/draco/
+    dracoLoader.preload();
+
     this.gltfLoader = new GLTFLoader();
-    this.loadedModels = {}; // Cache to prevent reloading same file
+    this.gltfLoader.setDRACOLoader(dracoLoader);
+
+    this.loadedModels = {}; // url → cached THREE.Group (clone on each use)
+
+    // Castle GLB: loaded lazily on first castle build, resolved for every subsequent clone
+    this._castleGLBPromise = null;
+    this._castleGLBScene  = null;
   }
 
-  // Load external 3D models (.glb / .gltf)
-  // Usage: this.loadExternalModel('/assets/models/samurai.glb').then(model => scene.add(model))
+  // ─── Lazy-load /models/castle.glb ────────────────────────────────────────
+  // Returns a Promise<THREE.Group> (cloned from cache after first load).
+  // Shows the procedural fallback immediately while the GLB loads in background.
+  loadCastleGLB() {
+    if (this._castleGLBScene) {
+      return Promise.resolve(this._cloneCastle());
+    }
+    if (!this._castleGLBPromise) {
+      this._castleGLBPromise = new Promise((resolve, reject) => {
+        this.gltfLoader.load(
+          '/models/castle.glb',
+          (gltf) => {
+            const root = gltf.scene;
+            // Normalise scale — GLB exported at arbitrary units, fit to ~5 game units tall
+            const box = new OriginalTHREE.Box3().setFromObject(root);
+            const size = new OriginalTHREE.Vector3();
+            box.getSize(size);
+            const targetHeight = 5.5;
+            const scale = targetHeight / Math.max(size.x, size.y, size.z);
+            root.scale.setScalar(scale);
+            // Center base on Y=0
+            const center = new OriginalTHREE.Vector3();
+            box.getCenter(center);
+            root.position.y -= box.min.y * scale;
+
+            root.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                // Reduce shadow contribution — only receive, not cast, for small parts
+                if (child.geometry && child.geometry.drawRange.count < 500) {
+                  child.castShadow = false;
+                }
+              }
+            });
+
+            this._castleGLBScene = root;
+            resolve(this._cloneCastle());
+          },
+          undefined,
+          (err) => { console.warn('castle.glb load failed, using procedural fallback', err); reject(err); }
+        );
+      });
+    }
+    return this._castleGLBPromise;
+  }
+
+  _cloneCastle() {
+    const clone = this._castleGLBScene.clone(true);
+    clone.traverse((child) => {
+      if (child.isMesh && child.material) {
+        // Shallow-clone material so team color overrides stay isolated
+        child.material = child.material.clone();
+      }
+    });
+    return clone;
+  }
+
+  // Load external 3D models (.glb / .gltf) — generic helper, kept for future use
   async loadExternalModel(url) {
     if (this.loadedModels[url]) {
       return this.loadedModels[url].clone();
     }
-    
     return new Promise((resolve, reject) => {
       this.gltfLoader.load(
         url,
         (gltf) => {
           const model = gltf.scene;
-          
-          // Enable shadows for all meshes in the model
           model.traverse((child) => {
             if (child.isMesh) {
               child.castShadow = true;
               child.receiveShadow = true;
             }
           });
-          
           this.loadedModels[url] = model;
           resolve(model.clone());
         },
-        undefined, // progress callback
-        (error) => {
-          console.error(`Failed to load 3D model from ${url}`, error);
-          reject(error);
-        }
+        undefined,
+        (error) => { console.error(`Failed to load model: ${url}`, error); reject(error); }
       );
     });
   }

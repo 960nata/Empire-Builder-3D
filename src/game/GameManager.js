@@ -921,6 +921,9 @@ export class GameManager {
       this.allyAI = null;
     }
 
+    // Preload castle GLB in background — ready before player builds first castle
+    this.modelFactory.loadCastleGLB().catch(() => {});
+
     // Start Game Loops
     this.clock.getDelta(); // reset clock
     this.gameActive = true;
