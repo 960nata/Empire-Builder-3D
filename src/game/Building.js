@@ -222,6 +222,18 @@ export class Building {
     // Works for all civilizations — no civ-specific branching needed.
     if (this.type === 'castle')    this._swapToGLB(() => this.gameManager.modelFactory.loadCastleGLB());
     if (this.type === 'stoneWall') this._swapToGLB(() => this.gameManager.modelFactory.loadStoneWallGLB());
+
+    // Gate animation setup: find the animatable sub-group by name
+    if (this.type === 'stoneGate' || this.type === 'palisadeGate') {
+      this._gateMovable    = null;
+      this._gateOpen       = false;
+      this._gateCheckTimer = 0;
+      this.mesh.traverse(child => {
+        if (child.name === 'portcullis' || child.name === 'gatePanel') {
+          this._gateMovable = child;
+        }
+      });
+    }
   }
 
   async _swapToGLB(loader) {
@@ -641,8 +653,46 @@ export class Building {
     this.gameManager.soundManager.playClickSound('complete');
   }
 
+  // ─── Gate open/close animation ───────────────────────────────────────────
+  _checkGateProximity() {
+    const units = this.gameManager.entityManager.units;
+    const radius = this.type === 'stoneGate' ? 4.5 : 3.5;
+    for (let i = 0; i < units.length; i++) {
+      const u = units[i];
+      if (u.state === 'DEAD' || u.state === 'GARRISONED') continue;
+      if (!this.gameManager.isEnemy(this.playerId, u.playerId)) {
+        if (this.position.distanceTo(u.position) <= radius) {
+          this._gateOpen = true;
+          return;
+        }
+      }
+    }
+    this._gateOpen = false;
+  }
+
+  _animateGate(dt) {
+    if (!this._gateMovable) return;
+    const openY = this.type === 'stoneGate' ? 1.78 : 1.35;
+    const targetY = this._gateOpen ? openY : 0;
+    const curr    = this._gateMovable.position.y;
+    const diff    = targetY - curr;
+    if (Math.abs(diff) < 0.003) { this._gateMovable.position.y = targetY; return; }
+    // 4 units/sec rise/fall speed
+    this._gateMovable.position.y += Math.sign(diff) * Math.min(Math.abs(diff), 4.0 * dt);
+  }
+
   update(deltaTime) {
     if (!this.isCompleted) return;
+
+    // Gate proximity + smooth slide animation (both gate types)
+    if (this._gateMovable) {
+      this._gateCheckTimer += deltaTime;
+      if (this._gateCheckTimer >= 0.35) {
+        this._gateCheckTimer = 0;
+        this._checkGateProximity();
+      }
+      this._animateGate(deltaTime);
+    }
 
     // Defensive attack logic for Town Center, Watchtower, and Castle
     if (this.type === 'townCenter' || this.type === 'watchTower' || this.type === 'castle' || this.type === 'bombardTower') {

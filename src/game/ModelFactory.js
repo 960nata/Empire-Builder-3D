@@ -5620,60 +5620,79 @@ export class ModelFactory {
       }
     }
     else if (type === 'palisadeGate') {
-      // Two main side posts (thick logs)
+      // ── Side posts (fixed, not animated) ─────────────────────────
       const postGeom = new THREE.CylinderGeometry(0.2, 0.24, 2.2, 6);
       const leftPost = new THREE.Mesh(postGeom, this.materials.woodDark);
       leftPost.position.set(-0.85, 1.1, 0);
-      leftPost.castShadow = true;
-      leftPost.receiveShadow = true;
+      leftPost.castShadow = true; leftPost.receiveShadow = true;
       group.add(leftPost);
 
       const rightPost = new THREE.Mesh(postGeom, this.materials.woodDark);
       rightPost.position.set(0.85, 1.1, 0);
-      rightPost.castShadow = true;
-      rightPost.receiveShadow = true;
+      rightPost.castShadow = true; rightPost.receiveShadow = true;
       group.add(rightPost);
 
-      // Sharpened tips for posts
       const tipGeom = new THREE.ConeGeometry(0.2, 0.4, 6);
       const leftTip = new THREE.Mesh(tipGeom, this.materials.woodDark);
       leftTip.position.set(-0.85, 2.4, 0);
       leftTip.castShadow = true;
       group.add(leftTip);
-
-      const rightTip = new THREE.Mesh(tipGeom, this.materials.woodDark);
-      rightTip.position.set(0.85, 2.4, 0);
-      rightTip.castShadow = true;
+      const rightTip = leftTip.clone();
+      rightTip.position.x = 0.85;
       group.add(rightTip);
 
-      // Middle gate door panels (low barricade)
-      const doorGeom = new THREE.BoxGeometry(1.4, 1.2, 0.1);
-      const door = new THREE.Mesh(doorGeom, this.materials.woodFeudal);
-      door.position.set(0, 0.6, 0);
-      door.castShadow = true;
-      door.receiveShadow = true;
-      group.add(door);
-
-      // Diagonal wooden bracing on gate door
-      const braceGeom = new THREE.BoxGeometry(0.12, 1.7, 0.14);
-      const brace = new THREE.Mesh(braceGeom, this.materials.woodDark);
-      brace.position.set(0, 0.6, 0.02);
-      brace.rotation.z = Math.PI / 4;
-      brace.castShadow = true;
-      group.add(brace);
-
-      if (upgradeLvl >= 1) {
-        const stud = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), this.materials.iron);
-        stud.position.set(-0.4, 0.8, 0.07);
-        const stud2 = stud.clone(); stud2.position.x = 0.4;
-        group.add(stud, stud2);
-      }
       if (upgradeLvl >= 2) {
         const archGeom = new THREE.BoxGeometry(2.0, 0.15, 0.35);
         const arch = new THREE.Mesh(archGeom, this.materials.woodDark);
         arch.position.set(0, 2.3, 0);
         group.add(arch);
       }
+
+      // ── Connector wings: match palisadeWall on left and right sides ──
+      // Each wing is a small wall segment so adjacent walls look flush
+      const wingPostGeom = new THREE.CylinderGeometry(0.18, 0.2, 2.0, 6);
+      const wingPlankGeom = new THREE.BoxGeometry(0.55, 1.6, 0.15);
+      [-1.3, 1.3].forEach(wx => {
+        const wingPost = new THREE.Mesh(wingPostGeom, this.materials.woodDark);
+        wingPost.position.set(wx, 1.0, 0);
+        wingPost.castShadow = true; wingPost.receiveShadow = true;
+        group.add(wingPost);
+
+        const wingTip = new THREE.Mesh(tipGeom, this.materials.woodDark);
+        wingTip.position.set(wx, 2.2, 0);
+        group.add(wingTip);
+
+        const plank = new THREE.Mesh(wingPlankGeom, this.materials.woodFeudal);
+        plank.position.set(wx, 0.8, 0);
+        plank.castShadow = true;
+        group.add(plank);
+      });
+
+      // ── Animated panel group (slides up to open) ─────────────────
+      const panelGroup = new THREE.Group();
+      panelGroup.name = 'gatePanel';  // Building.js finds this by name
+
+      const doorGeom = new THREE.BoxGeometry(1.4, 1.2, 0.1);
+      const door = new THREE.Mesh(doorGeom, this.materials.woodFeudal);
+      door.position.set(0, 0.6, 0);
+      door.castShadow = true; door.receiveShadow = true;
+      panelGroup.add(door);
+
+      const braceGeom = new THREE.BoxGeometry(0.12, 1.7, 0.14);
+      const brace = new THREE.Mesh(braceGeom, this.materials.woodDark);
+      brace.position.set(0, 0.6, 0.02);
+      brace.rotation.z = Math.PI / 4;
+      brace.castShadow = true;
+      panelGroup.add(brace);
+
+      if (upgradeLvl >= 1) {
+        const stud = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), this.materials.iron);
+        stud.position.set(-0.4, 0.8, 0.07);
+        const stud2 = stud.clone(); stud2.position.x = 0.4;
+        panelGroup.add(stud, stud2);
+      }
+
+      group.add(panelGroup);
     }
     else if (type === 'stoneWall') {
       // Thick stone block (size 1)
@@ -5710,68 +5729,83 @@ export class ModelFactory {
       }
     }
     else if (type === 'stoneGate') {
-      // Two stone guard towers on the sides
+      const stoneMat = this.materials.stoneCastle;
+      const ironMat  = this.materials.iron;
+
+      // ── Two flanking towers (fixed) ───────────────────────────────
       const towerGeom = new THREE.CylinderGeometry(0.4, 0.45, 2.5, 8);
-      const leftTower = new THREE.Mesh(towerGeom, this.materials.stoneCastle);
+      const leftTower = new THREE.Mesh(towerGeom, stoneMat);
       leftTower.position.set(-0.9, 1.25, 0);
-      leftTower.castShadow = true;
-      leftTower.receiveShadow = true;
+      leftTower.castShadow = true; leftTower.receiveShadow = true;
       group.add(leftTower);
 
-      const rightTower = new THREE.Mesh(towerGeom, this.materials.stoneCastle);
+      const rightTower = new THREE.Mesh(towerGeom, stoneMat);
       rightTower.position.set(0.9, 1.25, 0);
-      rightTower.castShadow = true;
-      rightTower.receiveShadow = true;
+      rightTower.castShadow = true; rightTower.receiveShadow = true;
       group.add(rightTower);
 
-      // Conical roofs on towers
       const roofGeom = new THREE.ConeGeometry(0.55, 0.8, 8);
       const leftRoof = new THREE.Mesh(roofGeom, this.materials.roofCastle);
       leftRoof.position.set(-0.9, 2.9, 0);
       leftRoof.castShadow = true;
       group.add(leftRoof);
-
-      const rightRoof = new THREE.Mesh(roofGeom, this.materials.roofCastle);
-      rightRoof.position.set(0.9, 2.9, 0);
-      rightRoof.castShadow = true;
+      const rightRoof = leftRoof.clone();
+      rightRoof.position.x = 0.9;
       group.add(rightRoof);
 
-      // Portcullis grid in middle (iron bars)
-      const barsGroup = new THREE.Group();
-      const barGeom = new THREE.CylinderGeometry(0.025, 0.025, 1.7, 4);
-      const ironMat = this.materials.iron;
+      // Gate arch header (stone lintel between towers)
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 0.85), stoneMat);
+      lintel.position.set(0, 2.5, 0);
+      lintel.castShadow = true;
+      group.add(lintel);
 
-      // Vertical bars
-      const barOffsets = [-0.35, -0.18, 0, 0.18, 0.35];
-      barOffsets.forEach(ox => {
+      // ── Wall-connector wings — match stoneWall cross-section ──────
+      // These let adjacent stoneWall segments butt up flush against the gate
+      const connGeom  = new THREE.BoxGeometry(0.6, 1.4, 0.8);
+      const battGeom  = new THREE.BoxGeometry(0.28, 0.35, 0.82);
+      const stoneMats = stoneMat;
+      [-1.45, 1.45].forEach(wx => {
+        const conn = new THREE.Mesh(connGeom, stoneMats);
+        conn.position.set(wx, 0.7, 0);
+        conn.castShadow = true; conn.receiveShadow = true;
+        group.add(conn);
+        // Battlements matching stoneWall crenellations
+        [-0.22, 0.22].forEach(bx => {
+          const batt = new THREE.Mesh(battGeom, stoneMats);
+          batt.position.set(wx + bx, 1.575, 0);
+          batt.castShadow = true;
+          group.add(batt);
+        });
+      });
+
+      // ── Animated portcullis (slides up to open) ───────────────────
+      const portcullis = new THREE.Group();
+      portcullis.name = 'portcullis';  // Building.js finds this by name
+
+      const barGeom = new THREE.CylinderGeometry(0.025, 0.025, 1.7, 4);
+      [-0.35, -0.18, 0, 0.18, 0.35].forEach(ox => {
         const bar = new THREE.Mesh(barGeom, ironMat);
         bar.position.set(ox, 0.85, 0);
         bar.castShadow = true;
-        barsGroup.add(bar);
+        portcullis.add(bar);
+      });
+      const hBarGeom = new THREE.BoxGeometry(0.9, 0.04, 0.04);
+      [0.4, 1.3].forEach(hy => {
+        const hb = new THREE.Mesh(hBarGeom, ironMat);
+        hb.position.set(0, hy, 0);
+        portcullis.add(hb);
       });
 
-      // Horizontal support bars
-      const hBarGeom = new THREE.BoxGeometry(0.9, 0.04, 0.04);
-      const hBar1 = new THREE.Mesh(hBarGeom, ironMat);
-      hBar1.position.set(0, 0.4, 0);
-      hBar1.castShadow = true;
-      barsGroup.add(hBar1);
-
-      const hBar2 = new THREE.Mesh(hBarGeom, ironMat);
-      hBar2.position.set(0, 1.3, 0);
-      hBar2.castShadow = true;
-      barsGroup.add(hBar2);
-
-      group.add(barsGroup);
+      group.add(portcullis);
 
       if (upgradeLvl >= 1) {
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), this.materials.iron);
+        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.5, 4), ironMat);
         spike.position.set(-0.9, 3.4, 0);
         const spike2 = spike.clone(); spike2.position.x = 0.9;
         group.add(spike, spike2);
       }
       if (upgradeLvl >= 2) {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), this.materials.iron);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2), ironMat);
         pole.position.set(0, 2.6, 0);
         const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.02), teamMat);
         flag.position.set(0.2, 3.0, 0);
