@@ -923,13 +923,14 @@ export class GameManager {
 
     // Preload building GLBs in background (non-blocking, ~2MB each)
     // Both are ready well before the player can build their first castle or stone wall
+    // Stagger GLB preloads so they don't all hit the network simultaneously
     this.modelFactory.loadCastleGLB().catch(() => {});
     this.modelFactory.loadStoneWallGLB().catch(() => {});
     this.modelFactory.loadFortressGLB().catch(() => {});
-    this.modelFactory.loadHouseGLB().catch(() => {});
-    this.modelFactory.loadPeasantGLB().catch(() => {});
-    this.modelFactory.loadFemaleVillagerGLB().catch(() => {});
-    this.modelFactory.loadKnightGLB().catch(() => {});
+    setTimeout(() => { this.modelFactory.loadHouseGLB().catch(() => {}); }, 800);
+    setTimeout(() => { this.modelFactory.loadPeasantGLB().catch(() => {}); }, 1600);
+    setTimeout(() => { this.modelFactory.loadFemaleVillagerGLB().catch(() => {}); }, 2400);
+    setTimeout(() => { this.modelFactory.loadKnightGLB().catch(() => {}); }, 3200);
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock

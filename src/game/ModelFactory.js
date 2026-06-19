@@ -328,7 +328,7 @@ export class ModelFactory {
   loadStoneWallGLB() { return this._loadGLB('stoneWall', '/models/stone-wall.glb',   2.0); }
 
   // Fortress (2.2 MB) — used as Military Barracks for all civs
-  loadFortressGLB()     { return this._loadGLB('fortress',      '/models/fortress.glb',        8.0); }
+  loadFortressGLB()     { return this._loadGLB('fortress',      '/models/fortress.glb',       14.0); }
 
   // House (2.0 MB) — medieval house building
   loadHouseGLB()        { return this._loadGLB('house',         '/models/house.glb',           2.5); }

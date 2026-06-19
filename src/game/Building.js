@@ -204,16 +204,17 @@ export class Building {
       this.mesh.position.y = this.position.y - 1.0;
     }
     
-    // Setup selection ring
-    const ringGeom = new THREE.RingGeometry(this.gridSize * 0.7, this.gridSize * 0.75, 32);
-    ringGeom.rotateX(-Math.PI / 2);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide,
-      visible: false
-    });
-    this.selectionRing = new THREE.Mesh(ringGeom, ringMat);
-    this.selectionRing.position.y = 0.05;
+    // Setup selection indicator — rectangle matching building footprint (not circle)
+    const hw = this.gridSize * 0.58;
+    const hd = this.gridSize * 0.58;
+    const corners = [
+      new THREE.Vector3(-hw, 0, -hd), new THREE.Vector3( hw, 0, -hd),
+      new THREE.Vector3( hw, 0,  hd), new THREE.Vector3(-hw, 0,  hd),
+    ];
+    const ringGeom = new THREE.BufferGeometry().setFromPoints(corners);
+    const ringMat = new THREE.LineBasicMaterial({ color: 0x00ffcc, visible: false });
+    this.selectionRing = new THREE.LineLoop(ringGeom, ringMat);
+    this.selectionRing.position.y = 0.08;
     this.mesh.add(this.selectionRing);
     
     this.gameManager.renderer.scene.add(this.mesh);
@@ -265,6 +266,12 @@ export class Building {
       scene.remove(this.mesh);
       scene.add(glbRoot);
       this.mesh = glbRoot;
+
+      // Safety floor: if any part of GLB goes below terrain, push it up
+      const floorBox = new THREE.Box3().setFromObject(glbRoot);
+      if (floorBox.min.y < this.position.y - 0.1) {
+        glbRoot.position.y += (this.position.y - floorBox.min.y);
+      }
 
       // Attach animated team flag on top of castle GLB
       if (this.type === 'castle') {

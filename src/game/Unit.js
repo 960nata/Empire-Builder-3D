@@ -714,18 +714,19 @@ export class Unit {
     
     this.sceneMeshRef = this.gameManager.renderer.scene.add(this.mesh);
 
-    // GLB swap for character units — procedural shows first, GLB replaces async
-    if (this.type === 'villager') {
-      // Alternate male/female by unit id hash for visual variety
-      const useFemale = (this.id && this.id.charCodeAt(this.id.length - 1) % 2 === 0);
-      if (useFemale) {
-        this._swapUnitGLB('femaleVillager', () => this.gameManager.modelFactory.loadFemaleVillagerGLB());
-      } else {
-        this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
+    // GLB swap: only for player's own units (playerId===0) to keep perf light
+    if (this.playerId === 0) {
+      if (this.type === 'villager') {
+        const useFemale = (this.id && this.id.charCodeAt(this.id.length - 1) % 2 === 0);
+        if (useFemale) {
+          this._swapUnitGLB('femaleVillager', () => this.gameManager.modelFactory.loadFemaleVillagerGLB());
+        } else {
+          this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
+        }
       }
-    }
-    if (this.type === 'knight') {
-      this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
+      if (this.type === 'knight') {
+        this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
+      }
     }
   }
 
@@ -762,25 +763,32 @@ export class Unit {
           const n = clip.name.toLowerCase();
           const action = this._glbMixer.clipAction(clip);
           action.loop = THREE.LoopRepeat;
-          if (n.includes('idle') || n.includes('stand') || n.includes('breathe')) {
+          if (!this._glbClips.idle && (n.includes('idle') || n.includes('stand') || n.includes('breathe'))) {
             this._glbClips.idle = action;
-          } else if (n.includes('walk') || n.includes('run') || n.includes('move')) {
+          } else if (!this._glbClips.walk && (n.includes('walk') || n.includes('run') || n.includes('move'))) {
             this._glbClips.walk = action;
-          } else if (n.includes('attack') || n.includes('chop') || n.includes('hit') || n.includes('swing') || n.includes('mine')) {
+          } else if (!this._glbClips.attack && (n.includes('attack') || n.includes('chop') || n.includes('hit') || n.includes('swing') || n.includes('mine'))) {
             this._glbClips.attack = action;
-          } else if (n.includes('death') || n.includes('die') || n.includes('dead')) {
+          } else if (!this._glbClips.death && (n.includes('death') || n.includes('die') || n.includes('dead'))) {
             this._glbClips.death = action;
             action.loop = THREE.LoopOnce;
             action.clampWhenFinished = true;
           }
         });
-        // Fallbacks: first clip = idle if no match found
-        if (!this._glbClips.idle && clips.length > 0)   this._glbClips.idle   = this._glbMixer.clipAction(clips[0]);
-        if (!this._glbClips.walk && this._glbClips.idle) this._glbClips.walk   = this._glbClips.idle;
-        if (!this._glbClips.attack && this._glbClips.idle) this._glbClips.attack = this._glbClips.idle;
+        // If no idle found: use first non-walk clip, or null (means stop mixer when idle)
+        if (!this._glbClips.idle && this._glbClips.walk) {
+          // Don't assign walk as idle fallback — just leave idle null = "stop when idle"
+        } else if (!this._glbClips.idle && clips.length > 0) {
+          this._glbClips.idle = this._glbMixer.clipAction(clips[0]);
+        }
+        // Walk fallback = idle; attack fallback = walk or idle
+        if (!this._glbClips.walk)   this._glbClips.walk   = this._glbClips.idle;
+        if (!this._glbClips.attack) this._glbClips.attack = this._glbClips.walk || this._glbClips.idle;
 
         this._currentGLBAnim = 'idle';
+        // Start: play idle or stop all (if no idle clip = model stays in T-pose when idle)
         if (this._glbClips.idle) this._glbClips.idle.play();
+        else this._glbMixer.stopAllAction();
       }
 
       scene.remove(this.mesh);
@@ -1157,7 +1165,10 @@ export class Unit {
     
     // GLB AnimationMixer tick + state-driven clip switching
     if (this._glbMixer) {
-      this._glbMixer.update(deltaTime);
+      // Throttle: skip mixer update for distant units (>40 units from camera) — perf
+      const cam = this.gameManager.renderer && this.gameManager.renderer.camera;
+      const distSq = cam ? this.position.distanceToSquared(cam.position) : 0;
+      if (distSq < 1600) this._glbMixer.update(deltaTime); // 40 units radius
       // Apply ground-offset so GLB stays on terrain (mesh.position.y is terrain height)
       this.mesh.position.y = this.position.y + (this._glbYOff || 0);
 
@@ -1165,11 +1176,16 @@ export class Unit {
                  : (this.state === 'ATTACKING' || this.state === 'HARVESTING' || this.state === 'BUILDING') ? 'attack'
                  : (this.state === 'DEAD') ? 'death'
                  : 'idle';
-      if (want !== this._currentGLBAnim && this._glbClips && this._glbClips[want]) {
-        const prev = this._glbClips[this._currentGLBAnim];
-        const next = this._glbClips[want];
+      if (want !== this._currentGLBAnim) {
+        const prev = this._glbClips && this._glbClips[this._currentGLBAnim];
+        const next = this._glbClips && this._glbClips[want];
         if (prev && prev !== next) prev.fadeOut(0.25);
-        next.reset().fadeIn(0.25).play();
+        if (next) {
+          next.reset().fadeIn(0.25).play();
+        } else {
+          // No clip for this state (e.g. no idle) → stop all so unit stands still
+          this._glbMixer.stopAllAction();
+        }
         this._currentGLBAnim = want;
       }
     }
