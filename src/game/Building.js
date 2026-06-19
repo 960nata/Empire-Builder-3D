@@ -223,6 +223,7 @@ export class Building {
     if (this.type === 'castle')    this._swapToGLB(() => this.gameManager.modelFactory.loadCastleGLB());
     if (this.type === 'stoneWall') this._swapToGLB(() => this.gameManager.modelFactory.loadStoneWallGLB());
     if (this.type === 'barracks')  this._swapToGLB(() => this.gameManager.modelFactory.loadFortressGLB());
+    if (this.type === 'house')     this._swapToGLB(() => this.gameManager.modelFactory.loadHouseGLB());
 
     // Gate animation setup: find the animatable sub-group by name
     if (this.type === 'stoneGate' || this.type === 'palisadeGate') {

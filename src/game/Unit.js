@@ -713,6 +713,82 @@ export class Unit {
     this.mesh.add(this.selectionRing);
     
     this.sceneMeshRef = this.gameManager.renderer.scene.add(this.mesh);
+
+    // GLB swap for character units — procedural shows first, GLB replaces async
+    if (this.type === 'villager') {
+      // Alternate male/female by unit id hash for visual variety
+      const useFemale = (this.id && this.id.charCodeAt(this.id.length - 1) % 2 === 0);
+      if (useFemale) {
+        this._swapUnitGLB('femaleVillager', () => this.gameManager.modelFactory.loadFemaleVillagerGLB());
+      } else {
+        this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
+      }
+    }
+    if (this.type === 'knight') {
+      this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
+    }
+  }
+
+  async _swapUnitGLB(glbKey, loader) {
+    try {
+      const glbRoot = await loader();
+      if (!this.mesh || this.state === 'DEAD') return;
+
+      const scene    = this.gameManager.renderer.scene;
+      const factory  = this.gameManager.modelFactory;
+      const yOffset  = glbRoot.position.y; // ground-sit offset from _loadGLB
+
+      glbRoot.position.set(
+        this.mesh.position.x,
+        this.position.y + yOffset,
+        this.mesh.position.z
+      );
+      glbRoot.rotation.y = this.mesh.rotation.y;
+      glbRoot.userData   = { entity: this };
+
+      if (this.selectionRing) {
+        this.mesh.remove(this.selectionRing);
+        glbRoot.add(this.selectionRing);
+      }
+
+      // Wire up AnimationMixer if the GLB has skeletal animations
+      const clips = factory.getGLBAnimations(glbKey);
+      if (clips.length > 0) {
+        this._glbMixer  = new THREE.AnimationMixer(glbRoot);
+        this._glbClips  = {};
+        this._glbYOff   = yOffset;
+
+        clips.forEach(clip => {
+          const n = clip.name.toLowerCase();
+          const action = this._glbMixer.clipAction(clip);
+          action.loop = THREE.LoopRepeat;
+          if (n.includes('idle') || n.includes('stand') || n.includes('breathe')) {
+            this._glbClips.idle = action;
+          } else if (n.includes('walk') || n.includes('run') || n.includes('move')) {
+            this._glbClips.walk = action;
+          } else if (n.includes('attack') || n.includes('chop') || n.includes('hit') || n.includes('swing') || n.includes('mine')) {
+            this._glbClips.attack = action;
+          } else if (n.includes('death') || n.includes('die') || n.includes('dead')) {
+            this._glbClips.death = action;
+            action.loop = THREE.LoopOnce;
+            action.clampWhenFinished = true;
+          }
+        });
+        // Fallbacks: first clip = idle if no match found
+        if (!this._glbClips.idle && clips.length > 0)   this._glbClips.idle   = this._glbMixer.clipAction(clips[0]);
+        if (!this._glbClips.walk && this._glbClips.idle) this._glbClips.walk   = this._glbClips.idle;
+        if (!this._glbClips.attack && this._glbClips.idle) this._glbClips.attack = this._glbClips.idle;
+
+        this._currentGLBAnim = 'idle';
+        if (this._glbClips.idle) this._glbClips.idle.play();
+      }
+
+      scene.remove(this.mesh);
+      scene.add(glbRoot);
+      this.mesh = glbRoot;
+    } catch (_) {
+      // Procedural fallback stays silently
+    }
   }
 
   setSelected(isSelected) {
@@ -1079,8 +1155,27 @@ export class Unit {
       }
     }
     
-    // Run procedural limb animation
-    this.animateLimbs(deltaTime);
+    // GLB AnimationMixer tick + state-driven clip switching
+    if (this._glbMixer) {
+      this._glbMixer.update(deltaTime);
+      // Apply ground-offset so GLB stays on terrain (mesh.position.y is terrain height)
+      this.mesh.position.y = this.position.y + (this._glbYOff || 0);
+
+      const want = (this.state === 'MOVING' || this.state === 'CHASING' || this.state === 'RETURNING') ? 'walk'
+                 : (this.state === 'ATTACKING' || this.state === 'HARVESTING' || this.state === 'BUILDING') ? 'attack'
+                 : (this.state === 'DEAD') ? 'death'
+                 : 'idle';
+      if (want !== this._currentGLBAnim && this._glbClips && this._glbClips[want]) {
+        const prev = this._glbClips[this._currentGLBAnim];
+        const next = this._glbClips[want];
+        if (prev && prev !== next) prev.fadeOut(0.25);
+        next.reset().fadeIn(0.25).play();
+        this._currentGLBAnim = want;
+      }
+    }
+
+    // Run procedural limb animation (only when no GLB mixer active)
+    if (!this._glbMixer) this.animateLimbs(deltaTime);
   }
 
   tickStateMachine(deltaTime) {

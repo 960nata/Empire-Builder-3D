@@ -1,6 +1,7 @@
 import * as OriginalTHREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { clone as skeletonClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Create a local mutable copy of the THREE namespace to allow overrides
 const THREE = { ...OriginalTHREE };
@@ -235,8 +236,9 @@ export class ModelFactory {
     this.loadedModels = {}; // url → cached THREE.Group (clone on each use)
 
     // Per-key GLB cache: scenes and promises indexed by building type key
-    this._glbScenes   = {};  // key → THREE.Group (master, never added to scene)
-    this._glbPromises = {};  // key → Promise<THREE.Group>
+    this._glbScenes     = {};  // key → THREE.Group (master, never added to scene)
+    this._glbPromises   = {};  // key → Promise<THREE.Group>
+    this._glbAnimations = {};  // key → AnimationClip[] (for character GLBs)
 
     // Shared time uniform — all flag ShaderMaterials reference the same object.
     // Update it once per frame in GameManager.animate() to animate every flag simultaneously.
@@ -283,7 +285,8 @@ export class ModelFactory {
               }
             });
 
-            this._glbScenes[key] = root;
+            this._glbScenes[key]     = root;
+            this._glbAnimations[key] = gltf.animations || [];
             resolve(this._cloneGLB(key));
           },
           undefined,
@@ -298,13 +301,23 @@ export class ModelFactory {
   }
 
   _cloneGLB(key) {
-    const clone = this._glbScenes[key].clone(true);
+    const anims  = this._glbAnimations[key];
+    const master = this._glbScenes[key];
+    // Animated characters need SkeletonUtils.clone() to properly copy bone hierarchy
+    const clone = (anims && anims.length > 0)
+      ? skeletonClone(master)
+      : master.clone(true);
     clone.traverse((child) => {
-      if (child.isMesh && child.material) {
-        child.material = child.material.clone(); // isolate per-instance overrides
+      if (child.isMesh && !child.isSkinnedMesh && child.material) {
+        child.material = child.material.clone();
       }
     });
     return clone;
+  }
+
+  // Returns cached animation clips for a GLB key (used by Unit._swapUnitGLB)
+  getGLBAnimations(key) {
+    return this._glbAnimations[key] || [];
   }
 
   // ─── Per-building-type GLB loaders ───────────────────────────────────────
@@ -315,7 +328,19 @@ export class ModelFactory {
   loadStoneWallGLB() { return this._loadGLB('stoneWall', '/models/stone-wall.glb',   2.0); }
 
   // Fortress (2.2 MB) — used as Military Barracks for all civs
-  loadFortressGLB()  { return this._loadGLB('fortress',  '/models/fortress.glb',     8.0); }
+  loadFortressGLB()     { return this._loadGLB('fortress',      '/models/fortress.glb',        8.0); }
+
+  // House (2.0 MB) — medieval house building
+  loadHouseGLB()        { return this._loadGLB('house',         '/models/house.glb',           2.5); }
+
+  // Peasant male (1.7 MB) — male villager character
+  loadPeasantGLB()      { return this._loadGLB('peasant',       '/models/peasant-model.glb',   1.2); }
+
+  // Female villager (1.8 MB) — female worker character
+  loadFemaleVillagerGLB() { return this._loadGLB('femaleVillager', '/models/female-villager.glb', 1.2); }
+
+  // Knight model (1.9 MB) — mounted knight unit
+  loadKnightGLB()       { return this._loadGLB('knight',        '/models/knight-model.glb',    2.0); }
 
   // ─── Animated flag helpers ────────────────────────────────────────────────
   // Creates a ShaderMaterial that waves like a flag in the wind.

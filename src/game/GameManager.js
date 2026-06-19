@@ -926,6 +926,10 @@ export class GameManager {
     this.modelFactory.loadCastleGLB().catch(() => {});
     this.modelFactory.loadStoneWallGLB().catch(() => {});
     this.modelFactory.loadFortressGLB().catch(() => {});
+    this.modelFactory.loadHouseGLB().catch(() => {});
+    this.modelFactory.loadPeasantGLB().catch(() => {});
+    this.modelFactory.loadFemaleVillagerGLB().catch(() => {});
+    this.modelFactory.loadKnightGLB().catch(() => {});
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock
