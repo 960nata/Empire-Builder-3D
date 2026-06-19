@@ -234,84 +234,92 @@ export class ModelFactory {
 
     this.loadedModels = {}; // url → cached THREE.Group (clone on each use)
 
-    // Castle GLB: loaded lazily on first castle build, resolved for every subsequent clone
-    this._castleGLBPromise = null;
-    this._castleGLBScene  = null;
+    // Per-key GLB cache: scenes and promises indexed by building type key
+    this._glbScenes   = {};  // key → THREE.Group (master, never added to scene)
+    this._glbPromises = {};  // key → Promise<THREE.Group>
   }
 
-  // ─── Lazy-load /models/castle.glb ────────────────────────────────────────
-  // Returns a Promise<THREE.Group> (cloned from cache after first load).
-  // Shows the procedural fallback immediately while the GLB loads in background.
-  loadCastleGLB() {
-    if (this._castleGLBScene) {
-      return Promise.resolve(this._cloneCastle());
+  // ─── Generic lazy GLB loader ──────────────────────────────────────────────
+  // key        : unique string ('castle', 'stoneWall', …)
+  // url        : path under /models/ served from public/
+  // targetSize : largest axis is scaled to fit this many game units
+  //
+  // On first call: fetches + decompresses the GLB (Draco, ~2MB each)
+  // On subsequent calls: clones from in-memory cache instantly (O(n) meshes)
+  // Procedural mesh always shows first; GLB swaps in when ready.
+  _loadGLB(key, url, targetSize) {
+    if (this._glbScenes[key]) {
+      return Promise.resolve(this._cloneGLB(key));
     }
-    if (!this._castleGLBPromise) {
-      this._castleGLBPromise = new Promise((resolve, reject) => {
+    if (!this._glbPromises[key]) {
+      this._glbPromises[key] = new Promise((resolve, reject) => {
         this.gltfLoader.load(
-          '/models/castle.glb',
+          url,
           (gltf) => {
             const root = gltf.scene;
-            // Normalise scale — GLB exported at arbitrary units, fit to ~5 game units tall
-            const box = new OriginalTHREE.Box3().setFromObject(root);
+
+            // Auto-fit: scale so the longest axis == targetSize game units
+            const box  = new OriginalTHREE.Box3().setFromObject(root);
             const size = new OriginalTHREE.Vector3();
             box.getSize(size);
-            const targetHeight = 5.5;
-            const scale = targetHeight / Math.max(size.x, size.y, size.z);
-            root.scale.setScalar(scale);
-            // Center base on Y=0
-            const center = new OriginalTHREE.Vector3();
-            box.getCenter(center);
-            root.position.y -= box.min.y * scale;
+            const s = targetSize / Math.max(size.x, size.y, size.z);
+            root.scale.setScalar(s);
+
+            // Sit flush on Y=0
+            root.position.y -= box.min.y * s;
 
             root.traverse((child) => {
               if (child.isMesh) {
-                child.castShadow = true;
+                child.castShadow    = true;
                 child.receiveShadow = true;
-                // Reduce shadow contribution — only receive, not cast, for small parts
-                if (child.geometry && child.geometry.drawRange.count < 500) {
+                // Tiny sub-meshes skip shadow casting (cheaper shadow map)
+                if (child.geometry && child.geometry.drawRange.count < 300) {
                   child.castShadow = false;
                 }
               }
             });
 
-            this._castleGLBScene = root;
-            resolve(this._cloneCastle());
+            this._glbScenes[key] = root;
+            resolve(this._cloneGLB(key));
           },
           undefined,
-          (err) => { console.warn('castle.glb load failed, using procedural fallback', err); reject(err); }
+          (err) => {
+            console.warn(`[ModelFactory] ${url} failed — procedural fallback active`, err);
+            reject(err);
+          }
         );
       });
     }
-    return this._castleGLBPromise;
+    return this._glbPromises[key];
   }
 
-  _cloneCastle() {
-    const clone = this._castleGLBScene.clone(true);
+  _cloneGLB(key) {
+    const clone = this._glbScenes[key].clone(true);
     clone.traverse((child) => {
       if (child.isMesh && child.material) {
-        // Shallow-clone material so team color overrides stay isolated
-        child.material = child.material.clone();
+        child.material = child.material.clone(); // isolate per-instance overrides
       }
     });
     return clone;
   }
 
+  // ─── Per-building-type GLB loaders ───────────────────────────────────────
+  // Desert tower (2.1 MB) — used as the Castle for all civs
+  loadCastleGLB()    { return this._loadGLB('castle',    '/models/desert-tower.glb', 5.5); }
+
+  // Stone wall segment (2.1 MB) — used for StoneWall for all civs
+  loadStoneWallGLB() { return this._loadGLB('stoneWall', '/models/stone-wall.glb',   2.0); }
+
   // Load external 3D models (.glb / .gltf) — generic helper, kept for future use
   async loadExternalModel(url) {
-    if (this.loadedModels[url]) {
-      return this.loadedModels[url].clone();
-    }
+    if (this.loadedModels[url]) return this.loadedModels[url].clone();
     return new Promise((resolve, reject) => {
       this.gltfLoader.load(
         url,
         (gltf) => {
           const model = gltf.scene;
           model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
+            if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
           });
           this.loadedModels[url] = model;
           resolve(model.clone());

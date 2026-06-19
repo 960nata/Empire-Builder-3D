@@ -921,8 +921,10 @@ export class GameManager {
       this.allyAI = null;
     }
 
-    // Preload castle GLB in background — ready before player builds first castle
+    // Preload building GLBs in background (non-blocking, ~2MB each)
+    // Both are ready well before the player can build their first castle or stone wall
     this.modelFactory.loadCastleGLB().catch(() => {});
+    this.modelFactory.loadStoneWallGLB().catch(() => {});
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock

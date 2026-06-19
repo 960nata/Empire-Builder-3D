@@ -218,24 +218,23 @@ export class Building {
     
     this.gameManager.renderer.scene.add(this.mesh);
 
-    // Castle: swap procedural placeholder with the real GLB the moment it finishes loading.
-    // The procedural mesh appears instantly; GLB replaces it silently in background.
-    if (this.type === 'castle') {
-      this._swapToCastleGLB();
-    }
+    // GLB swap: procedural shows instantly; 3D model replaces it when download finishes.
+    // Works for all civilizations — no civ-specific branching needed.
+    if (this.type === 'castle')    this._swapToGLB(() => this.gameManager.modelFactory.loadCastleGLB());
+    if (this.type === 'stoneWall') this._swapToGLB(() => this.gameManager.modelFactory.loadStoneWallGLB());
   }
 
-  async _swapToCastleGLB() {
+  async _swapToGLB(loader) {
     try {
-      const glbRoot = await this.gameManager.modelFactory.loadCastleGLB();
-      if (this._destroyed || !this.mesh) return; // building was razed before GLB finished
+      const glbRoot = await loader();
+      if (this._destroyed || !this.mesh) return; // razed before GLB arrived
 
       const scene = this.gameManager.renderer.scene;
       glbRoot.position.copy(this.mesh.position);
       glbRoot.rotation.copy(this.mesh.rotation);
       glbRoot.userData = { entity: this };
 
-      // Carry over selection ring to new mesh
+      // Move selection ring to new mesh root
       if (this.selectionRing) {
         this.mesh.remove(this.selectionRing);
         glbRoot.add(this.selectionRing);
@@ -245,7 +244,7 @@ export class Building {
       scene.add(glbRoot);
       this.mesh = glbRoot;
     } catch (_) {
-      // GLB failed — procedural fallback stays, no action needed
+      // GLB failed — procedural fallback stays silently
     }
   }
 
