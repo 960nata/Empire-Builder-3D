@@ -1757,7 +1757,7 @@ export class HUD {
           });
 
           document.getElementById('btn-cmd-stop').addEventListener('click', () => {
-            entity.commandStop();
+            if (entity.commandStop) entity.commandStop();
             this.gameManager.soundManager.playClickSound('select');
             this.updateSelectionUI();
           });
@@ -1799,7 +1799,7 @@ export class HUD {
           `;
 
           document.getElementById('btn-cmd-stop').addEventListener('click', () => {
-            entity.commandStop();
+            if (entity.commandStop) entity.commandStop();
             this.gameManager.soundManager.playClickSound('select');
             this.updateSelectionUI();
           });

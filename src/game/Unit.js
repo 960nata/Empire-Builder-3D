@@ -2083,7 +2083,39 @@ export class Unit {
   // -------------------------------------------------------------
   animateLimbs(deltaTime) {
     const bodyGroup = this.mesh.getObjectByName("bodyGroup");
-    if (!bodyGroup) return;
+
+    // GLB unit — no skeleton, apply whole-body physics motion to the root
+    if (!bodyGroup) {
+      if (this._glbYOff === undefined) return;
+      const isMoving   = (this.state === 'MOVING' || this.state === 'CHASING' || this.state === 'RETURNING');
+      const isAttacking = (this.state === 'ATTACKING' || this.state === 'HARVESTING' || this.state === 'BUILDING');
+      const isCav = (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'scoutCavalry');
+      const freq = isCav ? 16 : 10; // cavalry bob faster (horse trot)
+      const baseY = this.position.y + this._glbYOff;
+
+      if (isMoving) {
+        // Up-down bob — cavalry bounces on trot, infantry on footfall
+        const bob = Math.abs(Math.sin(this.animTime * freq)) * (isCav ? 0.1 : 0.06);
+        this.mesh.position.y = baseY + bob;
+        // Left-right sway (pendulum physics)
+        this.mesh.rotation.z = Math.sin(this.animTime * freq * 0.5) * 0.04;
+        // Slight forward lean into movement
+        this.mesh.rotation.x = -0.06;
+      } else if (isAttacking) {
+        // Forward lunge pulsing with attack rhythm
+        const lunge = Math.abs(Math.sin(this.animTime * 7)) * 0.07;
+        this.mesh.position.y = baseY;
+        this.mesh.rotation.x = -0.12 + lunge;
+        this.mesh.rotation.z = Math.sin(this.animTime * 7) * 0.03;
+      } else {
+        // Idle: gentle breathing oscillation
+        this.mesh.position.y = baseY + Math.sin(this.animTime * 2.2) * 0.012;
+        // Ease back to upright
+        this.mesh.rotation.x *= 0.88;
+        this.mesh.rotation.z *= 0.88;
+      }
+      return;
+    }
 
     const isMoving = (this.state === 'MOVING' || this.state === 'CHASING' || this.state === 'RETURNING');
     
@@ -2271,18 +2303,16 @@ export class Unit {
       const rightArm = bodyGroup.getObjectByName("rightArm");
 
       if (isMoving) {
-        const bob = Math.sin(this.animTime * 14) * 0.12;
-        bodyGroup.position.y = bob;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z = Math.sin(this.animTime * 14) * 0.22;
-          rightFoot.position.z = -Math.sin(this.animTime * 14) * 0.22;
-        }
+        const t = this.animTime * 12;
+        bodyGroup.position.y = Math.abs(Math.sin(t)) * 0.08;
+        if (leftFoot)  leftFoot.rotation.x  =  Math.sin(t) * 0.5;
+        if (rightFoot) rightFoot.rotation.x = -Math.sin(t) * 0.5;
+        bodyGroup.rotation.z = Math.sin(t * 0.5) * 0.02;
       } else {
-        bodyGroup.position.y = Math.sin(this.animTime * 2.5) * 0.02;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z = 0;
-          rightFoot.position.z = 0;
-        }
+        bodyGroup.position.y += (Math.sin(this.animTime * 2.0) * 0.015 - bodyGroup.position.y) * 0.1;
+        if (leftFoot)  leftFoot.rotation.x  *= 0.85;
+        if (rightFoot) rightFoot.rotation.x *= 0.85;
+        bodyGroup.rotation.z *= 0.85;
       }
 
       // Broadsword slash swing animation
@@ -2312,18 +2342,17 @@ export class Unit {
 
       // Standard foot movement
       if (isMoving) {
-        const bob = Math.sin(this.animTime * 14) * 0.12;
-        bodyGroup.position.y = bob;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z = Math.sin(this.animTime * 14) * 0.22;
-          rightFoot.position.z = -Math.sin(this.animTime * 14) * 0.22;
-        }
+        const t = this.animTime * 13;
+        bodyGroup.position.y = Math.abs(Math.sin(t)) * 0.09;
+        if (leftFoot)  leftFoot.rotation.x  =  Math.sin(t) * 0.55;
+        if (rightFoot) rightFoot.rotation.x = -Math.sin(t) * 0.55;
+        if (leftArm)  leftArm.rotation.x  = -Math.sin(t) * 0.3;
+        bodyGroup.rotation.z = Math.sin(t * 0.5) * 0.02;
       } else {
-        bodyGroup.position.y = Math.sin(this.animTime * 2.5) * 0.02;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z = 0;
-          rightFoot.position.z = 0;
-        }
+        bodyGroup.position.y += (Math.sin(this.animTime * 2.2) * 0.015 - bodyGroup.position.y) * 0.1;
+        if (leftFoot)  leftFoot.rotation.x  *= 0.85;
+        if (rightFoot) rightFoot.rotation.x *= 0.85;
+        bodyGroup.rotation.z *= 0.85;
       }
 
       // Drawing animation
@@ -2378,22 +2407,25 @@ export class Unit {
       const leftArm   = bodyGroup.getObjectByName("leftArm");
 
       if (isMoving) {
-        const bob = Math.sin(this.animTime * 14) * 0.12;
-        bodyGroup.position.y = bob;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z  =  Math.sin(this.animTime * 14) * 0.22;
-          rightFoot.position.z = -Math.sin(this.animTime * 14) * 0.22;
-        }
-        // Arms swing opposite to feet while walking
-        if (leftArm)  leftArm.rotation.x  =  Math.sin(this.animTime * 14) * 0.35;
-        if (rightArm) rightArm.rotation.x = -Math.sin(this.animTime * 14) * 0.35;
+        const t = this.animTime * 13;
+        // Body bob — footfall rhythm (bounces twice per stride cycle)
+        bodyGroup.position.y = Math.abs(Math.sin(t)) * 0.09;
+        // Legs: swing via rotation (physics — pendulum leg)
+        if (leftFoot)  leftFoot.rotation.x  =  Math.sin(t) * 0.55;
+        if (rightFoot) rightFoot.rotation.x = -Math.sin(t) * 0.55;
+        // Arms counter-swing (opposite phase to legs = natural gait)
+        if (leftArm)  leftArm.rotation.x  = -Math.sin(t) * 0.38;
+        if (rightArm && this.swingProgress <= 0) rightArm.rotation.x = Math.sin(t) * 0.38;
+        // Slight body sway side-to-side
+        bodyGroup.rotation.z = Math.sin(t * 0.5) * 0.025;
       } else {
-        bodyGroup.position.y = Math.sin(this.animTime * 2.5) * 0.02;
-        if (leftFoot && rightFoot) {
-          leftFoot.position.z = 0;
-          rightFoot.position.z = 0;
-        }
-        if (leftArm)  leftArm.rotation.x  = 0;
+        // Idle: settle back to rest with gentle breathing
+        bodyGroup.position.y += (Math.sin(this.animTime * 2.2) * 0.015 - bodyGroup.position.y) * 0.1;
+        if (leftFoot)  leftFoot.rotation.x  *= 0.85;
+        if (rightFoot) rightFoot.rotation.x *= 0.85;
+        if (leftArm && this.swingProgress <= 0)  leftArm.rotation.x  *= 0.85;
+        if (rightArm && this.swingProgress <= 0) rightArm.rotation.x *= 0.85;
+        bodyGroup.rotation.z *= 0.85;
       }
 
       // ── Villager-specific animations ──────────────────────────
