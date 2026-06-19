@@ -2149,6 +2149,9 @@ export class GameManager {
     
     // Accumulate total game time
     this.gameTime += baseDeltaTime;
+
+    // Drive all flag shader animations — one write updates every building flag simultaneously
+    if (this.modelFactory) this.modelFactory._flagTimeUniform.value = this.gameTime;
     
     // Update camera controls (independent of game speed)
     this.renderer.update(baseDeltaTime);

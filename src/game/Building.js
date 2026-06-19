@@ -255,6 +255,25 @@ export class Building {
       scene.remove(this.mesh);
       scene.add(glbRoot);
       this.mesh = glbRoot;
+
+      // Attach animated team flag on top of castle GLB
+      if (this.type === 'castle') {
+        const factory = this.gameManager.modelFactory;
+        const box = new THREE.Box3().setFromObject(glbRoot);
+        const topY = box.max.y;
+
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.3 });
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0, 6), poleMat);
+        pole.position.set(0, topY + 1.0, 0);
+        glbRoot.add(pole);
+
+        const teamMat = factory.getTeamMaterial(this.playerId);
+        const flagColor = teamMat ? teamMat.color.getHex() : 0xcc2222;
+        const flagGeom = new THREE.PlaneGeometry(1.0, 0.55, 12, 5);
+        const flagMesh = new THREE.Mesh(flagGeom, factory._makeFlagMaterial(flagColor, 0.5));
+        flagMesh.position.set(0.5, topY + 2.0, 0);
+        glbRoot.add(flagMesh);
+      }
     } catch (_) {
       // GLB failed — procedural fallback stays silently
     }

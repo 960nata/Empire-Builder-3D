@@ -237,6 +237,10 @@ export class ModelFactory {
     // Per-key GLB cache: scenes and promises indexed by building type key
     this._glbScenes   = {};  // key → THREE.Group (master, never added to scene)
     this._glbPromises = {};  // key → Promise<THREE.Group>
+
+    // Shared time uniform — all flag ShaderMaterials reference the same object.
+    // Update it once per frame in GameManager.animate() to animate every flag simultaneously.
+    this._flagTimeUniform = { value: 0 };
   }
 
   // ─── Generic lazy GLB loader ──────────────────────────────────────────────
@@ -309,6 +313,62 @@ export class ModelFactory {
 
   // Stone wall segment (2.1 MB) — used for StoneWall for all civs
   loadStoneWallGLB() { return this._loadGLB('stoneWall', '/models/stone-wall.glb',   2.0); }
+
+  // ─── Animated flag helpers ────────────────────────────────────────────────
+  // Creates a ShaderMaterial that waves like a flag in the wind.
+  // teamColor : hex int or THREE.Color   halfW : half the flag's width (pivot = left edge)
+  // All instances share _flagTimeUniform → updating it once updates every flag.
+  _makeFlagMaterial(teamColor, halfW) {
+    const hex = (teamColor instanceof THREE.Color) ? teamColor.getHex() : teamColor;
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTime:  this._flagTimeUniform,          // shared reference — one write updates all
+        uColor: { value: new THREE.Color(hex) },
+        uHalfW: { value: halfW }
+      },
+      vertexShader: /* glsl */`
+        uniform float uTime;
+        uniform float uHalfW;
+        void main() {
+          vec3 pos = position;
+          // influence = 0 at pole edge (left), 1 at free end (right)
+          float inf = clamp((pos.x + uHalfW) / (uHalfW * 2.0), 0.0, 1.0);
+          float amp = uHalfW * 0.30;
+          // Primary wave + high-freq flutter
+          pos.z += (sin(pos.x * 3.5 - uTime * 4.5) * amp
+                  + sin(pos.x * 8.0 - uTime * 9.2) * amp * 0.35) * inf;
+          // Gentle droop ripple
+          pos.y += cos(pos.x * 2.0 - uTime * 2.8) * amp * 0.18 * inf;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform vec3 uColor;
+        void main() {
+          gl_FragColor = vec4(uColor, 1.0);
+        }
+      `,
+      side: THREE.DoubleSide
+    });
+  }
+
+  // Traverses a built building group and converts every thin BoxGeometry
+  // flag (depth < 0.09, wider than it is tall) to an animated PlaneGeometry.
+  // Avoids touching 20+ individual flag creation sites.
+  _convertFlags(group, teamColor) {
+    group.traverse(obj => {
+      if (!obj.isMesh) return;
+      const p = obj.geometry && obj.geometry.parameters;
+      if (!p) return;
+      const { width = 0, height = 0, depth } = p;
+      // Only horizontal flag-shaped boxes (thin, wider than tall)
+      if (depth === undefined || depth >= 0.09 || width < 0.08 || width <= height * 0.7) return;
+      // Replace with subdivided plane for vertex-shader waving
+      obj.geometry = new OriginalTHREE.PlaneGeometry(width, height, 10, 4);
+      if (obj.material && !cachedMaterials.has(obj.material)) obj.material.dispose();
+      obj.material = this._makeFlagMaterial(teamColor, width / 2);
+    });
+  }
 
   // Load external 3D models (.glb / .gltf) — generic helper, kept for future use
   async loadExternalModel(url) {
@@ -6304,6 +6364,8 @@ export class ModelFactory {
       group.add(net);
     }
 
+    // Convert all thin BoxGeometry flags in this building to animated waving planes
+    this._convertFlags(group, teamMat.color);
     return group;
   }
 }
