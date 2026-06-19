@@ -257,6 +257,17 @@ export class Building {
       glbRoot.rotation.copy(this.mesh.rotation);
       glbRoot.userData = { entity: this };
 
+      // If still under construction, apply blueprint tint to GLB so it looks unfinished
+      if (!this.isCompleted) {
+        const blueprintMat = new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent: true, opacity: 0.5 });
+        glbRoot.traverse(child => {
+          if (child.isMesh) {
+            child.userData.originalMat = child.material;
+            child.material = blueprintMat;
+          }
+        });
+      }
+
       // Move selection ring to new mesh root
       if (this.selectionRing) {
         this.mesh.remove(this.selectionRing);
@@ -913,9 +924,9 @@ export class Building {
     const unitType = this.queue.shift();
     this.trainingTimer = 0;
     
-    // Spawn just outside the building footprint (offset slightly)
+    // Spawn outside building — use larger offset so unit clears the visual GLB mesh
     let spawnX = this.position.x;
-    let spawnZ = this.position.z + this.gridSize / 2 + 0.8;
+    let spawnZ = this.position.z + this.gridSize + 1.5;
     
     if (['fishingShip', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(unitType)) {
       let foundWater = false;
