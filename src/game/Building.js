@@ -225,6 +225,7 @@ export class Building {
     if (this.type === 'stoneWall') this._swapToGLB(() => this.gameManager.modelFactory.loadStoneWallGLB());
     if (this.type === 'barracks')  this._swapToGLB(() => this.gameManager.modelFactory.loadFortressGLB());
     if (this.type === 'house')     this._swapToGLB(() => this.gameManager.modelFactory.loadHouseGLB());
+    if (this.type === 'temple')    this._swapToGLB(() => this.gameManager.modelFactory.loadMosqueGLB());
 
     // Gate animation setup: find the animatable sub-group by name
     if (this.type === 'stoneGate' || this.type === 'palisadeGate') {
@@ -924,9 +925,22 @@ export class Building {
     const unitType = this.queue.shift();
     this.trainingTimer = 0;
     
-    // Spawn outside building — use larger offset so unit clears the visual GLB mesh
+    // Find a clear cell outside the building footprint to spawn into
+    const r = this.gridSize + 2;
+    const candidates = [
+      [0, r], [r, 0], [0, -r], [-r, 0],
+      [r, r], [r, -r], [-r, r], [-r, -r],
+      [0, r + 2], [r + 2, 0],
+    ];
     let spawnX = this.position.x;
-    let spawnZ = this.position.z + this.gridSize + 1.5;
+    let spawnZ = this.position.z + r;
+    for (const [ox, oz] of candidates) {
+      const tx = Math.round(this.position.x + ox);
+      const tz = Math.round(this.position.z + oz);
+      if (!this.gameManager.isCellBlocked(tx, tz)) {
+        spawnX = tx; spawnZ = tz; break;
+      }
+    }
     
     if (['fishingShip', 'transportShip', 'galley', 'fireShip', 'demolitionShip', 'cannonGalleon'].includes(unitType)) {
       let foundWater = false;

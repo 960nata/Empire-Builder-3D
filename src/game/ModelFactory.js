@@ -341,6 +341,8 @@ export class ModelFactory {
 
   // Knight model (1.9 MB) — mounted knight unit
   loadKnightGLB()       { return this._loadGLB('knight',        '/models/knight-model.glb',    2.0); }
+  loadHorsemanGLB()    { return this._loadGLB('horseman',      '/models/horseman.glb',         2.2); }
+  loadMosqueGLB()      { return this._loadGLB('mosque',        '/models/mosque.glb',           6.0); }
 
   // ─── Animated flag helpers ────────────────────────────────────────────────
   // Creates a ShaderMaterial that waves like a flag in the wind.

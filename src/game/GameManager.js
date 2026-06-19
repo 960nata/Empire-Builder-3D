@@ -930,7 +930,8 @@ export class GameManager {
     setTimeout(() => { this.modelFactory.loadHouseGLB().catch(() => {}); }, 1200);
     setTimeout(() => { this.modelFactory.loadPeasantGLB().catch(() => {}); }, 1800);
     setTimeout(() => { this.modelFactory.loadFemaleVillagerGLB().catch(() => {}); }, 2400);
-    setTimeout(() => { this.modelFactory.loadKnightGLB().catch(() => {}); }, 3000);
+    setTimeout(() => { this.modelFactory.loadHorsemanGLB().catch(() => {}); }, 3000);
+    setTimeout(() => { this.modelFactory.loadMosqueGLB().catch(() => {}); }, 3600);
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock

@@ -724,8 +724,8 @@ export class Unit {
           this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
         }
       }
-      if (this.type === 'knight') {
-        this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
+      if (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'scoutCavalry') {
+        this._swapUnitGLB('horseman', () => this.gameManager.modelFactory.loadHorsemanGLB());
       }
     }
   }
