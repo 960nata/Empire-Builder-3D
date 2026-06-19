@@ -759,6 +759,9 @@ export class Unit {
         this._glbClips  = {};
         this._glbYOff   = yOffset;
 
+        // Log clip names so we can see what the GLB actually contains
+        console.log(`[GLB clips for ${glbKey}]:`, clips.map(c => c.name));
+
         clips.forEach(clip => {
           const n = clip.name.toLowerCase();
           const action = this._glbMixer.clipAction(clip);
@@ -775,18 +778,14 @@ export class Unit {
             action.clampWhenFinished = true;
           }
         });
-        // If no idle found: use first non-walk clip, or null (means stop mixer when idle)
-        if (!this._glbClips.idle && this._glbClips.walk) {
-          // Don't assign walk as idle fallback — just leave idle null = "stop when idle"
-        } else if (!this._glbClips.idle && clips.length > 0) {
-          this._glbClips.idle = this._glbMixer.clipAction(clips[0]);
-        }
-        // Walk fallback = idle; attack fallback = walk or idle
-        if (!this._glbClips.walk)   this._glbClips.walk   = this._glbClips.idle;
+        // No fallback to first clip — if name doesn't explicitly match, leave null.
+        // null idle = stopAllAction() → character stands still in bind pose (no dancing).
+        // Walk fallback = idle only if a real idle exists; attack fallback = walk or idle.
+        if (!this._glbClips.walk && this._glbClips.idle) this._glbClips.walk = this._glbClips.idle;
         if (!this._glbClips.attack) this._glbClips.attack = this._glbClips.walk || this._glbClips.idle;
 
         this._currentGLBAnim = 'idle';
-        // Start: play idle or stop all (if no idle clip = model stays in T-pose when idle)
+        // Idle: play idle clip if exists, otherwise stop all so unit stands in bind pose
         if (this._glbClips.idle) this._glbClips.idle.play();
         else this._glbMixer.stopAllAction();
       }
