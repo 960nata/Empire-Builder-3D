@@ -70,29 +70,20 @@ export class Renderer {
     this.updateCameraPosition();
 
     // Renderer — HDR-ready, high pixel ratio for crisp retina output
-    this.webGLRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    this.webGLRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
     this.webGLRenderer.setSize(window.innerWidth, window.innerHeight);
-    this.webGLRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+    this.webGLRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // cap 1.5 — retina at 3 kills perf
     this.webGLRenderer.shadowMap.enabled = true;
-    this.webGLRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.webGLRenderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoft is 2x slower
     this.webGLRenderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.webGLRenderer.toneMappingExposure = 1.18;
     this.webGLRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.container.appendChild(this.webGLRenderer.domElement);
 
-    // ─── Post-processing: Bloom ───────────────────────────────────────
-    this.composer = new EffectComposer(this.webGLRenderer);
-    this.composer.addPass(new RenderPass(this.scene, this.camera));
-
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.55,  // strength — punchy glow without washing out
-      0.45,  // radius  — tight bloom keeps details sharp
-      0.78   // threshold — fires on bright speculars & emissives
-    );
-    this.composer.addPass(this.bloomPass);
-    this.composer.addPass(new OutputPass());
+    // Bloom disabled — direct render for performance (no extra full-screen pass)
+    this.composer = null;
+    this.bloomPass = null;
   }
 
   updateFogForMapSize(mapSize) {
@@ -112,9 +103,9 @@ export class Renderer {
     this.sunLight.position.set(40, 75, 20);
     this.sunLight.castShadow = true;
 
-    // 4096×4096 shadow map — ultra-crisp shadows on all units and buildings
-    this.sunLight.shadow.mapSize.width  = 4096;
-    this.sunLight.shadow.mapSize.height = 4096;
+    // 1024×1024 shadow map — good quality, 16x less VRAM than 4096
+    this.sunLight.shadow.mapSize.width  = 1024;
+    this.sunLight.shadow.mapSize.height = 1024;
     this.sunLight.shadow.camera.near = 0.5;
     this.sunLight.shadow.camera.far  = 280;
     const d = 80;
@@ -473,7 +464,7 @@ export class Renderer {
   }
 
   render() {
-    this.composer.render();
+    this.webGLRenderer.render(this.scene, this.camera);
   }
 
   onWindowResize() {
@@ -482,7 +473,5 @@ export class Renderer {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.webGLRenderer.setSize(w, h);
-    this.composer.setSize(w, h);
-    if (this.bloomPass) this.bloomPass.setSize(w, h);
   }
 }

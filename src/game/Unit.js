@@ -714,20 +714,7 @@ export class Unit {
     
     this.sceneMeshRef = this.gameManager.renderer.scene.add(this.mesh);
 
-    // GLB swap: only for player's own units (playerId===0) to keep perf light
-    if (this.playerId === 0) {
-      if (this.type === 'villager') {
-        const useFemale = (this.id && this.id.charCodeAt(this.id.length - 1) % 2 === 0);
-        if (useFemale) {
-          this._swapUnitGLB('femaleVillager', () => this.gameManager.modelFactory.loadFemaleVillagerGLB());
-        } else {
-          this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
-        }
-      }
-      if (this.type === 'knight') {
-        this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
-      }
-    }
+    // Unit GLB swap disabled — procedural meshes used for all units (no AnimationMixer overhead)
   }
 
   async _swapUnitGLB(glbKey, loader) {
@@ -1163,35 +1150,8 @@ export class Unit {
       }
     }
     
-    // GLB AnimationMixer tick + state-driven clip switching
-    if (this._glbMixer) {
-      // Throttle: skip mixer update for distant units (>40 units from camera) — perf
-      const cam = this.gameManager.renderer && this.gameManager.renderer.camera;
-      const distSq = cam ? this.position.distanceToSquared(cam.position) : 0;
-      if (distSq < 1600) this._glbMixer.update(deltaTime); // 40 units radius
-      // Apply ground-offset so GLB stays on terrain (mesh.position.y is terrain height)
-      this.mesh.position.y = this.position.y + (this._glbYOff || 0);
-
-      const want = (this.state === 'MOVING' || this.state === 'CHASING' || this.state === 'RETURNING') ? 'walk'
-                 : (this.state === 'ATTACKING' || this.state === 'HARVESTING' || this.state === 'BUILDING') ? 'attack'
-                 : (this.state === 'DEAD') ? 'death'
-                 : 'idle';
-      if (want !== this._currentGLBAnim) {
-        const prev = this._glbClips && this._glbClips[this._currentGLBAnim];
-        const next = this._glbClips && this._glbClips[want];
-        if (prev && prev !== next) prev.fadeOut(0.25);
-        if (next) {
-          next.reset().fadeIn(0.25).play();
-        } else {
-          // No clip for this state (e.g. no idle) → stop all so unit stands still
-          this._glbMixer.stopAllAction();
-        }
-        this._currentGLBAnim = want;
-      }
-    }
-
-    // Run procedural limb animation (only when no GLB mixer active)
-    if (!this._glbMixer) this.animateLimbs(deltaTime);
+    // Procedural limb animation — lightweight, no AnimationMixer overhead
+    this.animateLimbs(deltaTime);
   }
 
   tickStateMachine(deltaTime) {
