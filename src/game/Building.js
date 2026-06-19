@@ -243,7 +243,15 @@ export class Building {
       if (this._destroyed || !this.mesh) return; // razed before GLB arrived
 
       const scene = this.gameManager.renderer.scene;
-      glbRoot.position.copy(this.mesh.position);
+      // Preserve the Y offset _loadGLB applied to sit the model on Y=0.
+      // Use this.position.y (actual terrain height) — NOT this.mesh.position.y which
+      // may be set to terrain-1.0 during blueprint construction phase.
+      const glbYOffset = glbRoot.position.y;
+      glbRoot.position.set(
+        this.mesh.position.x,
+        this.position.y + glbYOffset,
+        this.mesh.position.z
+      );
       glbRoot.rotation.copy(this.mesh.rotation);
       glbRoot.userData = { entity: this };
 
@@ -261,7 +269,8 @@ export class Building {
       if (this.type === 'castle') {
         const factory = this.gameManager.modelFactory;
         const box = new THREE.Box3().setFromObject(glbRoot);
-        const topY = box.max.y;
+        // box.max.y is world-space; subtract root's world Y to get local-space top
+        const topY = box.max.y - glbRoot.position.y;
 
         const poleMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.3 });
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0, 6), poleMat);
