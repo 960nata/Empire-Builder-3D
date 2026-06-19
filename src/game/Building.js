@@ -277,6 +277,30 @@ export class Building {
       // keep the GLB correctly positioned during construction animation
       this._glbYOffset = glbRoot.position.y - this.position.y;
 
+      // Resize selection ring to exactly match the GLB's XZ footprint
+      if (this.selectionRing) {
+        // Recompute box after final position adjustment
+        glbRoot.updateWorldMatrix(true, true);
+        const footBox = new THREE.Box3().setFromObject(glbRoot);
+        // Convert world XZ extents to glbRoot local space (undo scale)
+        const sc = glbRoot.scale.x || 1;
+        const wxH = (footBox.max.x - footBox.min.x) / 2;
+        const wzH = (footBox.max.z - footBox.min.z) / 2;
+        const lxH = wxH / sc;
+        const lzH = wzH / sc;
+        const lcx = ((footBox.min.x + footBox.max.x) / 2 - glbRoot.position.x) / sc;
+        const lcz = ((footBox.min.z + footBox.max.z) / 2 - glbRoot.position.z) / sc;
+        const ly  = (this.position.y + 0.15 - glbRoot.position.y) / (glbRoot.scale.y || 1);
+        const pts = [
+          new THREE.Vector3(lcx - lxH, ly, lcz - lzH),
+          new THREE.Vector3(lcx + lxH, ly, lcz - lzH),
+          new THREE.Vector3(lcx + lxH, ly, lcz + lzH),
+          new THREE.Vector3(lcx - lxH, ly, lcz + lzH),
+        ];
+        this.selectionRing.geometry.setFromPoints(pts);
+        this.selectionRing.position.set(0, 0, 0); // offset baked into pts
+      }
+
       // Attach animated team flag on top of castle GLB
       if (this.type === 'castle') {
         const factory = this.gameManager.modelFactory;
