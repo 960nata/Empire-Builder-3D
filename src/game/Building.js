@@ -267,11 +267,15 @@ export class Building {
       scene.add(glbRoot);
       this.mesh = glbRoot;
 
-      // Safety floor: if any part of GLB goes below terrain, push it up
+      // Force bottom of GLB to sit exactly at terrain level
+      glbRoot.updateWorldMatrix(true, true);
       const floorBox = new THREE.Box3().setFromObject(glbRoot);
-      if (floorBox.min.y < this.position.y - 0.1) {
-        glbRoot.position.y += (this.position.y - floorBox.min.y);
-      }
+      const bottomDelta = this.position.y - floorBox.min.y;
+      glbRoot.position.y += bottomDelta;
+
+      // Save the effective Y offset so addBuildProgress/completeConstruction
+      // keep the GLB correctly positioned during construction animation
+      this._glbYOffset = glbRoot.position.y - this.position.y;
 
       // Attach animated team flag on top of castle GLB
       if (this.type === 'castle') {
@@ -312,8 +316,9 @@ export class Building {
     // Increase HP as construction proceeds
     this.hp = Math.round((this.buildProgress / 100) * this.maxHp);
     
-    // Rise the building up as it builds
-    this.mesh.position.y = this.position.y - (1.0 - (this.buildProgress / 100)) * 1.0;
+    // Rise the building up as it builds (account for GLB Y offset if swapped)
+    const yOff = this._glbYOffset || 0;
+    this.mesh.position.y = this.position.y + yOff - (1.0 - (this.buildProgress / 100)) * 1.0;
     
     if (this.buildProgress >= 100) {
       this.completeConstruction();
@@ -323,7 +328,7 @@ export class Building {
   completeConstruction() {
     this.isCompleted = true;
     this.hp = this.maxHp;
-    this.mesh.position.y = this.position.y;
+    this.mesh.position.y = this.position.y + (this._glbYOffset || 0);
     
     // Restore original materials
     this.mesh.traverse(child => {
