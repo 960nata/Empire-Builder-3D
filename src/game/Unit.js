@@ -740,9 +740,9 @@ export class Unit {
       const yOffset  = glbRoot.position.y; // ground-sit offset from _loadGLB
 
       glbRoot.position.set(
-        this.mesh.position.x,
+        this.position.x,
         this.position.y + yOffset,
-        this.mesh.position.z
+        this.position.z
       );
       glbRoot.rotation.y = this.mesh.rotation.y;
       glbRoot.userData   = { entity: this };
@@ -778,23 +778,24 @@ export class Unit {
             action.clampWhenFinished = true;
           }
         });
-        // No fallback to first clip — if name doesn't explicitly match, leave null.
-        // null idle = stopAllAction() → character stands still in bind pose (no dancing).
-        // Walk fallback = idle only if a real idle exists; attack fallback = walk or idle.
-        if (!this._glbClips.walk && this._glbClips.idle) this._glbClips.walk = this._glbClips.idle;
+        // Fallback: if no walk/attack found by name, use first clip for walk.
+        // idle stays null → stopAllAction() when idle (stand still, no dancing).
+        if (!this._glbClips.walk && clips.length > 0) {
+          this._glbClips.walk = this._glbMixer.clipAction(clips[0]);
+        }
         if (!this._glbClips.attack) this._glbClips.attack = this._glbClips.walk || this._glbClips.idle;
 
         this._currentGLBAnim = 'idle';
-        // Idle: play idle clip if exists, otherwise stop all so unit stands in bind pose
-        if (this._glbClips.idle) this._glbClips.idle.play();
-        else this._glbMixer.stopAllAction();
+        // Start idle: stop all (stand still in bind pose) — walk clip plays when moving
+        this._glbMixer.stopAllAction();
       }
 
       scene.remove(this.mesh);
       scene.add(glbRoot);
       this.mesh = glbRoot;
-    } catch (_) {
-      // Procedural fallback stays silently
+    } catch (err) {
+      console.warn(`[Unit._swapUnitGLB] failed for ${glbKey}:`, err);
+      // Procedural mesh stays in scene as fallback
     }
   }
 
