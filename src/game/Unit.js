@@ -253,6 +253,7 @@ export class Unit {
     // Animations
     this.animTime = Math.random() * 10;
     this.swingProgress = 0;
+    this._gatherType = 'axe'; // 'axe' | 'pickaxe' | 'sickle'
     
     this.initMesh();
     this.recalculateStats();
@@ -1097,7 +1098,27 @@ export class Unit {
       if (this.harvestTimer >= this.attackCooldown) {
         this.harvestTimer = 0;
         this.swingProgress = 1.0; // trigger chop anim
-        
+
+        // Switch villager tool mesh to match resource being gathered
+        if (this.type === 'villager') {
+          const rType = this.targetEntity.type;
+          const newTool = (rType === 'stone' || rType === 'gold') ? 'pickaxe'
+                        : (rType === 'food' || rType === 'sheep' || rType === 'farm' || rType === 'fish' || rType === 'fishTrap') ? 'sickle'
+                        : 'axe';
+          if (newTool !== this._gatherType) {
+            this._gatherType = newTool;
+            const bodyGroup = this.mesh && this.mesh.getObjectByName('bodyGroup');
+            const rightArm  = bodyGroup && bodyGroup.getObjectByName('rightArm');
+            if (rightArm) {
+              const names = ['toolAxe', 'toolPickaxe', 'toolSickle'];
+              names.forEach(n => {
+                const t = rightArm.getObjectByName(n);
+                if (t) t.visible = (n === 'tool' + newTool.charAt(0).toUpperCase() + newTool.slice(1));
+              });
+            }
+          }
+        }
+
         // Apply Civ gather rate modifiers and camp/dock upgrades
         let gatherRateMult = 1.0;
         if (this.targetEntity.type === 'wood') {
@@ -2305,34 +2326,94 @@ export class Unit {
     // STANDARD UNITS (VILLAGER, SWORDSMAN, PRIEST, TRADER) ANIMATIONS
     // -------------------------------------------------------------
     else {
-      const leftFoot = bodyGroup.getObjectByName("leftFoot");
+      const leftFoot  = bodyGroup.getObjectByName("leftFoot");
       const rightFoot = bodyGroup.getObjectByName("rightFoot");
-      const rightArm = bodyGroup.getObjectByName("rightArm");
+      const rightArm  = bodyGroup.getObjectByName("rightArm");
+      const leftArm   = bodyGroup.getObjectByName("leftArm");
 
       if (isMoving) {
         const bob = Math.sin(this.animTime * 14) * 0.12;
         bodyGroup.position.y = bob;
         if (leftFoot && rightFoot) {
-          leftFoot.position.z = Math.sin(this.animTime * 14) * 0.22;
+          leftFoot.position.z  =  Math.sin(this.animTime * 14) * 0.22;
           rightFoot.position.z = -Math.sin(this.animTime * 14) * 0.22;
         }
+        // Arms swing opposite to feet while walking
+        if (leftArm)  leftArm.rotation.x  =  Math.sin(this.animTime * 14) * 0.35;
+        if (rightArm) rightArm.rotation.x = -Math.sin(this.animTime * 14) * 0.35;
       } else {
         bodyGroup.position.y = Math.sin(this.animTime * 2.5) * 0.02;
         if (leftFoot && rightFoot) {
           leftFoot.position.z = 0;
           rightFoot.position.z = 0;
         }
+        if (leftArm)  leftArm.rotation.x  = 0;
       }
 
-      // Swing tools/weapons
-      if (this.swingProgress > 0) {
-        this.swingProgress -= deltaTime * 3.5;
-        if (rightArm) {
-          rightArm.rotation.x = -Math.sin(Math.max(0, this.swingProgress) * Math.PI) * 1.1;
+      // ── Villager-specific animations ──────────────────────────
+      if (this.type === 'villager') {
+        const gatherType  = this._gatherType || 'axe';
+        const isReturning = this.state === 'RETURNING';
+        const isHarvesting = this.state === 'HARVESTING';
+
+        // Carry pose: lean forward + arms out when returning with resources
+        const carryItem = bodyGroup.getObjectByName("carryItem");
+        if (carryItem) {
+          const shouldCarry = isReturning && this.inventory && this.inventory.amount > 0;
+          carryItem.visible = shouldCarry;
+          if (shouldCarry) {
+            // Tint bundle colour by resource type
+            const bundle = carryItem.getObjectByName("bundleMesh");
+            if (bundle) {
+              const col = this.inventory.type === 'wood'  ? 0x8b5a2b
+                        : this.inventory.type === 'stone' ? 0x888888
+                        : this.inventory.type === 'gold'  ? 0xffd700
+                        : this.inventory.type === 'food'  ? 0xcc4422
+                        : 0x8b5a2b;
+              if (bundle.material.color.getHex() !== col) bundle.material.color.setHex(col);
+            }
+            bodyGroup.rotation.x = 0.18; // lean forward with load
+          } else {
+            bodyGroup.rotation.x = 0;
+          }
+        }
+
+        // Tool swing — speed & arc differ per tool
+        if (this.swingProgress > 0) {
+          if (gatherType === 'pickaxe') {
+            // Heavy overhead slam — slow arc, body rocks
+            this.swingProgress -= deltaTime * 2.4;
+            const p = Math.max(0, this.swingProgress);
+            if (rightArm) rightArm.rotation.x = -Math.sin(p * Math.PI) * 1.6;
+            bodyGroup.rotation.x = Math.sin(p * Math.PI) * 0.12;
+          } else if (gatherType === 'sickle') {
+            // Horizontal sweep — arm rotates on Z axis
+            this.swingProgress -= deltaTime * 3.8;
+            const p = Math.max(0, this.swingProgress);
+            if (rightArm) {
+              rightArm.rotation.x = -Math.sin(p * Math.PI) * 0.7;
+              rightArm.rotation.z = -Math.sin(p * Math.PI) * 0.8;
+            }
+          } else {
+            // Axe chop — fast overhead strike
+            this.swingProgress -= deltaTime * 4.2;
+            const p = Math.max(0, this.swingProgress);
+            if (rightArm) rightArm.rotation.x = -Math.sin(p * Math.PI) * 1.25;
+          }
+        } else {
+          if (rightArm && !isMoving) {
+            rightArm.rotation.x = isHarvesting ? -0.3 : 0; // ready stance while harvesting
+            if (rightArm.rotation.z !== 0) rightArm.rotation.z *= 0.85; // fade sickle Z
+          }
+          if (!isMoving) bodyGroup.rotation.x = 0;
         }
       } else {
-        if (rightArm) {
-          rightArm.rotation.x = 0;
+        // Non-villager standard unit swing
+        if (this.swingProgress > 0) {
+          this.swingProgress -= deltaTime * 3.5;
+          if (rightArm) rightArm.rotation.x = -Math.sin(Math.max(0, this.swingProgress) * Math.PI) * 1.1;
+        } else {
+          if (rightArm) rightArm.rotation.x = 0;
         }
       }
     }

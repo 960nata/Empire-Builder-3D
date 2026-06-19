@@ -1935,43 +1935,108 @@ export class ModelFactory {
     }
 
     if (type === 'villager') {
-      // Brown belt
-      const beltGeom = new THREE.CylinderGeometry(0.29, 0.29, 0.08, 6);
-      const belt = new THREE.Mesh(beltGeom, this.materials.clothes);
-      belt.position.y = 0.35;
+      const toolMat = age === 'imperial' ? this.materials.goldMetal : this.materials.iron;
+
+      // Tunic / apron over torso
+      const tunic = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.27, 0.48, 6), this.materials.clothes);
+      tunic.position.y = 0.30;
+      bodyGroup.add(tunic);
+
+      // Belt buckle
+      const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.30, 0.06, 6), this.materials.woodDark);
+      belt.position.y = 0.55;
       bodyGroup.add(belt);
 
-      // Tool holding hand (Right arm)
+      // Simple eyes on face
+      const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+      const eyeGeom = new THREE.SphereGeometry(0.025, 4, 4);
+      const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
+      eyeL.position.set(-0.08, 0.96, 0.17);
+      bodyGroup.add(eyeL);
+      const eyeR = eyeL.clone();
+      eyeR.position.x = 0.08;
+      bodyGroup.add(eyeR);
+
+      // Hair / cloth cap
+      const capMat = this.materials.clothesDark || this.materials.woodDark;
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.21, 0.14, 7), capMat);
+      cap.position.y = 1.09;
+      bodyGroup.add(cap);
+      const capBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.04, 7), capMat);
+      capBrim.position.y = 1.02;
+      bodyGroup.add(capBrim);
+
+      // Left arm (swings counter to right when walking)
+      const leftArmGroup = new THREE.Group();
+      leftArmGroup.name = "leftArm";
+      leftArmGroup.position.set(-0.36, 0.62, 0);
+      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.38, 4), this.materials.skin);
+      lArm.position.y = -0.15;
+      leftArmGroup.add(lArm);
+      bodyGroup.add(leftArmGroup);
+
+      // Right arm — holds tools
       const armGroup = new THREE.Group();
       armGroup.name = "rightArm";
-      armGroup.position.set(0.35, 0.55, 0);
-      
-      const armGeom = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 4);
-      const arm = new THREE.Mesh(armGeom, this.materials.clothes);
-      arm.position.y = -0.15;
-      armGroup.add(arm);
+      armGroup.position.set(0.36, 0.62, 0);
+      const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.38, 4), this.materials.skin);
+      rArm.position.y = -0.15;
+      armGroup.add(rArm);
 
-      // The Tool (Axe/Pickaxe combo)
-      const toolGroup = new THREE.Group();
-      toolGroup.name = "tool";
-      toolGroup.position.set(0, -0.3, 0.1);
-      toolGroup.rotation.x = Math.PI / 2; // point forward
-      
-      // Handle (shaft)
-      const shaftGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 4);
-      const shaft = new THREE.Mesh(shaftGeom, this.materials.woodDark);
-      shaft.rotation.x = Math.PI / 2;
-      toolGroup.add(shaft);
-      
-      // Iron axe head (Golden tool in Imperial Age!)
-      const headGeom = new THREE.BoxGeometry(0.12, 0.25, 0.35);
-      const toolMat = age === 'imperial' ? this.materials.goldMetal : this.materials.iron;
-      const axeHead = new THREE.Mesh(headGeom, toolMat);
-      axeHead.position.set(0, 0, 0.3);
-      toolGroup.add(axeHead);
+      // ── Tool 1: Axe (woodcutting) ── default visible
+      const toolAxe = new THREE.Group();
+      toolAxe.name = "toolAxe";
+      toolAxe.position.set(0, -0.32, 0.08);
+      const axeShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 4), this.materials.woodDark);
+      axeShaft.rotation.x = Math.PI / 2;
+      toolAxe.add(axeShaft);
+      const axeHead = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.22, 0.08), toolMat);
+      axeHead.position.set(0.06, 0, 0.30);
+      toolAxe.add(axeHead);
+      armGroup.add(toolAxe);
 
-      armGroup.add(toolGroup);
+      // ── Tool 2: Pickaxe (stone & gold) ── hidden
+      const toolPick = new THREE.Group();
+      toolPick.name = "toolPickaxe";
+      toolPick.visible = false;
+      toolPick.position.set(0, -0.30, 0.08);
+      const pickShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.72, 4), this.materials.woodDark);
+      pickShaft.rotation.x = Math.PI / 2;
+      toolPick.add(pickShaft);
+      const pickHead = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.07), toolMat);
+      pickHead.position.set(0, 0, 0.30);
+      pickHead.rotation.z = Math.PI / 9;
+      toolPick.add(pickHead);
+      armGroup.add(toolPick);
+
+      // ── Tool 3: Sickle (food / farming) ── hidden
+      const toolSickle = new THREE.Group();
+      toolSickle.name = "toolSickle";
+      toolSickle.visible = false;
+      toolSickle.position.set(0, -0.28, 0.08);
+      const sickleShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.48, 4), this.materials.woodDark);
+      sickleShaft.rotation.x = Math.PI / 2;
+      toolSickle.add(sickleShaft);
+      const sickleBlade = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 4, 8, Math.PI * 0.75), toolMat);
+      sickleBlade.position.set(0, 0, 0.26);
+      sickleBlade.rotation.set(Math.PI / 2, 0, Math.PI / 4);
+      toolSickle.add(sickleBlade);
+      armGroup.add(toolSickle);
+
       bodyGroup.add(armGroup);
+
+      // ── Carry item group (hidden; shown when RETURNING with resources) ──
+      const carryGroup = new THREE.Group();
+      carryGroup.name = "carryItem";
+      carryGroup.visible = false;
+      carryGroup.position.set(0, 0.55, 0.28);
+      // Generic bundle shape — colour swapped at runtime per resource
+      const bundleMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+      const bundle = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.40, 5), bundleMat);
+      bundle.name = "bundleMesh";
+      bundle.rotation.z = Math.PI / 2;
+      carryGroup.add(bundle);
+      bodyGroup.add(carryGroup);
     } 
     else if (type === 'priest') {
       // Robes lower trim
