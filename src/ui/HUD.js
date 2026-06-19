@@ -1645,7 +1645,7 @@ export class HUD {
 
           let buildButtonsHtml = `
             <button class="action-btn" id="btn-build-house" title="Build House (50 Wood) - Increases pop capacity">${SVGIcons.house} House (50W)</button>
-            <button class="action-btn" id="btn-build-barracks" title="Build Barracks (120 Wood, 50 Stone) - Spawns army">${SVGIcons.barracks} Barracks (120W, 50S)</button>
+            <button class="action-btn" id="btn-build-barracks" title="Build Military Barracks (120 Wood, 50 Stone) - Train infantry & cavalry">${SVGIcons.barracks} Military Barracks (120W, 50S)</button>
             <button class="action-btn" id="btn-build-dock" title="Build Dock (150 Wood) - Shoreline Shipyard">${SVGIcons.dock} Dock (150W)</button>
             <button class="action-btn" id="btn-build-farm" title="Build Farm (60 Wood) - Constant Food Resource">${SVGIcons.farm} Farm (60W)</button>
             <button class="action-btn" id="btn-build-mill" title="Build Mill (100 Wood) - Drops off food, supports farms">${SVGIcons.mill} Mill (100W)</button>
@@ -1702,7 +1702,7 @@ export class HUD {
 
           const binds = [
             { id: 'btn-build-house', type: 'house', text: 'place House' },
-            { id: 'btn-build-barracks', type: 'barracks', text: 'place Barracks' },
+            { id: 'btn-build-barracks', type: 'barracks', text: 'place Military Barracks' },
             { id: 'btn-build-dock', type: 'dock', text: 'place Dock' },
             { id: 'btn-build-farm', type: 'farm', text: 'place Farm' },
             { id: 'btn-build-mill', type: 'mill', text: 'place Mill' },

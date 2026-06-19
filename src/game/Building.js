@@ -222,6 +222,7 @@ export class Building {
     // Works for all civilizations — no civ-specific branching needed.
     if (this.type === 'castle')    this._swapToGLB(() => this.gameManager.modelFactory.loadCastleGLB());
     if (this.type === 'stoneWall') this._swapToGLB(() => this.gameManager.modelFactory.loadStoneWallGLB());
+    if (this.type === 'barracks')  this._swapToGLB(() => this.gameManager.modelFactory.loadFortressGLB());
 
     // Gate animation setup: find the animatable sub-group by name
     if (this.type === 'stoneGate' || this.type === 'palisadeGate') {
@@ -598,6 +599,7 @@ export class Building {
       if (level >= 2) return 'Keep';
       return 'Watchtower';
     }
+    if (this.type === 'barracks') return 'Military Barracks';
     if (this.type === 'university') return 'University';
     if (this.type === 'siegeWorkshop') return 'Siege Workshop';
     if (this.type === 'stable') return 'Stable';

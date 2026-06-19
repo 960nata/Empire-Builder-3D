@@ -925,6 +925,7 @@ export class GameManager {
     // Both are ready well before the player can build their first castle or stone wall
     this.modelFactory.loadCastleGLB().catch(() => {});
     this.modelFactory.loadStoneWallGLB().catch(() => {});
+    this.modelFactory.loadFortressGLB().catch(() => {});
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock

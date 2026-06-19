@@ -314,6 +314,9 @@ export class ModelFactory {
   // Stone wall segment (2.1 MB) — used for StoneWall for all civs
   loadStoneWallGLB() { return this._loadGLB('stoneWall', '/models/stone-wall.glb',   2.0); }
 
+  // Fortress (2.2 MB) — used as Military Barracks for all civs
+  loadFortressGLB()  { return this._loadGLB('fortress',  '/models/fortress.glb',     5.0); }
+
   // ─── Animated flag helpers ────────────────────────────────────────────────
   // Creates a ShaderMaterial that waves like a flag in the wind.
   // teamColor : hex int or THREE.Color   halfW : half the flag's width (pivot = left edge)
