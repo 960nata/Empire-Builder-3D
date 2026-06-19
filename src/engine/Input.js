@@ -49,6 +49,14 @@ export class Input {
       const chatInput = document.getElementById('chat-input-field');
       if (chatInput && document.activeElement === chatInput) return;
       
+      // R key rotates blueprint 90° during placement
+      if ((e.key === 'r' || e.key === 'R') && this.blueprintBuilding) {
+        this.blueprintAngle = (this.blueprintAngle + Math.PI / 2) % (Math.PI * 2);
+        if (this.blueprintMesh) this.blueprintMesh.rotation.y = this.blueprintAngle;
+        e.preventDefault();
+        return;
+      }
+
       // F key cycles formation
       if (e.key === 'f' || e.key === 'F') {
         const newFormation = this.gameManager.cycleFormation();
@@ -472,7 +480,8 @@ export class Input {
         } else {
           this.blueprintMesh.visible = true;
           this.blueprintMesh.position.set(snapX, 0, snapZ);
-          
+          this.blueprintMesh.rotation.y = this.blueprintAngle;
+
           const isValid = this.gameManager.checkBuildPosition(snapX, snapZ, this.blueprintBuilding.type);
           this.blueprintMesh.children.forEach(child => {
             if (child.material) {
@@ -553,7 +562,8 @@ export class Input {
     this.cancelBuildPlacement();
     
     this.blueprintBuilding = { type: buildingType };
-    
+    this.blueprintAngle = 0; // reset rotation on each new placement
+
     // Create a semi-transparent mesh for blueprint
     const factory = this.gameManager.modelFactory;
     this.blueprintMesh = factory.createBuildingMesh(buildingType, 0); // Player ID 0
@@ -639,8 +649,8 @@ export class Input {
     const snapX = Math.round(this.blueprintMesh.position.x);
     const snapZ = Math.round(this.blueprintMesh.position.z);
     
-    // Place building in game
-    const placed = this.gameManager.placeBuilding(snapX, snapZ, this.blueprintBuilding.type);
+    // Place building in game (pass current rotation angle)
+    const placed = this.gameManager.placeBuilding(snapX, snapZ, this.blueprintBuilding.type, this.blueprintAngle);
     
     if (placed) {
       this.cancelBuildPlacement();
