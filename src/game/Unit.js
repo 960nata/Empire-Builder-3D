@@ -714,7 +714,20 @@ export class Unit {
     
     this.sceneMeshRef = this.gameManager.renderer.scene.add(this.mesh);
 
-    // Unit GLB swap disabled — procedural meshes used for all units (no AnimationMixer overhead)
+    // GLB swap for character visuals (no AnimationMixer — static pose, lightweight)
+    if (this.playerId === 0) {
+      if (this.type === 'villager') {
+        const useFemale = (this.id && this.id.charCodeAt(this.id.length - 1) % 2 === 0);
+        if (useFemale) {
+          this._swapUnitGLB('femaleVillager', () => this.gameManager.modelFactory.loadFemaleVillagerGLB());
+        } else {
+          this._swapUnitGLB('peasant', () => this.gameManager.modelFactory.loadPeasantGLB());
+        }
+      }
+      if (this.type === 'knight') {
+        this._swapUnitGLB('knight', () => this.gameManager.modelFactory.loadKnightGLB());
+      }
+    }
   }
 
   async _swapUnitGLB(glbKey, loader) {
@@ -722,67 +735,25 @@ export class Unit {
       const glbRoot = await loader();
       if (!this.mesh || this.state === 'DEAD') return;
 
-      const scene    = this.gameManager.renderer.scene;
-      const factory  = this.gameManager.modelFactory;
-      const yOffset  = glbRoot.position.y; // ground-sit offset from _loadGLB
+      const scene   = this.gameManager.renderer.scene;
+      const yOffset = glbRoot.position.y; // ground-sit offset baked in by _loadGLB
 
-      glbRoot.position.set(
-        this.position.x,
-        this.position.y + yOffset,
-        this.position.z
-      );
+      glbRoot.position.set(this.position.x, this.position.y + yOffset, this.position.z);
       glbRoot.rotation.y = this.mesh.rotation.y;
       glbRoot.userData   = { entity: this };
+      this._glbYOff      = yOffset; // used every frame to keep GLB on terrain
 
       if (this.selectionRing) {
         this.mesh.remove(this.selectionRing);
         glbRoot.add(this.selectionRing);
       }
 
-      // Wire up AnimationMixer if the GLB has skeletal animations
-      const clips = factory.getGLBAnimations(glbKey);
-      if (clips.length > 0) {
-        this._glbMixer  = new THREE.AnimationMixer(glbRoot);
-        this._glbClips  = {};
-        this._glbYOff   = yOffset;
-
-        // Log clip names so we can see what the GLB actually contains
-        console.log(`[GLB clips for ${glbKey}]:`, clips.map(c => c.name));
-
-        clips.forEach(clip => {
-          const n = clip.name.toLowerCase();
-          const action = this._glbMixer.clipAction(clip);
-          action.loop = THREE.LoopRepeat;
-          if (!this._glbClips.idle && (n.includes('idle') || n.includes('stand') || n.includes('breathe'))) {
-            this._glbClips.idle = action;
-          } else if (!this._glbClips.walk && (n.includes('walk') || n.includes('run') || n.includes('move'))) {
-            this._glbClips.walk = action;
-          } else if (!this._glbClips.attack && (n.includes('attack') || n.includes('chop') || n.includes('hit') || n.includes('swing') || n.includes('mine'))) {
-            this._glbClips.attack = action;
-          } else if (!this._glbClips.death && (n.includes('death') || n.includes('die') || n.includes('dead'))) {
-            this._glbClips.death = action;
-            action.loop = THREE.LoopOnce;
-            action.clampWhenFinished = true;
-          }
-        });
-        // Fallback: if no walk/attack found by name, use first clip for walk.
-        // idle stays null → stopAllAction() when idle (stand still, no dancing).
-        if (!this._glbClips.walk && clips.length > 0) {
-          this._glbClips.walk = this._glbMixer.clipAction(clips[0]);
-        }
-        if (!this._glbClips.attack) this._glbClips.attack = this._glbClips.walk || this._glbClips.idle;
-
-        this._currentGLBAnim = 'idle';
-        // Start idle: stop all (stand still in bind pose) — walk clip plays when moving
-        this._glbMixer.stopAllAction();
-      }
-
       scene.remove(this.mesh);
       scene.add(glbRoot);
       this.mesh = glbRoot;
+      // No AnimationMixer — static GLB pose, position updates handle movement
     } catch (err) {
       console.warn(`[Unit._swapUnitGLB] failed for ${glbKey}:`, err);
-      // Procedural mesh stays in scene as fallback
     }
   }
 
@@ -1150,7 +1121,11 @@ export class Unit {
       }
     }
     
-    // Procedural limb animation — lightweight, no AnimationMixer overhead
+    // Keep GLB mesh Y in sync with terrain (procedural mesh handles its own Y via animateLimbs)
+    if (this._glbYOff !== undefined) {
+      this.mesh.position.y = this.position.y + this._glbYOff;
+    }
+    // Procedural limb animation — skips silently if mesh is a GLB (no bodyGroup)
     this.animateLimbs(deltaTime);
   }
 
