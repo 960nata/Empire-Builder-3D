@@ -253,7 +253,8 @@ export class ModelFactory {
   // On first call: fetches + decompresses the GLB (Draco, ~2MB each)
   // On subsequent calls: clones from in-memory cache instantly (O(n) meshes)
   // Procedural mesh always shows first; GLB swaps in when ready.
-  _loadGLB(key, url, targetSize) {
+  // scaleByHeight: scale to fit targetSize on Y axis (use for trees where Z > Y)
+  _loadGLB(key, url, targetSize, scaleByHeight = false) {
     if (this._glbScenes[key]) {
       return Promise.resolve(this._cloneGLB(key));
     }
@@ -264,11 +265,12 @@ export class ModelFactory {
           (gltf) => {
             const root = gltf.scene;
 
-            // Auto-fit: scale so the longest axis == targetSize game units
+            // Auto-fit: scale so the longest axis (or Y for trees) == targetSize
             const box  = new OriginalTHREE.Box3().setFromObject(root);
             const size = new OriginalTHREE.Vector3();
             box.getSize(size);
-            const s = targetSize / Math.max(size.x, size.y, size.z);
+            const refDim = scaleByHeight ? size.y : Math.max(size.x, size.y, size.z);
+            const s = targetSize / (refDim || 1);
             root.scale.setScalar(s);
 
             // Sit flush on Y=0
@@ -347,6 +349,11 @@ export class ModelFactory {
   // Buildings
   loadTownCenterGLB()  { return this._loadGLB('townCenter',   '/models/town-center.glb',       7.0); }
   loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/windmill.glb',          3.5); }
+
+  // Trees & vegetation (scaleByHeight=true: scale based on height not max-dim)
+  loadTreePineGLB()    { return this._loadGLB('treePine',   '/models/tree-pine.glb',   4.5, true); }
+  loadTreeOakGLB()     { return this._loadGLB('treeOak',    '/models/tree-oak.glb',    4.0, true); }
+  loadGrassShrubGLB()  { return this._loadGLB('grassShrub', '/models/grass-shrub.glb', 1.2, true); }
 
   // Siege units — Kenney Castle Kit (CC0, lightweight, game-ready)
   loadSiegeCatapultGLB()  { return this._loadGLB('siegeCatapult',  '/models/siege-catapult.glb',  2.5); }

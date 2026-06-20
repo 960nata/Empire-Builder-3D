@@ -28,9 +28,22 @@ export class ResourceNode {
     this.id = 'resource_' + Math.random().toString(36).substr(2, 9);
     this.mesh = this.gameManager.modelFactory.createResourceMesh(type, this.amount / this.maxAmount);
     this.mesh.position.copy(this.position);
-    
+
     // Set up standard interaction tagging
     this.mesh.userData = { entity: this };
+
+    // Replace procedural wood trees with low-poly forest GLBs
+    if (this.type === 'wood') {
+      const mf = this.gameManager.modelFactory;
+      const r = Math.random();
+      if (r < 0.55) {
+        this._swapToGLBTree(() => mf.loadTreePineGLB());
+      } else if (r < 0.90) {
+        this._swapToGLBTree(() => mf.loadTreeOakGLB());
+      } else {
+        this._swapToGLBTree(() => mf.loadGrassShrubGLB());
+      }
+    }
 
     // Pre-calculate per-fish swim parameters for animated fish schools
     if (this.type === 'fish') {
@@ -71,6 +84,31 @@ export class ResourceNode {
       p.mesh.position.y = Math.sin(t * p.bobSpeed + p.bobOffset) * p.bobAmp;
       // Face direction of travel (tangent to orbit = angle + PI/2)
       p.mesh.rotation.y = -angle - Math.PI / 2;
+    }
+  }
+
+  async _swapToGLBTree(loader) {
+    try {
+      const glbRoot = await loader();
+      if (!this.mesh) return;
+      const scene = this.gameManager.renderer.scene;
+
+      // Apply same random Y rotation as procedural tree for variety
+      glbRoot.rotation.y = this.mesh.rotation.y || (Math.random() * Math.PI * 2);
+      glbRoot.userData = { entity: this };
+
+      // Snap bottom flush to terrain
+      glbRoot.position.set(this.position.x, this.position.y, this.position.z);
+      glbRoot.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(glbRoot);
+      glbRoot.position.y += (this.position.y - box.min.y);
+      this._glbYBase = glbRoot.position.y - this.position.y;
+
+      scene.remove(this.mesh);
+      scene.add(glbRoot);
+      this.mesh = glbRoot;
+    } catch (err) {
+      console.warn('[ResourceNode._swapToGLBTree]', err);
     }
   }
 

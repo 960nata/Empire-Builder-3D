@@ -934,6 +934,10 @@ export class GameManager {
     setTimeout(() => { this.modelFactory.loadMosqueGLB().catch(() => {}); }, 3600);
     setTimeout(() => { this.modelFactory.loadTownCenterGLB().catch(() => {}); }, 4000);
     setTimeout(() => { this.modelFactory.loadWindmillGLB().catch(() => {}); }, 4200);
+    // Trees preloaded early — hundreds of trees share the same 3 cached masters
+    setTimeout(() => { this.modelFactory.loadTreePineGLB().catch(() => {}); }, 1500);
+    setTimeout(() => { this.modelFactory.loadTreeOakGLB().catch(() => {}); }, 1800);
+    setTimeout(() => { this.modelFactory.loadGrassShrubGLB().catch(() => {}); }, 2100);
     setTimeout(() => { this.modelFactory.loadSoldierArcherGLB().catch(() => {}); }, 4800);
     setTimeout(() => { this.modelFactory.loadSoldierInfantryGLB().catch(() => {}); }, 5100);
     setTimeout(() => { this.modelFactory.loadSoldierSpearGLB().catch(() => {}); }, 5400);
