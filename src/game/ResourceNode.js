@@ -90,14 +90,17 @@ export class ResourceNode {
 
   async _swapToGLBTree(loader) {
     try {
-      const glbRoot = await loader();
+      // inner = cloned GLB with rotation.x=-π/2 (uprights Z-up forest-pack trees)
+      // Wrap it in a separate Group for Y-spin so Euler order doesn't cause tilting.
+      // Without wrapper: Euler XYZ(-π/2, θ, 0) = Ry(θ)*Rx(-π/2) which tilts trees
+      // at most angles. With wrapper: outer.Ry * inner.Rx(-π/2) — always upright.
+      const inner = await loader();
       if (!this.mesh) return;
       const scene = this.gameManager.renderer.scene;
 
-      // Force all nodes visible — but preserve transparency: tree/shrub foliage
-      // uses alpha-masked textures; overriding transparent=false breaks leaf shapes.
-      glbRoot.visible = true;
-      glbRoot.traverse(child => {
+      // Fix materials on inner (preserve foliage alpha, DoubleSide, no castShadow on alpha)
+      inner.visible = true;
+      inner.traverse(child => {
         child.visible = true;
         if (!child.isMesh || !child.material) return;
         const mats = Array.isArray(child.material) ? child.material : [child.material];
@@ -108,22 +111,24 @@ export class ResourceNode {
           mat.needsUpdate = true;
           if (mat.transparent || (mat.alphaTest ?? 0) > 0) hasAlpha = true;
         });
-        // Foliage with alpha masking casts ugly solid-rectangle shadows → disable
         if (hasAlpha) child.castShadow = false;
       });
 
-      glbRoot.rotation.y = this.mesh.rotation.y || (Math.random() * Math.PI * 2);
-      glbRoot.userData = { entity: this };
+      // Wrapper handles position + Y spin only — inner handles X upright
+      const wrapper = new THREE.Group();
+      wrapper.rotation.y = Math.random() * Math.PI * 2;
+      wrapper.position.set(this.position.x, this.position.y, this.position.z);
+      wrapper.userData = { entity: this };
+      wrapper.add(inner);
 
-      glbRoot.position.set(this.position.x, this.position.y, this.position.z);
-      glbRoot.updateWorldMatrix(true, true);
-      const box = new THREE.Box3().setFromObject(glbRoot);
-      glbRoot.position.y += (this.position.y - box.min.y);
-      this._glbYBase = glbRoot.position.y - this.position.y;
+      // Snap bottom flush to terrain (inner's baked Y offset handles most of it)
+      wrapper.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(wrapper);
+      if (isFinite(box.min.y)) wrapper.position.y += (this.position.y - box.min.y);
 
       scene.remove(this.mesh);
-      scene.add(glbRoot);
-      this.mesh = glbRoot;
+      scene.add(wrapper);
+      this.mesh = wrapper;
     } catch (err) {
       console.warn('[ResourceNode._swapToGLBTree]', err);
     }

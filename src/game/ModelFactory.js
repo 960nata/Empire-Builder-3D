@@ -355,7 +355,7 @@ export class ModelFactory {
 
   // Buildings
   loadTownCenterGLB()  { return this._loadGLB('townCenter',   '/models/town-center.glb',       7.0); }
-  loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/windmill.glb',          3.5); }
+  loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/siege-engine-custom.glb', 4.0); }
 
   // Trees & vegetation — forest pack is Z-up: rotX=-π/2 stands them upright
   loadTreePineGLB()    { return this._loadGLB('treePine',   '/models/tree-pine.glb',   4.5, true, -Math.PI / 2); }
