@@ -765,13 +765,17 @@ export class Unit {
       const glbRoot = await loader();
       if (!this.mesh || this.state === 'DEAD') return;
 
-      const scene   = this.gameManager.renderer.scene;
-      const yOffset = glbRoot.position.y; // ground-sit offset baked in by _loadGLB
+      const scene = this.gameManager.renderer.scene;
 
-      glbRoot.position.set(this.position.x, this.position.y + yOffset, this.position.z);
+      // Place at terrain level, then snap bottom flush to ground
+      glbRoot.position.set(this.position.x, this.position.y, this.position.z);
       glbRoot.rotation.y = this.mesh.rotation.y;
       glbRoot.userData   = { entity: this };
-      this._glbYOff      = yOffset; // used every frame to keep GLB on terrain
+      glbRoot.updateWorldMatrix(true, true);
+      const unitBox   = new THREE.Box3().setFromObject(glbRoot);
+      const yOffset   = this.position.y - unitBox.min.y;
+      glbRoot.position.y += yOffset;
+      this._glbYOff   = yOffset; // used every frame to keep GLB on terrain
 
       if (this.selectionRing) {
         this.mesh.remove(this.selectionRing);

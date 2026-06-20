@@ -300,16 +300,12 @@ export class Building {
       scene.add(glbRoot);
       this.mesh = glbRoot;
 
-      // Floor check: push GLB up if it sinks below terrain
+      // Snap bottom of GLB flush to terrain surface (bidirectional)
       glbRoot.updateWorldMatrix(true, true);
       const floorBox = new THREE.Box3().setFromObject(glbRoot);
-      if (floorBox.min.y < this.position.y) {
-        glbRoot.position.y += (this.position.y - floorBox.min.y);
-      }
+      glbRoot.position.y += (this.position.y - floorBox.min.y);
 
       this._glbYOffset = glbRoot.position.y - this.position.y;
-
-      console.log(`[GLB] ${this.type} → pos(${glbRoot.position.x.toFixed(2)},${glbRoot.position.y.toFixed(2)},${glbRoot.position.z.toFixed(2)}) scale=${glbRoot.scale.x.toFixed(3)} bbox_minY=${floorBox.min.y.toFixed(3)} terrainY=${this.position.y.toFixed(3)} visible=${glbRoot.visible}`);
 
       if (this.selectionRing) {
         const ly = (this.position.y + 0.15 - glbRoot.position.y) / (glbRoot.scale.y || 1);
