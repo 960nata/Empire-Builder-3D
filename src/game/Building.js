@@ -249,24 +249,24 @@ export class Building {
 
       const scene = this.gameManager.renderer.scene;
 
-      // Fix GLB materials for compatibility:
-      // - DoubleSide prevents invisible faces from inside-out normals
-      // - Clamp metalness/roughness to visible ranges under our scene lighting
+      // Force all GLB nodes visible and fix materials
+      glbRoot.visible = true;
       glbRoot.traverse(child => {
-        if (!child.isMesh) return;
+        child.visible = true;  // force — some GLBs ship with hidden nodes
+        if (!child.isMesh || !child.material) return;
         const mats = Array.isArray(child.material) ? child.material : [child.material];
         mats.forEach(mat => {
-          mat.side = THREE.DoubleSide;
+          if (!mat) return;
+          mat.side        = THREE.DoubleSide;
+          mat.depthWrite  = true;
+          mat.opacity     = 1.0;
+          mat.transparent = false;
           if (mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial) {
             mat.roughness  = Math.min(mat.roughness  ?? 0.8, 0.92);
-            mat.metalness  = Math.min(mat.metalness   ?? 0.0, 0.6);
-            // Ensure model isn't too dark under our ambient (0.30) + hemi (0.75)
-            if (!mat.emissive || mat.emissive.getHex() === 0x000000) {
-              mat.emissiveIntensity = 0;
-            }
+            mat.metalness  = Math.min(mat.metalness  ?? 0.0, 0.6);
           }
-          // Disable problematic extensions that render incorrectly
           if (mat.transmission !== undefined) mat.transmission = 0;
+          mat.needsUpdate = true;
         });
       });
 
@@ -307,9 +307,9 @@ export class Building {
 
       this._glbYOffset = glbRoot.position.y - this.position.y;
 
-      if (this.type === 'townCenter') {
+      {
         const bb = new THREE.Box3().setFromObject(glbRoot);
-        console.log(`[townCenter GLB] pos=(${glbRoot.position.x.toFixed(1)},${glbRoot.position.y.toFixed(2)},${glbRoot.position.z.toFixed(1)}) scale=${glbRoot.scale.x.toFixed(3)} bbox_min_y=${bb.min.y.toFixed(2)} visible=${glbRoot.visible} children=${glbRoot.children.length}`);
+        console.log(`[GLB ✓ ${this.type}] pos=(${glbRoot.position.x.toFixed(1)},${glbRoot.position.y.toFixed(2)},${glbRoot.position.z.toFixed(1)}) scale=${glbRoot.scale.x.toFixed(3)} bbox=(${bb.min.y.toFixed(2)}→${bb.max.y.toFixed(2)}) children=${glbRoot.children.length}`);
       }
 
       if (this.selectionRing) {

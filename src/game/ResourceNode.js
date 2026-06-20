@@ -93,11 +93,25 @@ export class ResourceNode {
       if (!this.mesh) return;
       const scene = this.gameManager.renderer.scene;
 
-      // Apply same random Y rotation as procedural tree for variety
+      // Force all nodes visible, fix materials
+      glbRoot.visible = true;
+      glbRoot.traverse(child => {
+        child.visible = true;
+        if (!child.isMesh || !child.material) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(mat => {
+          if (!mat) return;
+          mat.side        = THREE.DoubleSide;
+          mat.depthWrite  = true;
+          mat.opacity     = 1.0;
+          mat.transparent = false;
+          mat.needsUpdate = true;
+        });
+      });
+
       glbRoot.rotation.y = this.mesh.rotation.y || (Math.random() * Math.PI * 2);
       glbRoot.userData = { entity: this };
 
-      // Snap bottom flush to terrain
       glbRoot.position.set(this.position.x, this.position.y, this.position.z);
       glbRoot.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(glbRoot);

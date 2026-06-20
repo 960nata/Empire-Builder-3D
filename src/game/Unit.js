@@ -767,6 +767,22 @@ export class Unit {
 
       const scene = this.gameManager.renderer.scene;
 
+      // Force all nodes visible, fix materials
+      glbRoot.visible = true;
+      glbRoot.traverse(child => {
+        child.visible = true;
+        if (!child.isMesh || !child.material) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(mat => {
+          if (!mat) return;
+          mat.side        = THREE.DoubleSide;
+          mat.depthWrite  = true;
+          mat.opacity     = 1.0;
+          mat.transparent = false;
+          mat.needsUpdate = true;
+        });
+      });
+
       // Place at terrain level, then snap bottom flush to ground
       glbRoot.position.set(this.position.x, this.position.y, this.position.z);
       glbRoot.rotation.y = this.mesh.rotation.y;
