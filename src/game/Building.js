@@ -307,6 +307,11 @@ export class Building {
 
       this._glbYOffset = glbRoot.position.y - this.position.y;
 
+      if (this.type === 'townCenter') {
+        const bb = new THREE.Box3().setFromObject(glbRoot);
+        console.log(`[townCenter GLB] pos=(${glbRoot.position.x.toFixed(1)},${glbRoot.position.y.toFixed(2)},${glbRoot.position.z.toFixed(1)}) scale=${glbRoot.scale.x.toFixed(3)} bbox_min_y=${bb.min.y.toFixed(2)} visible=${glbRoot.visible} children=${glbRoot.children.length}`);
+      }
+
       if (this.selectionRing) {
         const ly = (this.position.y + 0.15 - glbRoot.position.y) / (glbRoot.scale.y || 1);
         this.selectionRing.position.set(0, ly, 0);
