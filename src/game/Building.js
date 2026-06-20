@@ -246,13 +246,33 @@ export class Building {
   async _swapToGLB(loader) {
     try {
       const glbRoot = await loader();
-      if (this._destroyed || !this.mesh) return; // razed before GLB arrived
+      if (this._destroyed || !this.mesh) return;
 
       const scene = this.gameManager.renderer.scene;
-      // Preserve the Y offset _loadGLB applied to sit the model on Y=0.
-      // Use this.position.y (actual terrain height) — NOT this.mesh.position.y which
-      // may be set to terrain-1.0 during blueprint construction phase.
-      const glbYOffset = glbRoot.position.y;
+
+      // Fix GLB materials for compatibility:
+      // - DoubleSide prevents invisible faces from inside-out normals
+      // - Clamp metalness/roughness to visible ranges under our scene lighting
+      glbRoot.traverse(child => {
+        if (!child.isMesh) return;
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(mat => {
+          mat.side = THREE.DoubleSide;
+          if (mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial) {
+            mat.roughness  = Math.min(mat.roughness  ?? 0.8, 0.92);
+            mat.metalness  = Math.min(mat.metalness   ?? 0.0, 0.6);
+            // Ensure model isn't too dark under our ambient (0.30) + hemi (0.75)
+            if (!mat.emissive || mat.emissive.getHex() === 0x000000) {
+              mat.emissiveIntensity = 0;
+            }
+          }
+          // Disable problematic extensions that render incorrectly
+          if (mat.transmission !== undefined) mat.transmission = 0;
+        });
+      });
+
+      // Position at terrain + _loadGLB's Y-sit offset
+      const glbYOffset = glbRoot.position.y; // baked by _loadGLB to sit flush at Y=0
       glbRoot.position.set(
         this.mesh.position.x,
         this.position.y + glbYOffset,
@@ -261,7 +281,7 @@ export class Building {
       glbRoot.rotation.copy(this.mesh.rotation);
       glbRoot.userData = { entity: this };
 
-      // If still under construction, apply blueprint tint to GLB so it looks unfinished
+      // Blueprint tint if still under construction
       if (!this.isCompleted) {
         const blueprintMat = new THREE.MeshBasicMaterial({ color: 0x88bbff, transparent: true, opacity: 0.5 });
         glbRoot.traverse(child => {
@@ -272,7 +292,6 @@ export class Building {
         });
       }
 
-      // Move selection ring to new mesh root
       if (this.selectionRing) {
         this.mesh.remove(this.selectionRing);
         glbRoot.add(this.selectionRing);
@@ -282,35 +301,29 @@ export class Building {
       scene.add(glbRoot);
       this.mesh = glbRoot;
 
-      // Force bottom of GLB to sit exactly at terrain level
+      // Floor check: push GLB up if it sinks below terrain
       glbRoot.updateWorldMatrix(true, true);
       const floorBox = new THREE.Box3().setFromObject(glbRoot);
-      const bottomDelta = this.position.y - floorBox.min.y;
-      glbRoot.position.y += bottomDelta;
+      if (floorBox.min.y < this.position.y) {
+        glbRoot.position.y += (this.position.y - floorBox.min.y);
+      }
 
-      // Save the effective Y offset so addBuildProgress/completeConstruction
-      // keep the GLB correctly positioned during construction animation
       this._glbYOffset = glbRoot.position.y - this.position.y;
 
-      // Reposition selection ring at correct Y in glbRoot local space
-      // Keep XZ size based on gridSize (predictable, matches game grid like AoE2)
       if (this.selectionRing) {
         const ly = (this.position.y + 0.15 - glbRoot.position.y) / (glbRoot.scale.y || 1);
         this.selectionRing.position.set(0, ly, 0);
       }
 
-      // Attach animated team flag on top of castle GLB
+      // Team flag on castle
       if (this.type === 'castle') {
         const factory = this.gameManager.modelFactory;
         const box = new THREE.Box3().setFromObject(glbRoot);
-        // box.max.y is world-space; subtract root's world Y to get local-space top
         const topY = box.max.y - glbRoot.position.y;
-
         const poleMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.3 });
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.0, 6), poleMat);
         pole.position.set(0, topY + 1.0, 0);
         glbRoot.add(pole);
-
         const teamMat = factory.getTeamMaterial(this.playerId);
         const flagColor = teamMat ? teamMat.color.getHex() : 0xcc2222;
         const flagGeom = new THREE.PlaneGeometry(1.0, 0.55, 12, 5);
@@ -318,8 +331,9 @@ export class Building {
         flagMesh.position.set(0.5, topY + 2.0, 0);
         glbRoot.add(flagMesh);
       }
-    } catch (_) {
-      // GLB failed — procedural fallback stays silently
+    } catch (err) {
+      console.error(`[Building._swapToGLB ${this.type}]`, err);
+      // Procedural fallback stays visible — no further action needed
     }
   }
 
