@@ -226,8 +226,7 @@ export class Building {
     if (this.type === 'barracks')    this._swapToGLB(() => this.gameManager.modelFactory.loadFortressGLB());
     if (this.type === 'house')       this._swapToGLB(() => this.gameManager.modelFactory.loadHouseGLB());
     if (this.type === 'temple')      this._swapToGLB(() => this.gameManager.modelFactory.loadMosqueGLB());
-    if (this.type === 'townCenter')  this._swapToGLB(() => this.gameManager.modelFactory.loadTownCenterGLB());
-    if (this.type === 'farm')        this._swapToGLB(() => this.gameManager.modelFactory.loadCornFieldGLB());
+    // townCenter and farm: keep improved procedural mesh (AI GLBs were too heavy)
     if (this.type === 'mill')        this._swapToGLB(() => this.gameManager.modelFactory.loadWindmillGLB());
 
     // Gate animation setup: find the animatable sub-group by name

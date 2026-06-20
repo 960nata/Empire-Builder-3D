@@ -728,10 +728,19 @@ export class Unit {
         this._swapUnitGLB('horseman', () => this.gameManager.modelFactory.loadHorsemanGLB());
       }
       if (this.type === 'archer' || this.type === 'skirmisher') {
-        this._swapUnitGLB('archer', () => this.gameManager.modelFactory.loadArcherGLB());
+        this._swapUnitGLB('soldierArcher', () => this.gameManager.modelFactory.loadSoldierArcherGLB());
       }
-      if (this.type === 'horseArcher' || this.type === 'cavalryArcher' || this.type === 'camelRider') {
-        this._swapUnitGLB('horseArcher', () => this.gameManager.modelFactory.loadHorseArcherGLB());
+      if (this.type === 'swordsman' || this.type === 'footKnight') {
+        this._swapUnitGLB('soldierInfantry', () => this.gameManager.modelFactory.loadSoldierInfantryGLB());
+      }
+      if (this.type === 'spearman') {
+        this._swapUnitGLB('soldierSpear', () => this.gameManager.modelFactory.loadSoldierSpearGLB());
+      }
+      if (this.type === 'horseArcher' || this.type === 'cavalryArcher') {
+        this._swapUnitGLB('soldierKnight', () => this.gameManager.modelFactory.loadSoldierKnightGLB());
+      }
+      if (this.type === 'monk' || this.type === 'priest') {
+        this._swapUnitGLB('soldierMage', () => this.gameManager.modelFactory.loadSoldierMageGLB());
       }
       if (this.type === 'mangonel') {
         this._swapUnitGLB('siegeCatapult', () => this.gameManager.modelFactory.loadSiegeCatapultGLB());
