@@ -289,7 +289,7 @@ export class ModelFactory {
 
             this._glbScenes[key]     = root;
             this._glbAnimations[key] = gltf.animations || [];
-            resolve(this._cloneGLB(key));
+            resolve();  // signal ready — each caller gets own clone via .then()
           },
           undefined,
           (err) => {
@@ -299,7 +299,9 @@ export class ModelFactory {
         );
       });
     }
-    return this._glbPromises[key];
+    // Each caller chains its own .then() → unique clone per caller
+    // Fixes: hundreds of trees sharing 1 promise all getting the same object
+    return this._glbPromises[key].then(() => this._cloneGLB(key));
   }
 
   _cloneGLB(key) {
