@@ -941,9 +941,7 @@ export class GameManager {
     setTimeout(() => { this.modelFactory.loadSoldierArcherGLB().catch(() => {}); }, 4800);
     setTimeout(() => { this.modelFactory.loadSoldierInfantryGLB().catch(() => {}); }, 5100);
     setTimeout(() => { this.modelFactory.loadSoldierSpearGLB().catch(() => {}); }, 5400);
-    setTimeout(() => { this.modelFactory.loadSiegeCatapultGLB().catch(() => {}); }, 5700);
-    setTimeout(() => { this.modelFactory.loadSiegeTrebuchetGLB().catch(() => {}); }, 6000);
-    setTimeout(() => { this.modelFactory.loadSiegeBallistaGLB().catch(() => {}); }, 6300);
+    setTimeout(() => { this.modelFactory.loadSiegeEngineGLB().catch(() => {}); }, 5700);
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock

@@ -362,12 +362,8 @@ export class ModelFactory {
   loadTreeOakGLB()     { return this._loadGLB('treeOak',    '/models/tree-oak.glb',    4.0, true, -Math.PI / 2); }
   loadGrassShrubGLB()  { return this._loadGLB('grassShrub', '/models/grass-shrub.glb', 1.2, true, -Math.PI / 2); }
 
-  // Siege units — Kenney Castle Kit (CC0, lightweight, game-ready)
-  loadSiegeCatapultGLB()  { return this._loadGLB('siegeCatapult',  '/models/siege-catapult.glb',  2.5); }
-  loadSiegeTrebuchetGLB() { return this._loadGLB('siegeTrebuchet', '/models/siege-trebuchet.glb', 3.0); }
-  loadSiegeBallistaGLB()  { return this._loadGLB('siegeBallista',  '/models/siege-ballista.glb',  2.0); }
-  loadSiegeTowerGLB()     { return this._loadGLB('siegeTower',     '/models/siege-tower.glb',     3.5); }
-  loadSiegeRamGLB()       { return this._loadGLB('siegeRam',       '/models/siege-ram.glb',       2.5); }
+  // Siege engine — user-provided model, all siege unit types share this one
+  loadSiegeEngineGLB() { return this._loadGLB('siegeEngine', '/models/siege-engine-custom.glb', 3.0); }
 
   // Soldier characters — Kenney Blocky Characters (CC0, 216 vertices each, game-ready)
   loadSoldierArcherGLB()   { return this._loadGLB('soldierArcher',   '/models/soldier-archer.glb',   1.2); }

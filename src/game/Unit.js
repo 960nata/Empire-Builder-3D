@@ -742,20 +742,8 @@ export class Unit {
       if (this.type === 'monk' || this.type === 'priest') {
         this._swapUnitGLB('soldierMage', () => this.gameManager.modelFactory.loadSoldierMageGLB());
       }
-      if (this.type === 'mangonel') {
-        this._swapUnitGLB('siegeCatapult', () => this.gameManager.modelFactory.loadSiegeCatapultGLB());
-      }
-      if (this.type === 'trebuchet') {
-        this._swapUnitGLB('siegeTrebuchet', () => this.gameManager.modelFactory.loadSiegeTrebuchetGLB());
-      }
-      if (this.type === 'scorpion') {
-        this._swapUnitGLB('siegeBallista', () => this.gameManager.modelFactory.loadSiegeBallistaGLB());
-      }
-      if (this.type === 'siegeTower') {
-        this._swapUnitGLB('siegeTower', () => this.gameManager.modelFactory.loadSiegeTowerGLB());
-      }
-      if (this.type === 'batteringRam') {
-        this._swapUnitGLB('siegeRam', () => this.gameManager.modelFactory.loadSiegeRamGLB());
+      if (['mangonel', 'trebuchet', 'scorpion', 'siegeTower', 'batteringRam'].includes(this.type)) {
+        this._swapUnitGLB('siegeEngine', () => this.gameManager.modelFactory.loadSiegeEngineGLB());
       }
     }
   }
