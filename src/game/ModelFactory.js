@@ -345,6 +345,7 @@ export class ModelFactory {
   loadMosqueGLB()      { return this._loadGLB('mosque',        '/models/mosque.glb',           6.0); }
 
   // Buildings
+  loadTownCenterGLB()  { return this._loadGLB('townCenter',   '/models/town-center.glb',       7.0); }
   loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/windmill.glb',          3.5); }
 
   // Siege units — Kenney Castle Kit (CC0, lightweight, game-ready)

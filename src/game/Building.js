@@ -226,7 +226,7 @@ export class Building {
     if (this.type === 'barracks')    this._swapToGLB(() => this.gameManager.modelFactory.loadFortressGLB());
     if (this.type === 'house')       this._swapToGLB(() => this.gameManager.modelFactory.loadHouseGLB());
     if (this.type === 'temple')      this._swapToGLB(() => this.gameManager.modelFactory.loadMosqueGLB());
-    // townCenter and farm: keep improved procedural mesh (AI GLBs were too heavy)
+    if (this.type === 'townCenter')  this._swapToGLB(() => this.gameManager.modelFactory.loadTownCenterGLB());
     if (this.type === 'mill')        this._swapToGLB(() => this.gameManager.modelFactory.loadWindmillGLB());
 
     // Gate animation setup: find the animatable sub-group by name
@@ -308,6 +308,8 @@ export class Building {
       }
 
       this._glbYOffset = glbRoot.position.y - this.position.y;
+
+      console.log(`[GLB] ${this.type} → pos(${glbRoot.position.x.toFixed(2)},${glbRoot.position.y.toFixed(2)},${glbRoot.position.z.toFixed(2)}) scale=${glbRoot.scale.x.toFixed(3)} bbox_minY=${floorBox.min.y.toFixed(3)} terrainY=${this.position.y.toFixed(3)} visible=${glbRoot.visible}`);
 
       if (this.selectionRing) {
         const ly = (this.position.y + 0.15 - glbRoot.position.y) / (glbRoot.scale.y || 1);

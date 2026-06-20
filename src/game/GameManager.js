@@ -932,6 +932,7 @@ export class GameManager {
     setTimeout(() => { this.modelFactory.loadFemaleVillagerGLB().catch(() => {}); }, 2400);
     setTimeout(() => { this.modelFactory.loadHorsemanGLB().catch(() => {}); }, 3000);
     setTimeout(() => { this.modelFactory.loadMosqueGLB().catch(() => {}); }, 3600);
+    setTimeout(() => { this.modelFactory.loadTownCenterGLB().catch(() => {}); }, 4000);
     setTimeout(() => { this.modelFactory.loadWindmillGLB().catch(() => {}); }, 4200);
     setTimeout(() => { this.modelFactory.loadSoldierArcherGLB().catch(() => {}); }, 4800);
     setTimeout(() => { this.modelFactory.loadSoldierInfantryGLB().catch(() => {}); }, 5100);
