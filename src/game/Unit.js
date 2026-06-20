@@ -727,6 +727,27 @@ export class Unit {
       if (this.type === 'knight' || this.type === 'heavyCavalry' || this.type === 'scoutCavalry') {
         this._swapUnitGLB('horseman', () => this.gameManager.modelFactory.loadHorsemanGLB());
       }
+      if (this.type === 'archer' || this.type === 'skirmisher') {
+        this._swapUnitGLB('archer', () => this.gameManager.modelFactory.loadArcherGLB());
+      }
+      if (this.type === 'horseArcher' || this.type === 'cavalryArcher' || this.type === 'camelRider') {
+        this._swapUnitGLB('horseArcher', () => this.gameManager.modelFactory.loadHorseArcherGLB());
+      }
+      if (this.type === 'mangonel') {
+        this._swapUnitGLB('siegeCatapult', () => this.gameManager.modelFactory.loadSiegeCatapultGLB());
+      }
+      if (this.type === 'trebuchet') {
+        this._swapUnitGLB('siegeTrebuchet', () => this.gameManager.modelFactory.loadSiegeTrebuchetGLB());
+      }
+      if (this.type === 'scorpion') {
+        this._swapUnitGLB('siegeBallista', () => this.gameManager.modelFactory.loadSiegeBallistaGLB());
+      }
+      if (this.type === 'siegeTower') {
+        this._swapUnitGLB('siegeTower', () => this.gameManager.modelFactory.loadSiegeTowerGLB());
+      }
+      if (this.type === 'batteringRam') {
+        this._swapUnitGLB('siegeRam', () => this.gameManager.modelFactory.loadSiegeRamGLB());
+      }
     }
   }
 

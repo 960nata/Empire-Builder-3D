@@ -344,6 +344,23 @@ export class ModelFactory {
   loadHorsemanGLB()    { return this._loadGLB('horseman',      '/models/horseman.glb',         2.2); }
   loadMosqueGLB()      { return this._loadGLB('mosque',        '/models/mosque.glb',           6.0); }
 
+  // New models — buildings
+  loadTownCenterGLB()  { return this._loadGLB('townCenter',   '/models/town-center.glb',      7.0); }
+  loadCornFieldGLB()   { return this._loadGLB('cornField',    '/models/corn-field.glb',        2.0); }
+  loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/windmill.glb',          3.5); }
+
+  // New models — siege units
+  loadSiegeCatapultGLB()  { return this._loadGLB('siegeCatapult',  '/models/siege-catapult.glb',  2.5); }
+  loadSiegeTrebuchetGLB() { return this._loadGLB('siegeTrebuchet', '/models/siege-trebuchet.glb', 3.0); }
+  loadSiegeBallistaGLB()  { return this._loadGLB('siegeBallista',  '/models/siege-ballista.glb',  2.0); }
+  loadSiegeEngineGLB()    { return this._loadGLB('siegeEngine',    '/models/siege-engine.glb',    2.5); }
+  loadSiegeTowerGLB()     { return this._loadGLB('siegeTower',     '/models/siege-tower.glb',     3.5); }
+  loadSiegeRamGLB()       { return this._loadGLB('siegeRam',       '/models/siege-ram.glb',       2.5); }
+
+  // New models — characters
+  loadArcherGLB()      { return this._loadGLB('archer',       '/models/archer.glb',           1.3); }
+  loadHorseArcherGLB() { return this._loadGLB('horseArcher',  '/models/horse-archer.glb',     2.2); }
+
   // ─── Animated flag helpers ────────────────────────────────────────────────
   // Creates a ShaderMaterial that waves like a flag in the wind.
   // teamColor : hex int or THREE.Color   halfW : half the flag's width (pivot = left edge)

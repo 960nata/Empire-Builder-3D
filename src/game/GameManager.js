@@ -932,6 +932,13 @@ export class GameManager {
     setTimeout(() => { this.modelFactory.loadFemaleVillagerGLB().catch(() => {}); }, 2400);
     setTimeout(() => { this.modelFactory.loadHorsemanGLB().catch(() => {}); }, 3000);
     setTimeout(() => { this.modelFactory.loadMosqueGLB().catch(() => {}); }, 3600);
+    setTimeout(() => { this.modelFactory.loadTownCenterGLB().catch(() => {}); }, 4200);
+    setTimeout(() => { this.modelFactory.loadWindmillGLB().catch(() => {}); }, 4800);
+    setTimeout(() => { this.modelFactory.loadArcherGLB().catch(() => {}); }, 5400);
+    setTimeout(() => { this.modelFactory.loadHorseArcherGLB().catch(() => {}); }, 6000);
+    setTimeout(() => { this.modelFactory.loadSiegeCatapultGLB().catch(() => {}); }, 6600);
+    setTimeout(() => { this.modelFactory.loadSiegeTrebuchetGLB().catch(() => {}); }, 7200);
+    setTimeout(() => { this.modelFactory.loadSiegeBallistaGLB().catch(() => {}); }, 7800);
 
     // Start Game Loops
     this.clock.getDelta(); // reset clock
