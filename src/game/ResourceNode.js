@@ -41,6 +41,7 @@ export class ResourceNode {
       } else if (r < 0.90) {
         this._swapToGLBTree(() => mf.loadTreeOakGLB());
       } else {
+        this._passable = true; // shrubs: units walk through, not an obstacle
         this._swapToGLBTree(() => mf.loadGrassShrubGLB());
       }
     }
@@ -93,20 +94,22 @@ export class ResourceNode {
       if (!this.mesh) return;
       const scene = this.gameManager.renderer.scene;
 
-      // Force all nodes visible, fix materials
+      // Force all nodes visible — but preserve transparency: tree/shrub foliage
+      // uses alpha-masked textures; overriding transparent=false breaks leaf shapes.
       glbRoot.visible = true;
       glbRoot.traverse(child => {
         child.visible = true;
         if (!child.isMesh || !child.material) return;
         const mats = Array.isArray(child.material) ? child.material : [child.material];
+        let hasAlpha = false;
         mats.forEach(mat => {
           if (!mat) return;
-          mat.side        = THREE.DoubleSide;
-          mat.depthWrite  = true;
-          mat.opacity     = 1.0;
-          mat.transparent = false;
+          mat.side = THREE.DoubleSide;
           mat.needsUpdate = true;
+          if (mat.transparent || (mat.alphaTest ?? 0) > 0) hasAlpha = true;
         });
+        // Foliage with alpha masking casts ugly solid-rectangle shadows → disable
+        if (hasAlpha) child.castShadow = false;
       });
 
       glbRoot.rotation.y = this.mesh.rotation.y || (Math.random() * Math.PI * 2);

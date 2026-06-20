@@ -47,8 +47,10 @@ export class EntityManager {
 
   addResource(resource) {
     this.resources.push(resource);
-    // Mark terrain grid cell as blocked by this resource
-    this.gameManager.gridAdd(Math.round(resource.position.x), Math.round(resource.position.z), 'resource');
+    // Passable resources (shrubs) don't block pathfinding — units walk through them
+    if (!resource._passable) {
+      this.gameManager.gridAdd(Math.round(resource.position.x), Math.round(resource.position.z), 'resource');
+    }
   }
 
   removeResource(resource) {
