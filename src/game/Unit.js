@@ -2118,7 +2118,42 @@ export class Unit {
     }
 
     const isMoving = (this.state === 'MOVING' || this.state === 'CHASING' || this.state === 'RETURNING');
-    
+
+    // -------------------------------------------------------------
+    // SIEGE UNIT ANIMATIONS (mangonel, trebuchet, bombardCannon, scorpion)
+    // -------------------------------------------------------------
+    const siegeTypes = ['mangonel', 'trebuchet', 'bombardCannon', 'scorpion', 'siegeTower', 'petard'];
+    if (siegeTypes.includes(this.type)) {
+      const throwArm = bodyGroup.getObjectByName("throwArm");
+      const isAttacking = (this.state === 'ATTACKING');
+
+      if (throwArm) {
+        if (isAttacking && this.swingProgress > 0) {
+          // Full 270° catapult swing (physics arc: slow wind-up → fast release)
+          this.swingProgress -= deltaTime * (this.type === 'trebuchet' ? 2.0 : 2.8);
+          const p = Math.max(0, this.swingProgress);
+          // Wind-up phase: arm pulls back. Release: swing fully forward
+          throwArm.rotation.x = -Math.PI / 6 + Math.sin(p * Math.PI) * -2.4;
+        } else {
+          // Idle rock: slight mechanical creak
+          throwArm.rotation.x += (-Math.PI / 6 - throwArm.rotation.x) * 0.08;
+        }
+      }
+
+      // Whole machine rocks back on fire (recoil)
+      if (this.swingProgress > 0) {
+        bodyGroup.rotation.x = Math.sin(Math.max(0, this.swingProgress) * Math.PI) * 0.08;
+      } else {
+        bodyGroup.rotation.x *= 0.9;
+      }
+
+      if (isMoving) {
+        // Siege machine rolls: gentle bump over terrain
+        bodyGroup.position.y = Math.abs(Math.sin(this.animTime * 5)) * 0.04;
+      }
+      return;
+    }
+
     // -------------------------------------------------------------
     // KNIGHT (HORSE AND RIDER) ANIMATIONS
     // -------------------------------------------------------------

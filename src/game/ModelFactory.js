@@ -3938,21 +3938,22 @@ export class ModelFactory {
       bodyGroup.add(post);
       
       const armGroup = new THREE.Group();
+      armGroup.name = "throwArm";
       armGroup.position.set(0, 0.4, -0.2);
       armGroup.rotation.x = -Math.PI / 6;
-      
+
       const armShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2), frameMat);
       armShaft.position.y = 0.5;
       armGroup.add(armShaft);
-      
+
       const basket = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.3), upgradeLvl >= 1 ? this.materials.iron : frameMat);
       basket.position.y = 1.1;
       armGroup.add(basket);
-      
+
       const projectileBall = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), this.materials.stone);
       projectileBall.position.set(0, 1.2, 0);
       armGroup.add(projectileBall);
-      
+
       bodyGroup.add(armGroup);
     }
     else if (type === 'scorpion') {
@@ -4037,6 +4038,7 @@ export class ModelFactory {
       bodyGroup.add(postL, postR);
       
       const beamGroup = new THREE.Group();
+      beamGroup.name = "throwArm";
       beamGroup.position.set(0, 1.6, 0);
       beamGroup.rotation.x = -Math.PI / 6;
       
@@ -5495,44 +5497,91 @@ export class ModelFactory {
       group.add(bollard);
     }
     else if (type === 'farm') {
-      // Flat soil base
-      const dirtGeom = new THREE.BoxGeometry(2.0, 0.08, 2.0);
-      const dirtMat = this.materials.clothesDark; // dark brown soil
+      // Tilled soil base — darker brown furrows
+      const dirtGeom = new THREE.BoxGeometry(2.2, 0.1, 2.2);
+      const dirtMat = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.98 });
       const dirt = new THREE.Mesh(dirtGeom, dirtMat);
-      dirt.position.y = 0.04;
+      dirt.position.y = 0.05;
       dirt.receiveShadow = true;
       group.add(dirt);
 
-      // Growing crops group that can be animated/scaled on y-axis
+      // Crops group (scaled by grow progress in Building.js)
       const cropsGroup = new THREE.Group();
       cropsGroup.name = "crops";
       group.add(cropsGroup);
 
-      const plantMat = new THREE.MeshStandardMaterial({ color: 0x4f8f2b, roughness: 0.85 });
-      const cropRowGeom = new THREE.BoxGeometry(0.16, 0.35, 1.8);
-      
-      // 4 crop rows
-      const xOffsets = [-0.6, -0.2, 0.2, 0.6];
-      xOffsets.forEach(ox => {
-        const row = new THREE.Mesh(cropRowGeom, plantMat);
-        row.position.set(ox, 0.2, 0);
-        row.castShadow = true;
-        cropsGroup.add(row);
+      const stalkMat  = new THREE.MeshStandardMaterial({ color: 0x6ab72b, roughness: 0.85 });
+      const leafMat   = new THREE.MeshStandardMaterial({ color: 0x3d9e1a, roughness: 0.8 });
+      const cobMat    = new THREE.MeshStandardMaterial({ color: 0xf5c842, roughness: 0.7, emissive: 0x302000, emissiveIntensity: 0.2 });
+      const silkMat   = new THREE.MeshStandardMaterial({ color: 0xf0e060, roughness: 0.9 });
+
+      // 4 columns × 4 rows = 16 corn plants
+      const cols = [-0.65, -0.22, 0.22, 0.65];
+      const rows = [-0.65, -0.22, 0.22, 0.65];
+      cols.forEach(cx => {
+        rows.forEach(rz => {
+          const plant = new THREE.Group();
+          plant.position.set(cx, 0, rz);
+          plant.rotation.y = Math.random() * Math.PI * 2;
+
+          // Stalk
+          const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, 0.5, 5), stalkMat);
+          stalk.position.y = 0.25;
+          stalk.castShadow = true;
+          plant.add(stalk);
+
+          // 2 drooping leaves
+          for (let li = 0; li < 2; li++) {
+            const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.02, 0.22), leafMat);
+            leaf.position.set(li === 0 ? 0.06 : -0.06, 0.2 + li * 0.08, 0.05);
+            leaf.rotation.z = li === 0 ? -0.4 : 0.4;
+            leaf.rotation.x = 0.3;
+            plant.add(leaf);
+          }
+
+          // Corn cob (ear)
+          const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 0.14, 6), cobMat);
+          cob.position.set(0.05, 0.38, 0);
+          cob.rotation.z = 0.4;
+          cob.castShadow = true;
+          plant.add(cob);
+
+          // Silk tassel on top
+          const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.1, 4), silkMat);
+          tassel.position.y = 0.52;
+          plant.add(tassel);
+
+          cropsGroup.add(plant);
+        });
       });
 
-      // Simple fence boundary posts
-      const fencePostGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.4, 4);
+      // Fence posts + rails on all 4 sides
       const fenceMat = this.materials.woodDark;
-      const cornerOffsets = [
-        [-0.95, 0.2, -0.95],
-        [0.95, 0.2, -0.95],
-        [-0.95, 0.2, 0.95],
-        [0.95, 0.2, 0.95]
-      ];
-      cornerOffsets.forEach(pos => {
-        const post = new THREE.Mesh(fencePostGeom, fenceMat);
-        post.position.set(...pos);
-        group.add(post);
+      const postGeom = new THREE.CylinderGeometry(0.03, 0.03, 0.45, 4);
+      const railGeom = new THREE.BoxGeometry(0.03, 0.04, 2.1);
+      [[-1.05, 0, 0], [1.05, 0, 0]].forEach(([px, py, pz]) => {
+        // 3 posts per side
+        for (let i = -1; i <= 1; i++) {
+          const post = new THREE.Mesh(postGeom, fenceMat);
+          post.position.set(px, 0.22, i * 0.7);
+          group.add(post);
+        }
+        // Rail
+        const rail = new THREE.Mesh(railGeom, fenceMat);
+        rail.rotation.y = Math.PI / 2;
+        rail.position.set(px, 0.32, 0);
+        group.add(rail);
+      });
+      [0, 0, -1.05].forEach((_, si) => {
+        const pz = si === 0 ? -1.05 : 1.05;
+        for (let i = -1; i <= 1; i++) {
+          const post = new THREE.Mesh(postGeom, fenceMat);
+          post.position.set(i * 0.7, 0.22, pz);
+          group.add(post);
+        }
+        const rail = new THREE.Mesh(railGeom, fenceMat);
+        rail.position.set(0, 0.32, pz);
+        group.add(rail);
       });
     }
     else if (type === 'mill') {

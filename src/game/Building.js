@@ -876,8 +876,16 @@ export class Building {
     // Windmill sails animation
     if (this.type === 'mill' && this.mesh) {
       const sails = this.mesh.getObjectByName("sails");
-      if (sails) {
-        sails.rotation.z += 1.0 * deltaTime; // rotate 1 radian per second
+      if (sails) sails.rotation.z += 1.0 * deltaTime;
+    }
+
+    // Farm corn sway (wind effect on crops)
+    if (this.type === 'farm' && this.mesh) {
+      const crops = this.mesh.getObjectByName("crops");
+      if (crops) {
+        const t = performance.now() * 0.001;
+        crops.rotation.x = Math.sin(t * 1.4) * 0.03;
+        crops.rotation.z = Math.sin(t * 0.9 + 1.0) * 0.025;
       }
     }
     
