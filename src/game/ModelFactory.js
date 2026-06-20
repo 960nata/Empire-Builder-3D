@@ -254,7 +254,9 @@ export class ModelFactory {
   // On subsequent calls: clones from in-memory cache instantly (O(n) meshes)
   // Procedural mesh always shows first; GLB swaps in when ready.
   // scaleByHeight: scale to fit targetSize on Y axis (use for trees where Z > Y)
-  _loadGLB(key, url, targetSize, scaleByHeight = false) {
+  // rotX: pre-rotate around X axis before computing scale/floor-snap.
+  // Used for Z-up GLBs (forest pack trees) where height is along Z not Y.
+  _loadGLB(key, url, targetSize, scaleByHeight = false, rotX = 0) {
     if (this._glbScenes[key]) {
       return Promise.resolve(this._cloneGLB(key));
     }
@@ -264,6 +266,9 @@ export class ModelFactory {
           url,
           (gltf) => {
             const root = gltf.scene;
+
+            // Apply pre-rotation before bbox (fixes Z-up models like forest-pack trees)
+            if (rotX) root.rotation.x = rotX;
 
             // Auto-fit: scale so the longest axis (or Y for trees) == targetSize
             const box  = new OriginalTHREE.Box3().setFromObject(root);
@@ -352,10 +357,10 @@ export class ModelFactory {
   loadTownCenterGLB()  { return this._loadGLB('townCenter',   '/models/town-center.glb',       7.0); }
   loadWindmillGLB()    { return this._loadGLB('windmill',     '/models/windmill.glb',          3.5); }
 
-  // Trees & vegetation (scaleByHeight=true: scale based on height not max-dim)
-  loadTreePineGLB()    { return this._loadGLB('treePine',   '/models/tree-pine.glb',   4.5, true); }
-  loadTreeOakGLB()     { return this._loadGLB('treeOak',    '/models/tree-oak.glb',    4.0, true); }
-  loadGrassShrubGLB()  { return this._loadGLB('grassShrub', '/models/grass-shrub.glb', 1.2, true); }
+  // Trees & vegetation — forest pack is Z-up: rotX=-π/2 stands them upright
+  loadTreePineGLB()    { return this._loadGLB('treePine',   '/models/tree-pine.glb',   4.5, true, -Math.PI / 2); }
+  loadTreeOakGLB()     { return this._loadGLB('treeOak',    '/models/tree-oak.glb',    4.0, true, -Math.PI / 2); }
+  loadGrassShrubGLB()  { return this._loadGLB('grassShrub', '/models/grass-shrub.glb', 1.2, true, -Math.PI / 2); }
 
   // Siege units — Kenney Castle Kit (CC0, lightweight, game-ready)
   loadSiegeCatapultGLB()  { return this._loadGLB('siegeCatapult',  '/models/siege-catapult.glb',  2.5); }
